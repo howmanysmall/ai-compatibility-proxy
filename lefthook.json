@@ -23,7 +23,7 @@
 			{
 				"glob": ["*.js", "*.jsx", "*.ts", "*.tsx"],
 				"name": "js-ts-pipeline",
-				"run": "mise x -- deno task oxlint --no-error-on-unmatched-pattern --fix {staged_files} &&\nmise x -- deno task biome lint --write --no-errors-on-unmatched {staged_files} &&\nmise x -- deno lint --fix --permit-no-files {staged_files} &&\nmise x -- deno task oxfmt -- --no-error-on-unmatched-pattern {staged_files}",
+				"run": "mise x -- deno task oxlint --no-error-on-unmatched-pattern --fix {staged_files} && mise x -- deno task biome lint --write --no-errors-on-unmatched {staged_files} && mise x -- deno lint --fix --permit-no-files {staged_files} && mise x -- deno task oxfmt --no-error-on-unmatched-pattern {staged_files}",
 				"stage_fixed": true
 			},
 			{
