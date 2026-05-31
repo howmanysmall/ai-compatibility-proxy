@@ -5,7 +5,7 @@ import { basename } from "@std/path";
 
 import type { LogObject, LogType } from "consola";
 
-const hostName = Deno.hostname();
+const UNKNOWN_HOST_NAME = "unknown";
 const STANDARD_LOG_OBJECT_KEYS = new Set(["additional", "args", "context", "date", "level", "message", "tag", "type"]);
 let currentSequenceNumber = 0;
 
@@ -39,6 +39,14 @@ export interface StructuredLogEntry {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function getHostName(): string {
+	try {
+		return Deno.hostname();
+	} catch {
+		return UNKNOWN_HOST_NAME;
+	}
 }
 
 function getSeverityName(level: number, type: LogType): string {
@@ -132,7 +140,7 @@ export function normalizeLogEntry(logObject: LogObject): StructuredLogEntry {
 	const normalizedEntry: StructuredLogEntry = {
 		application: { name, version },
 		context,
-		host: { name: hostName },
+		host: { name: getHostName() },
 		level: getSeverityName(logObject.level, logObject.type),
 		levelValue: logObject.level,
 		message: buildMessage(logObject, sanitizedArguments),

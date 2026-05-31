@@ -5,13 +5,13 @@ _.path = ["{{config_root}}/node_modules/.bin", "{{cwd}}/node_modules/.bin"]
 [tools]
 deno = "2.8.1"
 "github:howmanysmall/npm-registry-mcp" = "latest"
-"github:howmanysmall/jsr-cli" = "latest"
 "github:howmanysmall/pullhook" = "latest"
 lefthook = "latest"
 rumdl = "latest"
 shfmt = "latest"
 tombi = "latest"
 ni = "latest"
+"github:howmanysmall/jsr-cli" = "latest"
 
 [settings]
 auto_install = false
