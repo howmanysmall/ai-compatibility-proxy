@@ -1,3 +1,4 @@
+import nodeProcess from "node:process";
 import { name, version } from "@constants/package-json.ts";
 import { getActiveLogContext, mergeLogContexts, sanitizeLogContext } from "@logging/log-context.ts";
 import { sanitize } from "@logging/sanitizer.ts";
@@ -147,7 +148,7 @@ export function normalizeLogEntry(logObject: LogObject): StructuredLogEntry {
 		process: {
 			id: Deno.pid,
 			platform: Deno.build.os,
-			title: basename(process.title),
+			title: basename(nodeProcess.title),
 			version: getVersion(),
 		},
 		sequenceNumber: ++currentSequenceNumber,
