@@ -1,0 +1,15 @@
+{
+	"mcpServers": {
+		"gh-grep": {
+			"url": "https://mcp.grep.app"
+		},
+		"jsr": {
+			"args": ["x", "--", "jsr-cli", "mcp"],
+			"command": "mise"
+		},
+		"npm": {
+			"args": ["x", "--", "npm-registry-mcp"],
+			"command": "mise"
+		}
+	}
+}

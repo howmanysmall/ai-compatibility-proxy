@@ -41,7 +41,7 @@
 	},
 	"formatter": {
 		"biome": {
-			"command": ["aube", "run", "biome", "format", "--", "--write", "$FILE"],
+			"command": ["mise", "x", "--", "deno", "task", "biome", "format", "--write", "$FILE"],
 			"disabled": false,
 			"extensions": [
 				".astro",
@@ -67,7 +67,7 @@
 			]
 		},
 		"oxfmt": {
-			"command": ["aube", "run", "oxfmt", "$FILE"],
+			"command": ["mise", "x", "--", "deno", "task", "oxfmt", "$FILE"],
 			"disabled": false,
 			"environment": {},
 			"extensions": [
@@ -99,12 +99,12 @@
 			]
 		},
 		"rumdl": {
-			"command": ["rumdl", "check", "--fix", "$FILE"],
+			"command": ["mise", "x", "--", "rumdl", "check", "--fix", "$FILE"],
 			"disabled": false,
 			"extensions": [".md", ".markdown", ".mdown", ".mkdn", ".mkd", ".mdwn", ".mdtxt", ".mdtext", ".text", ".Rmd"]
 		},
 		"tombi": {
-			"command": ["tombi", "format", "$FILE"],
+			"command": ["mise", "x", "--", "tombi", "format", "$FILE"],
 			"disabled": false,
 			"extensions": [".toml"]
 		}
@@ -112,7 +112,7 @@
 	"instructions": ["./AGENTS.md"],
 	"lsp": {
 		"biome": {
-			"command": ["aube", "run", "biome", "lsp-proxy"],
+			"command": ["mise", "x", "--", "deno", "task", "biome", "lsp-proxy"],
 			"disabled": false,
 			"env": {},
 			"extensions": [
@@ -139,14 +139,14 @@
 			]
 		},
 		"deno": {
-			"command": ["deno", "lsp"],
+			"command": ["mise", "x", "--", "deno", "lsp"],
 			"disabled": false,
 			"env": {},
 			"extensions": [".ts", ".tsx", ".js", ".jsx"]
 		},
 		"eslint": { "disabled": true },
 		"oxfmt": {
-			"command": ["aube", "run", "oxfmt", "--lsp"],
+			"command": ["mise", "x", "--", "deno", "task", "oxfmt", "--lsp"],
 			"disabled": false,
 			"env": {},
 			"extensions": [
@@ -179,24 +179,24 @@
 			"initialization": {}
 		},
 		"oxlint": {
-			"command": ["aube", "run", "oxlint", "--lsp"],
+			"command": ["mise", "x", "--", "deno", "task", "oxlint", "--lsp"],
 			"disabled": false,
 			"env": {},
 			"extensions": [".js", ".mjs", ".cjs", ".ts", ".mts", ".cts", ".jsx", ".tsx", ".vue", ".svelte", ".astro"],
 			"initialization": {}
 		},
 		"rumdl": {
-			"command": ["rumdl", "server"],
+			"command": ["mise", "x", "--", "rumdl", "server"],
 			"disabled": false,
 			"extensions": [".md", ".markdown", ".mdown", ".mkdn", ".mkd", ".mdwn", ".mdtxt", ".mdtext", ".text", ".Rmd"]
 		},
 		"tombi": {
-			"command": ["tombi", "lsp"],
+			"command": ["mise", "x", "--", "tombi", "lsp"],
 			"disabled": false,
 			"extensions": [".toml"]
 		},
 		"typescript": {
-			"command": ["aube", "run", "typescript", "--", "--lsp", "--stdio"],
+			"command": ["mise", "x", "--", "deno", "task", "typescript", "--", "--lsp", "--stdio"],
 			"disabled": true,
 			"extensions": [".ts", ".tsx"]
 		}
@@ -219,13 +219,13 @@
 			"type": "remote",
 			"url": "https://api.githubcopilot.com/mcp/"
 		},
-		"jsr-registry": {
-			"command": ["jsr-mcp", "mcp"],
+		"jsr": {
+			"command": ["mise", "x", "--", "jsr-cli", "mcp"],
 			"enabled": true,
 			"type": "local"
 		},
 		"npm-registry": {
-			"command": ["npm-registry-mcp"],
+			"command": ["mise", "x", "--", "npm-registry-mcp"],
 			"enabled": true,
 			"type": "local"
 		}
@@ -313,5 +313,5 @@
 		}
 	},
 	"shell": "fish",
-	"username": "ts-scripts"
+	"username": "ai-compatibility-proxy"
 }
