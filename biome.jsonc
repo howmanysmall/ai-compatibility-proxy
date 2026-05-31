@@ -238,15 +238,7 @@
 		},
 
 		{
-			"includes": [
-				".vscode/**",
-				".vscode/*.code-snippets",
-				"**/*.code-workspace",
-				"tsconfig.json",
-				"tsconfig*.json",
-				"opencode.jsonc",
-				"*.code-snippets"
-			],
+			"includes": [".vscode/**", ".vscode/*.code-snippets", "**/*.code-workspace"],
 			"json": {
 				"formatter": {
 					"enabled": true,

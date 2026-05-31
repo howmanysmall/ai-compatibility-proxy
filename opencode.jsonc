@@ -101,18 +101,7 @@
 		"rumdl": {
 			"command": ["rumdl", "check", "--fix", "$FILE"],
 			"disabled": false,
-			"extensions": [
-				".md",
-				".markdown",
-				".mdown",
-				".mkdn",
-				".mkd",
-				".mdwn",
-				".mdtxt",
-				".mdtext",
-				".text",
-				".Rmd"
-			]
+			"extensions": [".md", ".markdown", ".mdown", ".mkdn", ".mkd", ".mdwn", ".mdtxt", ".mdtext", ".text", ".Rmd"]
 		},
 		"tombi": {
 			"command": ["tombi", "format", "$FILE"],
@@ -199,18 +188,7 @@
 		"rumdl": {
 			"command": ["rumdl", "server"],
 			"disabled": false,
-			"extensions": [
-				".md",
-				".markdown",
-				".mdown",
-				".mkdn",
-				".mkd",
-				".mdwn",
-				".mdtxt",
-				".mdtext",
-				".text",
-				".Rmd"
-			]
+			"extensions": [".md", ".markdown", ".mdown", ".mkdn", ".mkd", ".mdwn", ".mdtxt", ".mdtext", ".text", ".Rmd"]
 		},
 		"tombi": {
 			"command": ["tombi", "lsp"],
