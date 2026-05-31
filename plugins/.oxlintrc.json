@@ -1,0 +1,20 @@
+{
+	"$schema": "../node_modules/oxlint/configuration_schema.json",
+	"env": {
+		"node": true
+	},
+	"extends": ["../.oxlintrc.json"],
+	"ignorePatterns": ["**/*.js"],
+	"rules": {
+		"import/no-default-export": "off",
+		"max-lines-per-function": [
+			"off",
+			{
+				"max": 75,
+				"skipBlankLines": true,
+				"skipComments": true
+			}
+		],
+		"typescript/no-unsafe-call": "off"
+	}
+}

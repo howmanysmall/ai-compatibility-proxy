@@ -1,0 +1,33 @@
+{
+	"compilerOptions": {
+		"exactOptionalPropertyTypes": true,
+		"jsx": "react-jsx",
+		"lib": ["deno.ns", "deno.unstable", "deno.window", "deno.worker", "esnext", "dom", "dom.iterable"],
+		"module": "preserve",
+		"moduleResolution": "bundler",
+		"noFallthroughCasesInSwitch": true,
+		"noImplicitOverride": true,
+		"noImplicitReturns": true,
+		"noUncheckedIndexedAccess": true,
+		"paths": {
+			"@oxlint-rules/*": ["./oxc/small-rules/rules/*"],
+			"@oxlint-types/*": ["./oxc/small-rules/types/*"],
+			"@oxlint-utilities/*": ["./oxc/small-rules/utilities/*"],
+			"@small-rules": ["./oxc/small-rules/index.ts"]
+		},
+		"skipLibCheck": true,
+		"strict": true,
+		"verbatimModuleSyntax": true
+	},
+	"exclude": ["**/node_modules/**"],
+	"imports": {
+		"@oxlint-rules/": "./oxc/small-rules/rules/",
+		"@oxlint-types/": "./oxc/small-rules/types/",
+		"@oxlint-utilities/": "./oxc/small-rules/utilities/",
+		"@small-rules": "./oxc/small-rules/index.ts",
+		"arktype": "npm:arktype@^2.2.0",
+		"oxc-parser": "npm:oxc-parser@^0.132.0",
+		"oxc-resolver": "npm:oxc-resolver@^11.19.1",
+		"oxlint-plugin-utilities": "npm:oxlint-plugin-utilities@^1.0.0"
+	}
+}

@@ -1,0 +1,27 @@
+[env]
+_.file = { path = ".env" }
+_.path = ["{{config_root}}/node_modules/.bin", "{{cwd}}/node_modules/.bin"]
+
+[tools]
+deno = "2.8.1"
+"github:howmanysmall/npm-registry-mcp" = "latest"
+"github:howmanysmall/jsr-cli" = "latest"
+"github:howmanysmall/pullhook" = "latest"
+lefthook = "latest"
+rumdl = "latest"
+shfmt = "latest"
+tombi = "latest"
+ni = "latest"
+
+[settings]
+auto_install = false
+lockfile = true
+
+[tasks.lockfile]
+description = "Regenerate lockfile checksums for all tools, then install"
+run = ["mise lock", "mise install"]
+
+[tasks.lockfile-tool]
+description = "Regenerate lockfile checksums for a specific tool, then install"
+usage = 'arg "<tool>" help="Tool to refresh in the lockfile"'
+run = ["mise lock ${usage_tool?}", "mise install"]

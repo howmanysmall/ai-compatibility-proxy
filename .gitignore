@@ -1,0 +1,68 @@
+# Ignore node.js for the future
+**/node_modules/**
+
+# output
+out
+dist
+*.tgz
+
+# code coverage
+coverage
+*.lcov
+
+# logs
+logs
+_.log
+report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
+
+# dotenv environment variable files
+.env
+.env.development.local
+.env.test.local
+.env.production.local
+.env.local
+.envrc
+
+# caches
+.eslintcache
+.cache
+*.tsbuildinfo
+
+# IntelliJ based IDEs
+.idea
+
+# Finder (MacOS) folder config
+.DS_Store
+
+/do-not-sync-ever/
+
+# opensrc - source code for packages
+opensrc/
+
+.vitest-reports/
+
+.agents/skills/clean-code/
+.agents/skills/code-simplifier/
+.agents/skills/knip-deadcode/
+.agents/skills/refactor/
+.agents/skills/shell/
+.agents/skills/skill-authoring/
+.agents/skills/tdd/
+.agents/skills/think/
+.agents/skills/typescript/
+.agents/skills/typescript-async-patterns/
+.agents/skills/typescript-refactor/
+.agents/skills/typescript-type-system/
+.agents/skills/typescript-utility-types/
+.agents/skills/vitest/
+.agents/skills/vitest-performance/
+.agents/skills/vitest-testing-patterns/
+.agents/skills/agentsmd-claudemd-generator/
+.agents/skills/claude-md-improver/
+.agents/skills/aube-package-manager/
+.agents/skills/deno-expert/
+.agents/skills/deno-frontend/
+.agents/skills/deno-guidance/
+.agents/skills/deno-project-templates/
+.agents/skills/deno-sandbox/
+.agents/skills/deno-typescript/
