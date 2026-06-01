@@ -13,7 +13,14 @@
 			}
 		},
 		"enabled": true,
-		"includes": ["**", "!.omo/**", "!skills-lock.json", "!package.json", "!plugins/oxc/small-rules.js"]
+		"includes": [
+			"**",
+			"!.omo/**",
+			"!.repos/**",
+			"!skills-lock.json",
+			"!package.json",
+			"!plugins/oxc/small-rules.js"
+		]
 	},
 
 	"css": {
@@ -31,7 +38,14 @@
 	},
 
 	"files": {
-		"includes": ["**", "!.omo/**", "!skills-lock.json", "!package.json", "!plugins/oxc/small-rules.js"]
+		"includes": [
+			"**",
+			"!.omo/**",
+			"!.repos/**",
+			"!skills-lock.json",
+			"!package.json",
+			"!plugins/oxc/small-rules.js"
+		]
 	},
 
 	"formatter": {
@@ -44,6 +58,7 @@
 		"includes": [
 			"**/*.{json,jsonc,grit,ts,tsx,js,jsx,code-workspace,astro}",
 			"!.omo/**",
+			"!.repos/**",
 			"!**/{dist,do-not-sync-ever,garbage,node_modules}/**",
 			"!**/*.ts",
 			"!.context/**",
@@ -140,6 +155,7 @@
 			".husky/**",
 			"tests/**",
 			"!.omo/**",
+			"!.repos/**",
 			"!**/.vscode/**",
 			"!**/*.code-workspace",
 			"!**/dist/**",
