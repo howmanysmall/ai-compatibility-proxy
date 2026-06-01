@@ -29,7 +29,7 @@ const isProxyEnvironment = type({
 	"PROXY_API_KEY?": "string",
 	REQUEST_TIMEOUT_MS: "number.integer > 0 = 60000",
 	"UPSTREAM_API_KEY?": "string",
-	UPSTREAM_AUTH_HEADER: "string = 'Authorization'",
+	"UPSTREAM_AUTH_HEADER?": "string",
 	UPSTREAM_AUTH_MODE: "'client_bearer' | 'server_key' = 'client_bearer'",
 	UPSTREAM_BASE_URL: "string = 'https://opencode.ai/zen/go/v1'",
 	UPSTREAM_PROTOCOL: "'anthropic_messages' | 'cerebras_openai' = 'anthropic_messages'",
@@ -48,7 +48,6 @@ export function loadConfiguration(
 		PROXY_API_KEY,
 		REQUEST_TIMEOUT_MS,
 		UPSTREAM_API_KEY,
-		UPSTREAM_AUTH_HEADER,
 		UPSTREAM_AUTH_MODE,
 		UPSTREAM_PROTOCOL,
 	} = arkenv(isProxyEnvironment, {
@@ -57,6 +56,7 @@ export function loadConfiguration(
 		onUndeclaredKey: "delete",
 	});
 	const upstreamBaseUrl = normalizedEnvironment.UPSTREAM_BASE_URL ?? getDefaultBaseUrl(UPSTREAM_PROTOCOL);
+	const upstreamAuthHeader = normalizedEnvironment.UPSTREAM_AUTH_HEADER ?? getDefaultAuthHeader(UPSTREAM_PROTOCOL);
 	const defaultModel = normalizedEnvironment.DEFAULT_MODEL ?? getDefaultModel(UPSTREAM_PROTOCOL);
 
 	return {
@@ -69,7 +69,7 @@ export function loadConfiguration(
 		proxyApiKey: PROXY_API_KEY,
 		requestTimeoutMs: REQUEST_TIMEOUT_MS,
 		upstreamApiKey: UPSTREAM_API_KEY,
-		upstreamAuthHeader: UPSTREAM_AUTH_HEADER,
+		upstreamAuthHeader,
 		upstreamAuthMode: UPSTREAM_AUTH_MODE,
 		upstreamBaseUrl: stripTrailingSlash(upstreamBaseUrl),
 		upstreamProtocol: UPSTREAM_PROTOCOL,
@@ -78,6 +78,10 @@ export function loadConfiguration(
 
 function getDefaultBaseUrl(upstreamProtocol: UpstreamProtocol): string {
 	return upstreamProtocol === "anthropic_messages" ? "https://opencode.ai/zen/go/v1" : "https://api.cerebras.ai/v1";
+}
+
+function getDefaultAuthHeader(upstreamProtocol: UpstreamProtocol): string {
+	return upstreamProtocol === "anthropic_messages" ? "x-api-key" : "Authorization";
 }
 
 function getDefaultModel(upstreamProtocol: UpstreamProtocol): string {

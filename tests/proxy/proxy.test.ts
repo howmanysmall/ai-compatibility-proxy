@@ -113,13 +113,15 @@ Deno.test("uses default token limit when OpenAI request omits one", () => {
 Deno.test("translates Anthropic response to OpenAI response with cache usage", () => {
 	const openAIResponse = translateAnthropicToOpenAi(
 		{
+			base_resp: { status_code: 0, status_msg: "success" },
 			content: [
 				{ text: "Hello ", type: "text" },
-				{ text: "hidden", type: "thinking" },
+				{ signature: "opaque", thinking: "hidden", type: "thinking" },
 				{ text: "there.", type: "text" },
 			],
+			cost: "0",
 			id: "msg_123",
-			model: "minimax-m3",
+			model: "MiniMax-M2.7",
 			stop_reason: "max_tokens",
 			type: "message",
 			usage: {
@@ -133,6 +135,7 @@ Deno.test("translates Anthropic response to OpenAI response with cache usage", (
 	);
 
 	assert(openAIResponse.id === "msg_123", "Expected upstream id.");
+	assert(openAIResponse.model === "MiniMax-M2.7", "Expected upstream model.");
 	assert(openAIResponse.choices[0]?.message.content === "Hello there.", "Expected concatenated text blocks.");
 	assert(openAIResponse.choices[0]?.finish_reason === "length", "Expected max_tokens to map to length.");
 	assert(openAIResponse.usage?.prompt_tokens === 15, "Expected cache tokens to count toward prompt tokens.");
@@ -330,6 +333,16 @@ Deno.test("loads OpenCode Go MiniMax M3 defaults", () => {
 
 	assert(config.upstreamProtocol === "anthropic_messages", "Expected Anthropic protocol default.");
 	assert(config.upstreamBaseUrl === "https://opencode.ai/zen/go/v1", "Expected OpenCode Go base URL.");
+	assert(config.upstreamAuthHeader === "x-api-key", "Expected OpenCode Go x-api-key default.");
 	assert(config.defaultModel === "minimax-m3", "Expected MiniMax M3 default.");
 	assert(config.defaultMaxTokens === 4096, "Expected token default.");
+});
+
+Deno.test("loads Cerebras defaults", () => {
+	const config = loadConfiguration({ UPSTREAM_PROTOCOL: "cerebras_openai" });
+
+	assert(config.upstreamProtocol === "cerebras_openai", "Expected Cerebras protocol.");
+	assert(config.upstreamBaseUrl === "https://api.cerebras.ai/v1", "Expected Cerebras base URL.");
+	assert(config.upstreamAuthHeader === "Authorization", "Expected Cerebras Authorization default.");
+	assert(config.defaultModel === "gpt-oss-120b", "Expected Cerebras default model.");
 });

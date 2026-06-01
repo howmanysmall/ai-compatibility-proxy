@@ -48,7 +48,7 @@ export const isAnthropicUsage = type({
 export type AnthropicUsage = typeof isAnthropicUsage.infer;
 
 export const isAnthropicMessagesResponse = type({
-	"+": "reject",
+	"[string]": "unknown",
 	"content?": type("Record<string, unknown>").readonly().array().readonly(),
 	"id?": "string",
 	"model?": "string",

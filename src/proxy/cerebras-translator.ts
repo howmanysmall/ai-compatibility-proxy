@@ -82,9 +82,7 @@ function handleUnsupportedCerebrasField(
 	throw error;
 }
 
-function normalizeCerebrasMessages(
-	messages: OpenAiChatCompletionRequest["messages"],
-): ReadonlyArray<OpenAiChatMessage> {
+function normalizeCerebrasMessages(messages?: ReadonlyArray<OpenAiChatMessage>): ReadonlyArray<OpenAiChatMessage> {
 	if (!Array.isArray(messages) || messages.length === 0) {
 		const error = new ProxyError("messages must be a non-empty array.", { param: "messages" });
 		Error.captureStackTrace(error, normalizeCerebrasMessages);
@@ -94,7 +92,7 @@ function normalizeCerebrasMessages(
 	const openAiChatMessages: Array<OpenAiChatMessage> = [];
 	let size = 0;
 
-	for (const message of openAiChatMessages) {
+	for (const message of messages) {
 		if (
 			message.role !== "system" &&
 			message.role !== "developer" &&

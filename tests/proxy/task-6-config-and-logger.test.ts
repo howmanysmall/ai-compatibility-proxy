@@ -47,7 +47,7 @@ Deno.test("Arkenv config applies defaults for all optional env vars", () => {
 	assertEquals(config.proxyApiKey, undefined, "Expected proxy key optional default.");
 	assertEquals(config.requestTimeoutMs, 60_000, "Expected timeout default.");
 	assertEquals(config.upstreamApiKey, undefined, "Expected upstream key optional default.");
-	assertEquals(config.upstreamAuthHeader, "Authorization", "Expected auth header default.");
+	assertEquals(config.upstreamAuthHeader, "x-api-key", "Expected OpenCode Go auth header default.");
 	assertEquals(config.upstreamAuthMode, "client_bearer", "Expected auth mode default.");
 	assertEquals(config.upstreamBaseUrl, "https://opencode.ai/zen/go/v1", "Expected base URL default.");
 	assertEquals(config.upstreamProtocol, "anthropic_messages", "Expected protocol default.");
@@ -58,6 +58,7 @@ Deno.test("Arkenv config preserves Cerebras protocol-specific defaults", () => {
 
 	assertEquals(config.upstreamProtocol, "cerebras_openai", "Expected Cerebras protocol.");
 	assertEquals(config.upstreamBaseUrl, "https://api.cerebras.ai/v1", "Expected Cerebras base URL default.");
+	assertEquals(config.upstreamAuthHeader, "Authorization", "Expected Cerebras auth header default.");
 	assertEquals(config.defaultModel, "gpt-oss-120b", "Expected Cerebras model default.");
 });
 
