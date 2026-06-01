@@ -6,6 +6,10 @@ This file provides guidance to agents when working with code in this repository.
 
 A self-hosted Deno proxy that exposes an OpenAI-compatible API (`/v1/chat/completions`, `/v1/models`, `/health`) and translates requests to upstream providers that are not natively OpenAI-compatible. Two upstream protocols are supported: Anthropic Messages (default, via OpenCode Go) and Cerebras OpenAI-compatible.
 
+## Rules
+
+- Do NOT ever revert changes YOU do not own.
+
 ## Commands
 
 All commands run through `mise`:
