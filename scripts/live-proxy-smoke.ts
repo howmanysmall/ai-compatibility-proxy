@@ -2,7 +2,8 @@
 
 import { setTimeout } from "node:timers/promises";
 import { Command } from "@cliffy/command";
-import { Predicate } from "effect";
+import { Confirm, Input, Select } from "@cliffy/prompt";
+import { Effect, Predicate } from "effect";
 
 interface ProviderConfiguration {
 	readonly keyEnvironmentVariable: string;
@@ -31,6 +32,8 @@ interface SmokeResult {
 }
 
 interface LiveSmokeCommandOptions {
+	readonly dryRun?: boolean | undefined;
+	readonly interactive?: boolean | undefined;
 	readonly live?: boolean | undefined;
 	readonly port?: number | undefined;
 	readonly prompt?: string | undefined;
@@ -67,92 +70,166 @@ const PROVIDERS: ReadonlyArray<ProviderConfiguration> = [
 if (import.meta.main) {
 	await new Command()
 		.name("live-proxy-smoke")
-		.description("Run repeatable live smoke tests for the OpenCode Go and Cerebras proxy paths.")
+		.description("Run repeatable smoke tests for the OpenCode Go and Cerebras proxy paths.")
+		.option("-i, --interactive", "Prompt for provider, live mode, port, and prompt, even when flags are present.")
+		.option("--dry-run", "Print the planned smoke tests without prompts or upstream requests.")
 		.option("--live", "Actually call upstream providers. Without this flag, performs a dry run only.")
-		.option("--provider <provider:string>", "Provider to test: all, opencode-go, or cerebras.", { default: "all" })
-		.option("--port <port:number>", "Local temporary proxy port.", { default: DEFAULT_PORT })
-		.option("--prompt <prompt:string>", "Prompt sent to each provider.", { default: DEFAULT_PROMPT })
-		.example("Dry run", "mise run live-smoke")
+		.option("--provider <provider:string>", "Provider to test: all, opencode-go, or cerebras.")
+		.option("--port <port:number>", "Local temporary proxy port.")
+		.option("--prompt <prompt:string>", "Prompt sent to each provider.")
+		.example("Guided", "mise run live-smoke")
+		.example("Dry run", "mise run live-smoke -- --dry-run")
 		.example("Run both providers", "mise run live-smoke -- --live")
 		.example("Run only OpenCode Go", "mise run live-smoke -- --live --provider opencode-go")
 		.action(async (options) => {
-			const smokeOptions = normalizeCommandOptions(options);
-			const results = await runSmokeTestsAsync(smokeOptions);
-			if (results.some((result) => !result.success)) Deno.exit(1);
+			const exitCode = await Effect.runPromise(runCommandEffect(options));
+			if (exitCode !== 0) Deno.exit(exitCode);
 		})
 		.parse(Deno.args);
 }
 
-async function runSmokeTestsAsync(smokeOptions: SmokeOptions): Promise<ReadonlyArray<SmokeResult>> {
-	const providerConfigurations = getProviderConfigurations(smokeOptions.provider);
-
-	if (!smokeOptions.isLive) {
-		await printDryRunAsync(providerConfigurations, smokeOptions);
-		return [];
-	}
-
-	const results = await testProvidersAsync(providerConfigurations, smokeOptions);
-	printSummary(results);
-	return results;
+function runCommandEffect(commandOptions: LiveSmokeCommandOptions): Effect.Effect<number, Error> {
+	return Effect.gen(function* runCommandGenerator() {
+		const smokeOptions = yield* resolveSmokeOptionsEffect(commandOptions);
+		const results = yield* runSmokeTestsEffect(smokeOptions);
+		return results.some((result) => !result.success) ? 1 : 0;
+	});
 }
 
-async function printDryRunAsync(
+function resolveSmokeOptionsEffect(commandOptions: LiveSmokeCommandOptions): Effect.Effect<SmokeOptions, Error> {
+	if (commandOptions.interactive === true || shouldPrompt(commandOptions)) {
+		return promptForSmokeOptionsEffect(commandOptions);
+	}
+	return Effect.sync(() => normalizeCommandOptions(commandOptions));
+}
+
+function shouldPrompt({ dryRun, live, port, prompt, provider }: LiveSmokeCommandOptions): boolean {
+	return (
+		dryRun !== true &&
+		live !== true &&
+		port === undefined &&
+		prompt === undefined &&
+		provider === undefined &&
+		Deno.stdin.isTerminal() &&
+		Deno.stdout.isTerminal()
+	);
+}
+
+function promptForSmokeOptionsEffect(commandOptions: LiveSmokeCommandOptions): Effect.Effect<SmokeOptions, Error> {
+	return Effect.tryPromise({
+		catch: toError,
+		try: async () => {
+			const providerText = await Select.prompt({
+				message: "Provider to test",
+				options: [
+					{ name: "All providers", value: "all" },
+					{ name: "OpenCode Go", value: "opencode-go" },
+					{ name: "Cerebras", value: "cerebras" },
+				],
+			});
+			const isLive = await Confirm.prompt({
+				default: commandOptions.live === true,
+				message: "Make live upstream requests?",
+			});
+			const portText = await Input.prompt({
+				default: String(commandOptions.port ?? DEFAULT_PORT),
+				message: "Local proxy port",
+			});
+			const prompt = await Input.prompt({
+				default: commandOptions.prompt ?? DEFAULT_PROMPT,
+				message: "Prompt",
+			});
+
+			return {
+				isLive,
+				port: parsePort(Number(portText)),
+				prompt,
+				provider: parseProvider(providerText),
+			};
+		},
+	});
+}
+
+function runSmokeTestsEffect(smokeOptions: SmokeOptions): Effect.Effect<ReadonlyArray<SmokeResult>, Error> {
+	return Effect.gen(function* runSmokeTestsGenerator() {
+		const providerConfigurations = getProviderConfigurations(smokeOptions.provider);
+
+		if (!smokeOptions.isLive) {
+			yield* printDryRunEffect(providerConfigurations, smokeOptions);
+			return [];
+		}
+
+		const results = yield* testProvidersEffect(providerConfigurations, smokeOptions);
+		printSummary(results);
+		return results;
+	});
+}
+
+function printDryRunEffect(
 	providerConfigurations: ReadonlyArray<ProviderConfiguration>,
 	{ port, prompt }: SmokeOptions,
-): Promise<void> {
-	console.log("Live proxy smoke dry run");
-	console.log("");
-	console.log("No upstream requests were made. Pass --live to run exactly one chat completion per provider.");
-	console.log(`Port: ${port}`);
-	console.log(`Prompt: ${prompt}`);
-	console.log("");
+): Effect.Effect<void, Error> {
+	return Effect.gen(function* printDryRunGenerator() {
+		console.log("Live proxy smoke dry run");
+		console.log("");
+		console.log("No upstream requests were made. Pass --live to run exactly one chat completion per provider.");
+		console.log(`Port: ${port}`);
+		console.log(`Prompt: ${prompt}`);
+		console.log("");
 
-	const keyStatuses = await Promise.all(
-		providerConfigurations.map((providerConfiguration) => getKeyStatusAsync(providerConfiguration)),
-	);
-	for (const [index, providerConfiguration] of providerConfigurations.entries()) {
-		const keyStatus = keyStatuses[index] ?? "unknown";
-		console.log(`${providerConfiguration.name}:`);
-		console.log(`  protocol: ${providerConfiguration.upstreamProtocol}`);
-		console.log(`  base URL: ${providerConfiguration.upstreamBaseUrl}`);
-		console.log(`  model: ${providerConfiguration.model}`);
-		console.log(`  max tokens: ${providerConfiguration.maxTokens}`);
-		console.log(`  key: ${keyStatus}`);
-	}
-	console.log("");
-	console.log("Examples:");
-	console.log("  mise run live-smoke -- --live");
-	console.log("  mise run live-smoke -- --live --provider opencode-go");
-	console.log("  mise run live-smoke -- --live --provider cerebras");
+		const keyStatuses = yield* Effect.all(
+			providerConfigurations.map((providerConfiguration) => getKeyStatusEffect(providerConfiguration)),
+		);
+		for (const [index, providerConfiguration] of providerConfigurations.entries()) {
+			const keyStatus = keyStatuses[index] ?? "unknown";
+			console.log(`${providerConfiguration.name}:`);
+			console.log(`  protocol: ${providerConfiguration.upstreamProtocol}`);
+			console.log(`  base URL: ${providerConfiguration.upstreamBaseUrl}`);
+			console.log(`  model: ${providerConfiguration.model}`);
+			console.log(`  max tokens: ${providerConfiguration.maxTokens}`);
+			console.log(`  key: ${keyStatus}`);
+		}
+		console.log("");
+		console.log("Examples:");
+		console.log("  mise run live-smoke");
+		console.log("  mise run live-smoke -- --dry-run");
+		console.log("  mise run live-smoke -- --live");
+		console.log("  mise run live-smoke -- --live --provider opencode-go");
+		console.log("  mise run live-smoke -- --live --provider cerebras");
+	});
 }
 
-async function testProvidersAsync(
+function testProvidersEffect(
 	providerConfigurations: ReadonlyArray<ProviderConfiguration>,
 	smokeOptions: SmokeOptions,
-): Promise<ReadonlyArray<SmokeResult>> {
+): Effect.Effect<ReadonlyArray<SmokeResult>, Error> {
 	const [providerConfiguration, ...remainingProviderConfigurations] = providerConfigurations;
-	if (providerConfiguration === undefined) return [];
+	if (providerConfiguration === undefined) return Effect.succeed([]);
 
-	const result = await testProviderAsync(providerConfiguration, smokeOptions);
-	const remainingResults = await testProvidersAsync(remainingProviderConfigurations, smokeOptions);
-	return [result, ...remainingResults];
+	return Effect.gen(function* testProvidersGenerator() {
+		const result = yield* testProviderEffect(providerConfiguration, smokeOptions);
+		const remainingResults = yield* testProvidersEffect(remainingProviderConfigurations, smokeOptions);
+		return [result, ...remainingResults];
+	});
 }
 
-async function testProviderAsync(
+function testProviderEffect(
 	providerConfiguration: ProviderConfiguration,
 	{ port, prompt }: SmokeOptions,
-): Promise<SmokeResult> {
-	const apiKey = await readApiKeyAsync(providerConfiguration);
-	const childProcess = startProxyProcess(providerConfiguration, port);
+): Effect.Effect<SmokeResult, Error> {
+	return Effect.gen(function* testProviderGenerator() {
+		const apiKey = yield* readApiKeyEffect(providerConfiguration);
+		const childProcess = startProxyProcess(providerConfiguration, port);
 
-	try {
-		await waitForHealthAsync(port, providerConfiguration.name);
-		const result = await requestChatCompletionAsync(providerConfiguration, apiKey, port, prompt);
-		printResult(result);
-		return result;
-	} finally {
-		await stopProxyProcessAsync(childProcess);
-	}
+		try {
+			yield* waitForHealthEffect(port, providerConfiguration.name);
+			const result = yield* requestChatCompletionEffect(providerConfiguration, apiKey, port, prompt);
+			printResult(result);
+			return result;
+		} finally {
+			yield* stopProxyProcessEffect(childProcess);
+		}
+	});
 }
 
 function startProxyProcess(providerConfiguration: ProviderConfiguration, port: number): Deno.ChildProcess {
@@ -185,51 +262,61 @@ function createCommandOptions(
 	return commandOptions;
 }
 
-async function stopProxyProcessAsync(childProcess: Deno.ChildProcess): Promise<void> {
-	try {
-		childProcess.kill("SIGTERM");
-	} catch {
-		return;
-	}
+function stopProxyProcessEffect(childProcess: Deno.ChildProcess): Effect.Effect<void, Error> {
+	return Effect.tryPromise({
+		catch: toError,
+		try: async () => {
+			try {
+				childProcess.kill("SIGTERM");
+			} catch {
+				return;
+			}
 
-	await childProcess.status.catch(() => undefined);
+			await childProcess.status.catch(() => undefined);
+		},
+	});
 }
 
-async function requestChatCompletionAsync(
+function requestChatCompletionEffect(
 	providerConfiguration: ProviderConfiguration,
 	apiKey: string,
 	port: number,
 	prompt: string,
-): Promise<SmokeResult> {
-	const response = await fetch(`http://127.0.0.1:${port}/v1/chat/completions`, {
-		body: JSON.stringify({
-			max_tokens: providerConfiguration.maxTokens,
-			messages: [{ content: prompt, role: "user" }],
-			model: providerConfiguration.model,
-			temperature: 0,
-		}),
-		headers: {
-			authorization: `Bearer ${apiKey}`,
-			"content-type": "application/json",
-		},
-		method: "POST",
-	});
-	const body = await response.json();
-	if (!Predicate.isRecord(body)) {
-		return createFailedResult(providerConfiguration, response.status, "non-object response");
-	}
+): Effect.Effect<SmokeResult, Error> {
+	return Effect.tryPromise({
+		catch: toError,
+		try: async () => {
+			const response = await fetch(`http://127.0.0.1:${port}/v1/chat/completions`, {
+				body: JSON.stringify({
+					max_tokens: providerConfiguration.maxTokens,
+					messages: [{ content: prompt, role: "user" }],
+					model: providerConfiguration.model,
+					temperature: 0,
+				}),
+				headers: {
+					authorization: `Bearer ${apiKey}`,
+					"content-type": "application/json",
+				},
+				method: "POST",
+			});
+			const body = await response.json();
+			if (!Predicate.isRecord(body)) {
+				return createFailedResult(providerConfiguration, response.status, "non-object response");
+			}
 
-	const content = getFirstChoiceMessageContent(body);
-	const finishReason = getFirstChoiceFinishReason(body);
-	const model = getString(body.model) ?? providerConfiguration.model;
-	return {
-		content,
-		finishReason,
-		httpStatus: response.status,
-		model,
-		provider: providerConfiguration.name,
-		success: response.ok && content.length > 0,
-	};
+			const content = getFirstChoiceMessageContent(body);
+			const finishReason = getFirstChoiceFinishReason(body);
+			const model = getString(body.model) ?? providerConfiguration.model;
+			return {
+				content,
+				finishReason,
+				httpStatus: response.status,
+				model,
+				provider: providerConfiguration.name,
+				success: response.ok && content.length > 0,
+			};
+		},
+	});
 }
 
 function createFailedResult(
@@ -247,59 +334,81 @@ function createFailedResult(
 	};
 }
 
-async function waitForHealthAsync(port: number, providerName: ProviderName): Promise<void> {
-	await waitForHealthAttemptAsync(port, providerName, 0);
+function waitForHealthEffect(port: number, providerName: ProviderName): Effect.Effect<void, Error> {
+	return waitForHealthAttemptEffect(port, providerName, 0);
 }
 
-async function waitForHealthAttemptAsync(port: number, providerName: ProviderName, attempt: number): Promise<void> {
+function waitForHealthAttemptEffect(
+	port: number,
+	providerName: ProviderName,
+	attempt: number,
+): Effect.Effect<void, Error> {
 	if (attempt >= 20) {
-		const error = new Error(`Timed out waiting for ${providerName} proxy on port ${port}.`);
-		Error.captureStackTrace(error, waitForHealthAttemptAsync);
-		throw error;
+		return Effect.fail(new Error(`Timed out waiting for ${providerName} proxy on port ${port}.`));
 	}
 
-	if (await isHealthyAsync(port)) return;
+	return Effect.gen(function* waitForHealthAttemptGenerator() {
+		const isHealthy = yield* isHealthyEffect(port);
+		if (isHealthy) return;
 
-	await setTimeout(100);
-	await waitForHealthAttemptAsync(port, providerName, attempt + 1);
+		yield* Effect.promise(() => setTimeout(100));
+		yield* waitForHealthAttemptEffect(port, providerName, attempt + 1);
+	});
 }
 
-async function isHealthyAsync(port: number): Promise<boolean> {
-	try {
-		const response = await fetch(`http://127.0.0.1:${port}/health`);
-		return response.ok;
-	} catch {
-		return false;
-	}
+function isHealthyEffect(port: number): Effect.Effect<boolean, never> {
+	return Effect.promise(async () => {
+		try {
+			const response = await fetch(`http://127.0.0.1:${port}/health`);
+			return response.ok;
+		} catch {
+			return false;
+		}
+	});
 }
 
-async function readApiKeyAsync({ keyEnvironmentVariable, keyFilePath, name }: ProviderConfiguration): Promise<string> {
-	const environmentValue = Deno.env.get(keyEnvironmentVariable)?.trim();
-	if (environmentValue) return environmentValue;
+function readApiKeyEffect({
+	keyEnvironmentVariable,
+	keyFilePath,
+	name,
+}: ProviderConfiguration): Effect.Effect<string, Error> {
+	return Effect.tryPromise({
+		catch: toError,
+		try: async () => {
+			const environmentValue = Deno.env.get(keyEnvironmentVariable)?.trim();
+			if (environmentValue) return environmentValue;
 
-	try {
-		const fileContent = await Deno.readTextFile(keyFilePath);
-		const fileValue = fileContent.trim();
-		if (fileValue.length > 0) return fileValue;
-	} catch (error) {
-		if (!(error instanceof Deno.errors.NotFound)) throw error;
-	}
+			try {
+				const fileContent = await Deno.readTextFile(keyFilePath);
+				const fileValue = fileContent.trim();
+				if (fileValue.length > 0) return fileValue;
+			} catch (error) {
+				if (!(error instanceof Deno.errors.NotFound)) throw error;
+			}
 
-	const error = new Error(`Missing ${name} key. Set ${keyEnvironmentVariable} or create ${keyFilePath}.`);
-	Error.captureStackTrace(error, readApiKeyAsync);
-	throw error;
+			throw new Error(`Missing ${name} key. Set ${keyEnvironmentVariable} or create ${keyFilePath}.`);
+		},
+	});
 }
 
-async function getKeyStatusAsync({ keyEnvironmentVariable, keyFilePath }: ProviderConfiguration): Promise<string> {
-	if (Deno.env.get(keyEnvironmentVariable)?.trim()) return `${keyEnvironmentVariable} is set`;
+function getKeyStatusEffect({
+	keyEnvironmentVariable,
+	keyFilePath,
+}: ProviderConfiguration): Effect.Effect<string, Error> {
+	return Effect.tryPromise({
+		catch: toError,
+		try: async () => {
+			if (Deno.env.get(keyEnvironmentVariable)?.trim()) return `${keyEnvironmentVariable} is set`;
 
-	try {
-		const fileInformation = await Deno.stat(keyFilePath);
-		return fileInformation.isFile ? `${keyFilePath} exists` : `${keyFilePath} is not a file`;
-	} catch (error) {
-		if (error instanceof Deno.errors.NotFound) return `${keyFilePath} missing`;
-		return `${keyFilePath} could not be read`;
-	}
+			try {
+				const fileInformation = await Deno.stat(keyFilePath);
+				return fileInformation.isFile ? `${keyFilePath} exists` : `${keyFilePath} is not a file`;
+			} catch (error) {
+				if (error instanceof Deno.errors.NotFound) return `${keyFilePath} missing`;
+				return `${keyFilePath} could not be read`;
+			}
+		},
+	});
 }
 
 function normalizeCommandOptions({ live, port, prompt, provider }: LiveSmokeCommandOptions): SmokeOptions {
@@ -378,4 +487,8 @@ function getHomeDirectory(): string {
 	const error = new Error("HOME is required to locate default key files.");
 	Error.captureStackTrace(error, getHomeDirectory);
 	throw error;
+}
+
+function toError(error: unknown): Error {
+	return error instanceof Error ? error : new Error(String(error));
 }
