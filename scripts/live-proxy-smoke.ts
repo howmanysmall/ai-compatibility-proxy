@@ -5,6 +5,8 @@ import { Command } from "@cliffy/command";
 import { Confirm, Input, Select } from "@cliffy/prompt";
 import { Effect, Predicate } from "effect";
 
+import type { ReadonlyRecord } from "effect/Record";
+
 interface ProviderConfiguration {
 	readonly keyEnvironmentVariable: string;
 	readonly keyFilePath: string;
@@ -17,6 +19,7 @@ interface ProviderConfiguration {
 
 interface SmokeOptions {
 	readonly isLive: boolean;
+	readonly opencodeGoModel: OpenCodeGoModel;
 	readonly port: number;
 	readonly provider: ProviderSelection;
 	readonly prompt: string;
@@ -26,32 +29,37 @@ interface SmokeResult {
 	readonly content: string;
 	readonly finishReason: string | undefined;
 	readonly httpStatus: number;
-	readonly model: string;
 	readonly provider: ProviderName;
+	readonly requestedModel: string;
 	readonly success: boolean;
+	readonly upstreamModel: string;
 }
 
 interface LiveSmokeCommandOptions {
 	readonly dryRun?: boolean | undefined;
 	readonly interactive?: boolean | undefined;
 	readonly live?: boolean | undefined;
+	readonly opencodeModel?: string | undefined;
 	readonly port?: number | undefined;
 	readonly prompt?: string | undefined;
 	readonly provider?: string | undefined;
 }
 
+type OpenCodeGoModel = (typeof OPENCODE_GO_MODELS)[number];
 type ProviderName = "opencode-go" | "cerebras";
 type ProviderSelection = ProviderName | "all";
 
 const DEFAULT_PORT = 9876;
 const DEFAULT_PROMPT = "Reply with only the single word: pong";
+const OPENCODE_GO_MODELS = ["minimax-m3", "minimax-m2.7", "minimax-m2.5", "qwen3.7-max", "qwen3.6-plus"] as const;
+const DEFAULT_OPENCODE_GO_MODEL = "minimax-m3" satisfies OpenCodeGoModel;
 const KEY_DIRECTORY = `${getHomeDirectory()}/.config/ai-compatibility-proxy`;
 const PROVIDERS: ReadonlyArray<ProviderConfiguration> = [
 	{
 		keyEnvironmentVariable: "OPENCODE_GO_API_KEY",
 		keyFilePath: `${KEY_DIRECTORY}/opencode-go.key`,
 		maxTokens: 1024,
-		model: "minimax-m2.5",
+		model: DEFAULT_OPENCODE_GO_MODEL,
 		name: "opencode-go",
 		upstreamBaseUrl: "https://opencode.ai/zen/go/v1",
 		upstreamProtocol: "anthropic_messages",
@@ -74,13 +82,17 @@ if (import.meta.main) {
 		.option("-i, --interactive", "Prompt for provider, live mode, port, and prompt, even when flags are present.")
 		.option("--dry-run", "Print the planned smoke tests without prompts or upstream requests.")
 		.option("--live", "Actually call upstream providers. Without this flag, performs a dry run only.")
+		.option("--opencode-model <model:string>", "OpenCode Go model to test.")
 		.option("--provider <provider:string>", "Provider to test: all, opencode-go, or cerebras.")
 		.option("--port <port:number>", "Local temporary proxy port.")
 		.option("--prompt <prompt:string>", "Prompt sent to each provider.")
 		.example("Guided", "mise run live-smoke")
 		.example("Dry run", "mise run live-smoke -- --dry-run")
 		.example("Run both providers", "mise run live-smoke -- --live")
-		.example("Run only OpenCode Go", "mise run live-smoke -- --live --provider opencode-go")
+		.example(
+			"Run OpenCode model",
+			"mise run live-smoke -- --live --provider opencode-go --opencode-model qwen3.7-max",
+		)
 		.action(async (options) => {
 			const exitCode = await Effect.runPromise(runCommandEffect(options));
 			if (exitCode !== 0) Deno.exit(exitCode);
@@ -103,10 +115,11 @@ function resolveSmokeOptionsEffect(commandOptions: LiveSmokeCommandOptions): Eff
 	return Effect.sync(() => normalizeCommandOptions(commandOptions));
 }
 
-function shouldPrompt({ dryRun, live, port, prompt, provider }: LiveSmokeCommandOptions): boolean {
+function shouldPrompt({ dryRun, live, opencodeModel, port, prompt, provider }: LiveSmokeCommandOptions): boolean {
 	return (
 		dryRun !== true &&
 		live !== true &&
+		opencodeModel === undefined &&
 		port === undefined &&
 		prompt === undefined &&
 		provider === undefined &&
@@ -127,6 +140,10 @@ function promptForSmokeOptionsEffect(commandOptions: LiveSmokeCommandOptions): E
 					{ name: "Cerebras", value: "cerebras" },
 				],
 			});
+			const provider = parseProvider(providerText);
+			const opencodeGoModel = shouldAskForOpenCodeGoModel(provider) ?
+				await promptForOpenCodeGoModelAsync() :
+				parseOpenCodeGoModel(commandOptions.opencodeModel ?? DEFAULT_OPENCODE_GO_MODEL);
 			const isLive = await Confirm.prompt({
 				default: commandOptions.live === true,
 				message: "Make live upstream requests?",
@@ -142,17 +159,30 @@ function promptForSmokeOptionsEffect(commandOptions: LiveSmokeCommandOptions): E
 
 			return {
 				isLive,
+				opencodeGoModel,
 				port: parsePort(Number(portText)),
 				prompt,
-				provider: parseProvider(providerText),
+				provider,
 			};
 		},
 	});
 }
 
+async function promptForOpenCodeGoModelAsync(): Promise<OpenCodeGoModel> {
+	const selectedModel = await Select.prompt({
+		message: "OpenCode Go model",
+		options: OPENCODE_GO_MODELS.map((availableModel) => ({ name: availableModel, value: availableModel })),
+	});
+	return parseOpenCodeGoModel(selectedModel);
+}
+
+function shouldAskForOpenCodeGoModel(provider: ProviderSelection): boolean {
+	return provider === "all" || provider === "opencode-go";
+}
+
 function runSmokeTestsEffect(smokeOptions: SmokeOptions): Effect.Effect<ReadonlyArray<SmokeResult>, Error> {
 	return Effect.gen(function* runSmokeTestsGenerator() {
-		const providerConfigurations = getProviderConfigurations(smokeOptions.provider);
+		const providerConfigurations = getProviderConfigurations(smokeOptions);
 
 		if (!smokeOptions.isLive) {
 			yield* printDryRunEffect(providerConfigurations, smokeOptions);
@@ -306,14 +336,15 @@ function requestChatCompletionEffect(
 
 			const content = getFirstChoiceMessageContent(body);
 			const finishReason = getFirstChoiceFinishReason(body);
-			const model = getString(body.model) ?? providerConfiguration.model;
+			const upstreamModel = getString(body.model) ?? providerConfiguration.model;
 			return {
 				content,
 				finishReason,
 				httpStatus: response.status,
-				model,
 				provider: providerConfiguration.name,
+				requestedModel: providerConfiguration.model,
 				success: response.ok && content.length > 0,
+				upstreamModel,
 			};
 		},
 	});
@@ -328,9 +359,10 @@ function createFailedResult(
 		content,
 		finishReason: undefined,
 		httpStatus,
-		model: providerConfiguration.model,
 		provider: providerConfiguration.name,
+		requestedModel: providerConfiguration.model,
 		success: false,
+		upstreamModel: providerConfiguration.model,
 	};
 }
 
@@ -413,13 +445,30 @@ function getKeyStatusEffect({
 	});
 }
 
-function normalizeCommandOptions({ live, port, prompt, provider }: LiveSmokeCommandOptions): SmokeOptions {
+function normalizeCommandOptions({
+	live,
+	opencodeModel,
+	port,
+	prompt,
+	provider,
+}: LiveSmokeCommandOptions): SmokeOptions {
 	return {
 		isLive: live === true,
+		opencodeGoModel: parseOpenCodeGoModel(opencodeModel ?? DEFAULT_OPENCODE_GO_MODEL),
 		port: parsePort(port ?? DEFAULT_PORT),
 		prompt: prompt ?? DEFAULT_PROMPT,
 		provider: parseProvider(provider ?? "all"),
 	};
+}
+
+function parseOpenCodeGoModel(value: string): OpenCodeGoModel {
+	for (const model of OPENCODE_GO_MODELS) {
+		if (value === model) return model;
+	}
+
+	const error = new Error(`Unknown OpenCode Go model: ${value}. Expected ${OPENCODE_GO_MODELS.join(", ")}.`);
+	Error.captureStackTrace(error, parseOpenCodeGoModel);
+	throw error;
 }
 
 function parseProvider(value: string): ProviderSelection {
@@ -438,12 +487,32 @@ function parsePort(value: number): number {
 	throw error;
 }
 
-function getProviderConfigurations(provider: ProviderSelection): ReadonlyArray<ProviderConfiguration> {
-	if (provider === "all") return PROVIDERS;
-	return PROVIDERS.filter((providerConfiguration) => providerConfiguration.name === provider);
+function getProviderConfigurations({ opencodeGoModel, provider }: SmokeOptions): ReadonlyArray<ProviderConfiguration> {
+	const providerConfigurations = PROVIDERS.map((providerConfiguration) => {
+		if (providerConfiguration.name !== "opencode-go") return providerConfiguration;
+
+		return createProviderConfiguration(providerConfiguration, opencodeGoModel);
+	});
+	if (provider === "all") return providerConfigurations;
+	return providerConfigurations.filter((providerConfiguration) => providerConfiguration.name === provider);
 }
 
-function getFirstChoiceMessageContent(body: Readonly<Record<string, unknown>>): string {
+function createProviderConfiguration(
+	providerConfiguration: ProviderConfiguration,
+	model: OpenCodeGoModel,
+): ProviderConfiguration {
+	return {
+		keyEnvironmentVariable: providerConfiguration.keyEnvironmentVariable,
+		keyFilePath: providerConfiguration.keyFilePath,
+		maxTokens: providerConfiguration.maxTokens,
+		model,
+		name: providerConfiguration.name,
+		upstreamBaseUrl: providerConfiguration.upstreamBaseUrl,
+		upstreamProtocol: providerConfiguration.upstreamProtocol,
+	};
+}
+
+function getFirstChoiceMessageContent(body: ReadonlyRecord<string, unknown>): string {
 	const firstChoice = getFirstChoice(body);
 	if (!firstChoice) return "";
 
@@ -451,13 +520,13 @@ function getFirstChoiceMessageContent(body: Readonly<Record<string, unknown>>): 
 	return Predicate.isRecord(message) ? (getString(message.content) ?? "") : "";
 }
 
-function getFirstChoiceFinishReason(body: Readonly<Record<string, unknown>>): string | undefined {
+function getFirstChoiceFinishReason(body: ReadonlyRecord<string, unknown>): string | undefined {
 	const firstChoice = getFirstChoice(body);
 	if (!firstChoice) return undefined;
 	return getString(firstChoice.finish_reason);
 }
 
-function getFirstChoice(body: Readonly<Record<string, unknown>>): Readonly<Record<string, unknown>> | undefined {
+function getFirstChoice(body: ReadonlyRecord<string, unknown>): ReadonlyRecord<string, unknown> | undefined {
 	const { choices } = body;
 	if (!Array.isArray(choices)) return undefined;
 
@@ -469,10 +538,20 @@ function getString(value: unknown): string | undefined {
 	return Predicate.isString(value) ? value : undefined;
 }
 
-function printResult({ content, finishReason, httpStatus, model, provider, success }: SmokeResult): void {
+function printResult({
+	content,
+	finishReason,
+	httpStatus,
+	provider,
+	requestedModel,
+	success,
+	upstreamModel,
+}: SmokeResult): void {
 	const state = success ? "PASS" : "FAIL";
 	console.log(
-		`${state} ${provider}: HTTP ${httpStatus}, model=${model}, finish_reason=${finishReason ?? "undefined"}`,
+		`${state} ${provider}: HTTP ${httpStatus}, requested_model=${requestedModel}, upstream_model=${upstreamModel}, finish_reason=${
+			finishReason ?? "undefined"
+		}`,
 	);
 	console.log(`  content: ${JSON.stringify(content)}`);
 }
