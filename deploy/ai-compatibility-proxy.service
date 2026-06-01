@@ -1,0 +1,17 @@
+[Unit]
+Description=AI Compatibility Proxy
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/ai-compatibility-proxy.env
+WorkingDirectory=/opt/ai-compatibility-proxy
+ExecStart=/usr/local/bin/deno run --allow-net --allow-env src/index.ts
+Restart=always
+RestartSec=5
+User=ai-proxy
+Group=ai-proxy
+
+[Install]
+WantedBy=multi-user.target

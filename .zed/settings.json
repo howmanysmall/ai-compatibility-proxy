@@ -445,9 +445,10 @@
 					"keyOrdering": false,
 					"schemas": {
 						"./schemas/kubernetes.yaml": "k8s/**/*.yaml",
-						"~/global-schemas/docker-compose.yaml": "docker-compose*.yml",
 						"https://json.schemastore.org/dependabot-v2.json": ".github/dependabot.*",
 						"https://json.schemastore.org/github-workflow.json": ".github/workflows/*",
+						// "~/global-schemas/docker-compose.yaml": "docker-compose*.yml",
+						"https://raw.githubusercontent.com/compose-spec/compose-go/master/schema/compose-spec.json": "docker-compose*.yml",
 						"https://raw.githubusercontent.com/evilmartians/lefthook/master/schema.json": [
 							"lefthook.yml",
 							".lefthook.yml",

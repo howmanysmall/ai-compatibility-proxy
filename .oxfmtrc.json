@@ -10,6 +10,7 @@
 		"**/*.{md,toml}",
 		"**/do-not-sync-ever/**",
 		"plugins/oxc/**/*.js",
+		"docker-compose.yml",
 		".tsbuildinfo*",
 		"skills-lock.json",
 		"aube-lock.yaml"
