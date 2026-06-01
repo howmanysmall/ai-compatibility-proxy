@@ -1,0 +1,266 @@
+// hk configuration - https://hk.jdx.dev/
+amends "package://github.com/jdx/hk/releases/download/v1.46.0/hk@1.46.0#/Config.pkl"
+import "package://github.com/jdx/hk/releases/download/v1.46.0/hk@1.46.0#/Builtins.pkl"
+
+exclude = List("node_modules", "dist", ".git", ".repos")
+terminal_progress = false
+
+local binary_excludes =
+  List(
+    "*.png",
+    "*.jpg",
+    "*.jpeg",
+    "*.gif",
+    "*.webp",
+    "*.ico",
+    "*.woff",
+    "*.woff2",
+    "*.ttf",
+    "*.eot",
+    "*.pdf",
+    "*.zip",
+  )
+
+hooks {
+  ["pre-commit"] {
+    fix = true
+    stash = "git"
+    steps {
+      // Tier 1 — Universal checks
+      ["trailing-whitespace"] = (Builtins.trailing_whitespace) {
+        exclude = binary_excludes
+      }
+      ["newlines"] = (Builtins.newlines) {
+        exclude = binary_excludes
+      }
+      ["check-merge-conflict"] = (Builtins.check_merge_conflict) {}
+
+      // JS/TS pipeline — oxlint + biome + deno lint + oxfmt + deno fmt
+      ["oxlint"] = (Builtins.ox_lint) {
+        glob = List("*.js", "*.jsx", "*.ts", "*.tsx", "*.mjs", "*.cjs", "*.mts", "*.cts")
+        check = "mise x -- deno task oxlint --no-error-on-unmatched-pattern {{files}}"
+        fix = "mise x -- deno task oxlint --no-error-on-unmatched-pattern --fix {{files}}"
+        check_first = true
+        batch = true
+      }
+      ["biome-js"] {
+        glob = List("*.js", "*.jsx", "*.ts", "*.tsx")
+        check = "mise x -- deno task biome lint --no-errors-on-unmatched {{files}}"
+        fix = "mise x -- deno task biome lint --write --no-errors-on-unmatched {{files}}"
+        check_first = true
+        batch = true
+      }
+      ["deno-lint"] {
+        glob = List("*.js", "*.jsx", "*.ts", "*.tsx")
+        check = "mise x -- deno lint --permit-no-files {{files}}"
+        fix = "mise x -- deno lint --fix --permit-no-files {{files}}"
+        check_first = true
+        batch = true
+      }
+      ["oxfmt-js"] {
+        glob = List("*.js", "*.jsx", "*.ts", "*.tsx")
+        check = "mise x -- deno task oxfmt --no-error-on-unmatched-pattern --check {{files}}"
+        fix = "mise x -- deno task oxfmt --no-error-on-unmatched-pattern {{files}}"
+        check_first = true
+        batch = true
+      }
+      ["deno-fmt-js"] {
+        glob = List("*.js", "*.jsx", "*.ts", "*.tsx")
+        check = "mise x -- deno fmt --permit-no-files --check {{files}}"
+        fix = "mise x -- deno fmt --permit-no-files {{files}}"
+        check_first = true
+        batch = true
+      }
+
+      // Biome non-JS — css, html, json, jsonc, grit, code-workspace
+      ["biome-non-js"] {
+        glob = List("*.css", "*.html", "*.json", "*.jsonc", "*.grit", "*.code-workspace")
+        exclude = List("package.json")
+        check = "mise x -- deno task biome check --no-errors-on-unmatched {{files}}"
+        fix = "mise x -- deno task biome check --write --no-errors-on-unmatched {{files}}"
+        check_first = true
+        batch = true
+      }
+
+      // oxfmt for json5 and mdx
+      ["oxfmt-json5-mdx"] {
+        glob = List("*.json5", "*.mdx")
+        check = "mise x -- deno task oxfmt --no-error-on-unmatched-pattern --check {{files}}"
+        fix = "mise x -- deno task oxfmt --no-error-on-unmatched-pattern {{files}}"
+        check_first = true
+        batch = true
+      }
+
+      // Markdown — rumdl lint + fmt
+      ["rumdl"] {
+        glob = List("*.md")
+        exclude = List(".agents/skills/**/SKILL.md")
+        check = "mise x -- rumdl check {{files}}"
+        fix =
+          """
+          mise x -- rumdl check --fix {{files}}
+          mise x -- rumdl fmt {{files}}
+          """
+        check_first = true
+        batch = true
+      }
+
+      // TOML — tombi lint + format
+      ["tombi"] {
+        glob = List("*.toml")
+        check = "mise x -- tombi lint {{files}} && mise x -- tombi format --check {{files}}"
+        fix =
+          """
+          mise x -- tombi lint {{files}}
+          mise x -- tombi format {{files}}
+          """
+        check_first = true
+        batch = true
+      }
+    }
+  }
+
+  ["commit-msg"] {
+    steps {
+      ["commitlint"] {
+        check =
+          "mise x -- deno task commitlint --strict --config commitlint.config.ts --edit {{commit_msg_file}}"
+      }
+    }
+  }
+
+  ["pre-push"] {
+    steps {
+      ["lint"] {
+        check = "scripts/quiet-on-success.sh mise x -- deno task lint"
+      }
+      ["type-check"] {
+        check = "scripts/quiet-on-success.sh mise x -- deno check"
+      }
+    }
+  }
+
+  ["post-merge"] {
+    steps {
+      ["package-install"] {
+        check = "mise x -- pullhook --install"
+      }
+    }
+  }
+
+  // Manual check/fix hooks for CI or local use
+  ["check"] {
+    steps {
+      ["trailing-whitespace"] = (Builtins.trailing_whitespace) {
+        exclude = binary_excludes
+      }
+      ["newlines"] = (Builtins.newlines) {
+        exclude = binary_excludes
+      }
+      ["check-merge-conflict"] = (Builtins.check_merge_conflict) {}
+      ["oxlint"] {
+        glob = List("*.js", "*.jsx", "*.ts", "*.tsx", "*.mjs", "*.cjs", "*.mts", "*.cts")
+        check = "mise x -- deno task oxlint --no-error-on-unmatched-pattern {{files}}"
+      }
+      ["biome"] {
+        glob =
+          List(
+            "*.js",
+            "*.jsx",
+            "*.ts",
+            "*.tsx",
+            "*.css",
+            "*.html",
+            "*.json",
+            "*.jsonc",
+            "*.grit",
+            "*.code-workspace",
+          )
+        check = "mise x -- deno task biome check --no-errors-on-unmatched {{files}}"
+      }
+      ["deno-lint"] {
+        glob = List("*.js", "*.jsx", "*.ts", "*.tsx")
+        check = "mise x -- deno lint --permit-no-files {{files}}"
+      }
+      ["oxfmt"] {
+        glob = List("*.js", "*.jsx", "*.ts", "*.tsx", "*.json5", "*.mdx")
+        check = "mise x -- deno task oxfmt --no-error-on-unmatched-pattern --check {{files}}"
+      }
+      ["deno-fmt"] {
+        glob = List("*.js", "*.jsx", "*.ts", "*.tsx")
+        check = "mise x -- deno fmt --permit-no-files --check {{files}}"
+      }
+      ["rumdl"] {
+        glob = List("*.md")
+        exclude = List(".agents/skills/**/SKILL.md")
+        check = "mise x -- rumdl check {{files}}"
+      }
+      ["tombi"] {
+        glob = List("*.toml")
+        check = "mise x -- tombi lint {{files}} && mise x -- tombi format --check {{files}}"
+      }
+    }
+  }
+
+  ["fix"] {
+    fix = true
+    stash = "git"
+    steps {
+      ["trailing-whitespace"] = (Builtins.trailing_whitespace) {
+        exclude = binary_excludes
+      }
+      ["newlines"] = (Builtins.newlines) {
+        exclude = binary_excludes
+      }
+      ["oxlint"] {
+        glob = List("*.js", "*.jsx", "*.ts", "*.tsx", "*.mjs", "*.cjs", "*.mts", "*.cts")
+        fix = "mise x -- deno task oxlint --no-error-on-unmatched-pattern --fix {{files}}"
+      }
+      ["biome"] {
+        glob =
+          List(
+            "*.js",
+            "*.jsx",
+            "*.ts",
+            "*.tsx",
+            "*.css",
+            "*.html",
+            "*.json",
+            "*.jsonc",
+            "*.grit",
+            "*.code-workspace",
+          )
+        fix = "mise x -- deno task biome check --write --no-errors-on-unmatched {{files}}"
+      }
+      ["deno-lint"] {
+        glob = List("*.js", "*.jsx", "*.ts", "*.tsx")
+        fix = "mise x -- deno lint --fix --permit-no-files {{files}}"
+      }
+      ["oxfmt"] {
+        glob = List("*.js", "*.jsx", "*.ts", "*.tsx", "*.json5", "*.mdx")
+        fix = "mise x -- deno task oxfmt --no-error-on-unmatched-pattern {{files}}"
+      }
+      ["deno-fmt"] {
+        glob = List("*.js", "*.jsx", "*.ts", "*.tsx")
+        fix = "mise x -- deno fmt --permit-no-files {{files}}"
+      }
+      ["rumdl"] {
+        glob = List("*.md")
+        exclude = List(".agents/skills/**/SKILL.md")
+        fix =
+          """
+          mise x -- rumdl check --fix {{files}}
+          mise x -- rumdl fmt {{files}}
+          """
+      }
+      ["tombi"] {
+        glob = List("*.toml")
+        fix =
+          """
+          mise x -- tombi lint {{files}}
+          mise x -- tombi format {{files}}
+          """
+      }
+    }
+  }
+}

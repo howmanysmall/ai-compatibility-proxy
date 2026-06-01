@@ -42,6 +42,9 @@ opensrc/
 .vitest-reports/
 .omo/
 
+# hk — local developer overrides (do not commit)
+hk.local.pkl
+
 .agents/skills/clean-code/
 .agents/skills/code-simplifier/
 .agents/skills/knip-deadcode/

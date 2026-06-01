@@ -62,7 +62,6 @@
 		"exclude": [
 			".repos",
 			".agents/skills/oxlint-rule-creator/SKILL.md",
-			".lefthook.yaml",
 			".vscode/mcp.json",
 			"AGENTS.md",
 			"plugins/oxc/small-rules.js",
@@ -214,8 +213,8 @@
 		"format": "bash -c 'a=$(bash scripts/get-defaults.sh \"$@\"); deno task biome check --fix $a && deno task oxfmt $a && deno fmt $a' _",
 		"format:check": "bash -c 'a=$(bash scripts/get-defaults.sh \"$@\"); deno task biome check --no-errors-on-unmatched $a && deno task oxfmt --no-error-on-unmatched-pattern --check $a && deno fmt --permit-no-files --check $a' _",
 		"format:safe": "bash -c 'a=$(bash scripts/get-defaults.sh \"$@\"); deno task biome check --no-errors-on-unmatched --fix $a && deno task oxfmt --no-error-on-unmatched-pattern $a && deno fmt --permit-no-files $a' _",
-		"hooks:install": "lefthook install",
-		"hooks:validate": "lefthook validate",
+		"hooks:install": "hk install",
+		"hooks:validate": "hk validate",
 		"lint": "bash -c 'a=$(bash scripts/get-defaults.sh \"$@\"); deno task oxlint $a && deno task biome check $a && deno lint $a' _",
 		"lint:safe": "bash -c 'a=$(bash scripts/get-defaults.sh \"$@\"); deno task oxlint --no-error-on-unmatched-pattern $a && deno task biome check --no-errors-on-unmatched $a && deno lint --permit-no-files $a' _",
 		"oxfmt": "oxfmt",
