@@ -344,7 +344,9 @@ function waitForHealthAttemptEffect(
 	attempt: number,
 ): Effect.Effect<void, Error> {
 	if (attempt >= 20) {
-		return Effect.fail(new Error(`Timed out waiting for ${providerName} proxy on port ${port}.`));
+		const error = new Error(`Timed out waiting for ${providerName} proxy on port ${port}.`);
+		Error.captureStackTrace(error, waitForHealthAttemptEffect);
+		return Effect.fail(error);
 	}
 
 	return Effect.gen(function* waitForHealthAttemptGenerator() {
@@ -444,9 +446,9 @@ function getProviderConfigurations(provider: ProviderSelection): ReadonlyArray<P
 function getFirstChoiceMessageContent(body: Readonly<Record<string, unknown>>): string {
 	const firstChoice = getFirstChoice(body);
 	if (!firstChoice) return "";
+
 	const { message } = firstChoice;
-	if (!Predicate.isRecord(message)) return "";
-	return getString(message.content) ?? "";
+	return Predicate.isRecord(message) ? (getString(message.content) ?? "") : "";
 }
 
 function getFirstChoiceFinishReason(body: Readonly<Record<string, unknown>>): string | undefined {
@@ -458,12 +460,13 @@ function getFirstChoiceFinishReason(body: Readonly<Record<string, unknown>>): st
 function getFirstChoice(body: Readonly<Record<string, unknown>>): Readonly<Record<string, unknown>> | undefined {
 	const { choices } = body;
 	if (!Array.isArray(choices)) return undefined;
+
 	const [firstChoice] = choices;
 	return Predicate.isRecord(firstChoice) ? firstChoice : undefined;
 }
 
 function getString(value: unknown): string | undefined {
-	return typeof value === "string" ? value : undefined;
+	return Predicate.isString(value) ? value : undefined;
 }
 
 function printResult({ content, finishReason, httpStatus, model, provider, success }: SmokeResult): void {
@@ -490,5 +493,5 @@ function getHomeDirectory(): string {
 }
 
 function toError(error: unknown): Error {
-	return error instanceof Error ? error : new Error(String(error));
+	return Predicate.isError(error) ? error : new Error(String(error));
 }
