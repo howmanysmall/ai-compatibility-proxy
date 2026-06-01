@@ -40,6 +40,7 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 opensrc/
 
 .vitest-reports/
+.omo/
 
 .agents/skills/clean-code/
 .agents/skills/code-simplifier/
