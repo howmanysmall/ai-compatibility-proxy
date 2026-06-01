@@ -9,4 +9,4 @@ RUN deno cache src/index.ts
 
 EXPOSE 8000
 
-CMD ["run", "--allow-net", "--allow-env", "src/index.ts"]
+CMD ["run", "--allow-net", "--allow-env", "--allow-read", "--allow-write", "--allow-sys=homedir", "src/index.ts"]

@@ -1,3 +1,4 @@
+import { logger } from "@logging/logger.ts";
 import { type } from "arktype";
 
 import { translateAnthropicToOpenAI, translateOpenAIToAnthropic } from "./anthropic-translator.ts";
@@ -32,10 +33,30 @@ export function createApp(options: AppOptions): (request: Request) => Promise<Re
 	const { fetcher = fetch } = options;
 
 	return async (request: Request): Promise<Response> => {
+		const requestUrl = new URL(request.url);
+		const requestLogger = logger.withContext({
+			method: request.method,
+			path: requestUrl.pathname,
+			requestId: crypto.randomUUID(),
+		});
+		const startedAt = performance.now();
+		requestLogger.info("incoming request");
+
 		try {
-			return await handleRequestAsync(request, config, fetcher);
+			const response = await handleRequestAsync(request, config, fetcher);
+			requestLogger.info("request completed", {
+				latencyMs: Math.round(performance.now() - startedAt),
+				status: response.status,
+			});
+			return response;
 		} catch (error) {
-			return createErrorResponse(error);
+			requestLogger.error("request failed", { error: String(error) });
+			const response = createErrorResponse(error);
+			requestLogger.info("request completed", {
+				latencyMs: Math.round(performance.now() - startedAt),
+				status: response.status,
+			});
+			return response;
 		}
 	};
 }

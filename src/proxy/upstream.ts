@@ -1,3 +1,5 @@
+import { logger } from "@logging/logger.ts";
+
 import { createUpstreamErrorAsync } from "./errors.ts";
 
 import type { ProxyConfig } from "./config.ts";
@@ -13,6 +15,9 @@ export async function fetchUpstreamJsonAsync(
 ): Promise<Response> {
 	const controller = new AbortController();
 	const timeoutId = setTimeout(() => controller.abort(), config.requestTimeoutMs);
+	const upstreamUrl = getPathOnlyUrl(url);
+	const startedAt = performance.now();
+	logger.info("upstream call", { method: "POST", url: upstreamUrl });
 
 	try {
 		const response = await fetcher(url, {
@@ -22,8 +27,19 @@ export async function fetchUpstreamJsonAsync(
 			signal: controller.signal,
 		});
 
-		if (!response.ok) throw await createUpstreamErrorAsync(response);
+		logger.info("upstream response", {
+			latencyMs: Math.round(performance.now() - startedAt),
+			status: response.status,
+		});
+		if (!response.ok) {
+			logger.error("upstream error", { status: response.status, url: upstreamUrl });
+			throw await createUpstreamErrorAsync(response);
+		}
 		return response;
+	} catch (error) {
+		if (error instanceof Error && error.name === "ProxyError") throw error;
+		logger.error("upstream error", { status: undefined, url: upstreamUrl });
+		throw error;
 	} finally {
 		clearTimeout(timeoutId);
 	}
@@ -37,6 +53,9 @@ export async function fetchUpstreamGetAsync(
 ): Promise<Response> {
 	const controller = new AbortController();
 	const timeoutId = setTimeout(() => controller.abort(), config.requestTimeoutMs);
+	const upstreamUrl = getPathOnlyUrl(url);
+	const startedAt = performance.now();
+	logger.info("upstream call", { method: "GET", url: upstreamUrl });
 
 	try {
 		const response = await fetcher(url, {
@@ -45,9 +64,24 @@ export async function fetchUpstreamGetAsync(
 			signal: controller.signal,
 		});
 
-		if (!response.ok) throw await createUpstreamErrorAsync(response);
+		logger.info("upstream response", {
+			latencyMs: Math.round(performance.now() - startedAt),
+			status: response.status,
+		});
+		if (!response.ok) {
+			logger.error("upstream error", { status: response.status, url: upstreamUrl });
+			throw await createUpstreamErrorAsync(response);
+		}
 		return response;
+	} catch (error) {
+		if (error instanceof Error && error.name === "ProxyError") throw error;
+		logger.error("upstream error", { status: undefined, url: upstreamUrl });
+		throw error;
 	} finally {
 		clearTimeout(timeoutId);
 	}
+}
+
+function getPathOnlyUrl(url: string): string {
+	return new URL(url).pathname;
 }

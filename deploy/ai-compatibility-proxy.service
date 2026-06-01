@@ -7,7 +7,7 @@ Wants=network-online.target
 Type=simple
 EnvironmentFile=/etc/ai-compatibility-proxy.env
 WorkingDirectory=/opt/ai-compatibility-proxy
-ExecStart=/usr/local/bin/deno run --allow-net --allow-env src/index.ts
+ExecStart=/usr/local/bin/deno run --allow-net --allow-env --allow-read --allow-write --allow-sys=homedir src/index.ts
 Restart=always
 RestartSec=5
 User=ai-proxy
