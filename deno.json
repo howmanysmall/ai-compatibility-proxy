@@ -118,6 +118,7 @@
 		"arktype": "npm:arktype@^2.2.0",
 		"commitlint": "npm:commitlint@^21.0.1",
 		"consola": "npm:consola@^3.4.2",
+		"effect": "npm:effect@^3.21.2",
 		"env-paths": "npm:env-paths@^4.0.0",
 		"eslint-plugin-antfu": "npm:eslint-plugin-antfu@^3.2.3",
 		"eslint-plugin-regexp": "npm:eslint-plugin-regexp@^3.1.0",
