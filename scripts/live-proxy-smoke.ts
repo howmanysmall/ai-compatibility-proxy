@@ -3,7 +3,7 @@
 import { setTimeout } from "node:timers/promises";
 import { Command } from "@cliffy/command";
 import { Confirm, Input, Select } from "@cliffy/prompt";
-import { bgGreen, bgRed, bold, cyan, dim, green, red, yellow } from "@std/fmt/colors";
+import { bgGreen, bgRed, bold, cyan, dim, green, magenta, red, yellow } from "@std/fmt/colors";
 import { Effect, Predicate } from "effect";
 
 import type { ReadonlyRecord } from "effect/Record";
@@ -28,6 +28,7 @@ interface SmokeOptions {
 
 interface SmokeResult {
 	readonly content: string;
+	readonly durationMs: number;
 	readonly finishReason: string | undefined;
 	readonly httpStatus: number;
 	readonly provider: ProviderName;
@@ -262,9 +263,12 @@ function testProviderEffect(
 
 		try {
 			yield* waitForHealthEffect(port, providerConfiguration.name);
+			const startTime = performance.now();
 			const result = yield* requestChatCompletionEffect(providerConfiguration, apiKey, port, prompt);
-			printResult(result);
-			return result;
+			const durationMs = performance.now() - startTime;
+			const resultWithDuration: SmokeResult = { ...result, durationMs };
+			printResult(resultWithDuration);
+			return resultWithDuration;
 		} finally {
 			yield* stopProxyProcessEffect(childProcess);
 		}
@@ -354,7 +358,7 @@ function requestChatCompletionEffect(
 				requestedModel: providerConfiguration.model,
 				success: response.ok && content.length > 0,
 				upstreamModel,
-			};
+			} as SmokeResult;
 		},
 	});
 }
@@ -363,9 +367,11 @@ function createFailedResult(
 	providerConfiguration: ProviderConfiguration,
 	httpStatus: number,
 	content: string,
+	durationMs = 0,
 ): SmokeResult {
 	return {
 		content,
+		durationMs,
 		finishReason: undefined,
 		httpStatus,
 		provider: providerConfiguration.name,
@@ -549,6 +555,7 @@ function getString(value: unknown): string | undefined {
 
 function printResult({
 	content,
+	durationMs,
 	finishReason,
 	httpStatus,
 	provider,
@@ -558,15 +565,48 @@ function printResult({
 }: SmokeResult): void {
 	const state = success ? bgGreen(bold(" PASS ")) : bgRed(bold(" FAIL "));
 	const statusColor = httpStatus >= 200 && httpStatus < 300 ? green(String(httpStatus)) : red(String(httpStatus));
+	const modelMatches = requestedModel === upstreamModel;
+	const modelColor = modelMatches ? cyan : yellow;
+	const durationText = formatDuration(durationMs);
+
+	console.log(`${state} ${bold(provider)}`);
 	console.log(
-		`${state} ${bold(provider)}: HTTP ${statusColor}, ${dim("requested_model=")}${cyan(requestedModel)}, ${
+		`  ${dim("HTTP")} ${statusColor}  ${dim("•")}  ${dim("duration")} ${magenta(durationText)}  ${
 			dim(
-				"upstream_model=",
+				"•",
 			)
-		}${cyan(upstreamModel)}, ${dim("finish_reason=")}${yellow(finishReason ?? "undefined")}`,
+		}  ${dim("finish_reason")} ${yellow(finishReason ?? "undefined")}`,
 	);
-	console.log(`  ${dim("content:")} ${JSON.stringify(content)}`);
+	console.log(`  ${dim("requested_model")}  ${modelColor(requestedModel)}`);
+	console.log(
+		`  ${dim("upstream_model")}   ${modelColor(upstreamModel)}${modelMatches ? "" : yellow("  ⚠ differs")}`,
+	);
+	console.log("");
+	printContentBlock(content, success);
 	console.log(dim("─".repeat(80)));
+}
+
+function formatDuration(durationMs: number): string {
+	if (!Number.isFinite(durationMs) || durationMs < 0) return "?";
+	if (durationMs < 1000) return `${Math.round(durationMs)}ms`;
+	const seconds = durationMs / 1000;
+	return `${seconds.toFixed(seconds >= 10 ? 1 : 2)}s`;
+}
+
+function printContentBlock(content: string, success: boolean): void {
+	const headerColor = success ? green : red;
+	const header = success ? "┌─ response" : "┌─ response (failed)";
+	console.log(`  ${headerColor(header)}`);
+
+	if (content.length === 0) {
+		console.log(`  ${dim("│")} ${dim("(empty)")}`);
+	} else {
+		const lines = content.split("\n");
+		for (const line of lines) {
+			console.log(`  ${dim("│")} ${line}`);
+		}
+	}
+	console.log(`  ${dim("└─")}`);
 }
 
 function printSummary(results: ReadonlyArray<SmokeResult>): void {
