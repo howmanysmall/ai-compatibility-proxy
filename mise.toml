@@ -25,3 +25,38 @@ run = ["mise lock", "mise install"]
 description = "Regenerate lockfile checksums for a specific tool, then install"
 usage = 'arg "<tool>" help="Tool to refresh in the lockfile"'
 run = ["mise lock ${usage_tool?}", "mise install"]
+
+[tasks.ignore-skills]
+description = "Ignores skills from the lockfile."
+run = """
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+GITIGNORE_PATH=".gitignore"
+SKILLS_LOCK_PATH="skills-lock.json"
+SKILLS_DIR=".agents/skills"
+
+version=$(jq -r '.version' "$SKILLS_LOCK_PATH")
+if [[ "$version" != "1" ]]; then
+	echo "error: unsupported skills-lock.json version: $version" >&2
+	exit 1
+fi
+
+mapfile -t skill_names < <(jq -r '.skills | keys[]' "$SKILLS_LOCK_PATH")
+
+added=0
+for name in "${skill_names[@]}"; do
+	line="${SKILLS_DIR}/${name}/"
+	if ! grep -qxF "$line" "$GITIGNORE_PATH" 2> /dev/null; then
+		printf '%s\n' "$line" >> "$GITIGNORE_PATH"
+		((added++)) || true
+	fi
+done
+
+if ((added > 0)); then
+	echo "✔ Added ${added} skill(s) to .gitignore"
+else
+	echo "ℹ All skills already in .gitignore"
+fi
+"""

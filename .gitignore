@@ -67,3 +67,11 @@ opensrc/
 .agents/skills/deno-project-templates/
 .agents/skills/deno-sandbox/
 .agents/skills/deno-typescript/
+.agents/skills/effect-concurrency/
+.agents/skills/effect-core-patterns/
+.agents/skills/effect-dependency-injection/
+.agents/skills/effect-error-handling/
+.agents/skills/effect-resource-management/
+.agents/skills/effect-schema/
+.agents/skills/effect-testing/
+.agents/skills/effect-ts/

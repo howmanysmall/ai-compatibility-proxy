@@ -25,6 +25,54 @@
       "skillPath": "deno-typescript/SKILL.md",
       "computedHash": "53eb1146a49f04097769971b6cc817b5c7ee852e6f41860a29bcc15c1774a251"
     },
+    "effect-concurrency": {
+      "source": "thebushidocollective/han",
+      "sourceType": "github",
+      "skillPath": "plugins/frameworks/effect/skills/effect-concurrency/SKILL.md",
+      "computedHash": "08ecb7e083c0c0f7eff76f466938b166efba173149ac6e233c7b95c5f1ff980e"
+    },
+    "effect-core-patterns": {
+      "source": "thebushidocollective/han",
+      "sourceType": "github",
+      "skillPath": "plugins/frameworks/effect/skills/effect-core-patterns/SKILL.md",
+      "computedHash": "e3b4d7b8ad761b76c8143a9ca55e760fd2c5c02f7faaf4b7552c9efeddd0976b"
+    },
+    "effect-dependency-injection": {
+      "source": "thebushidocollective/han",
+      "sourceType": "github",
+      "skillPath": "plugins/frameworks/effect/skills/effect-dependency-injection/SKILL.md",
+      "computedHash": "2344e841d3d4fd682b0e871113fe74b39ba22df5528e6684ccbe2ea7d9392a5c"
+    },
+    "effect-error-handling": {
+      "source": "thebushidocollective/han",
+      "sourceType": "github",
+      "skillPath": "plugins/frameworks/effect/skills/effect-error-handling/SKILL.md",
+      "computedHash": "7d6ad304ff078e1456edc63d80b1deba8a94ee10d74bcce74d7ac8234946204d"
+    },
+    "effect-resource-management": {
+      "source": "thebushidocollective/han",
+      "sourceType": "github",
+      "skillPath": "plugins/frameworks/effect/skills/effect-resource-management/SKILL.md",
+      "computedHash": "0687dec8f6117ed848c8d6373ad30037241e48dd44575f2ab34b64b02b1af9fd"
+    },
+    "effect-schema": {
+      "source": "thebushidocollective/han",
+      "sourceType": "github",
+      "skillPath": "plugins/frameworks/effect/skills/effect-schema/SKILL.md",
+      "computedHash": "a67106a48fb441780959388d1338b815e8c44cbff2df7ac4d71148a3bdc4c5ea"
+    },
+    "effect-testing": {
+      "source": "thebushidocollective/han",
+      "sourceType": "github",
+      "skillPath": "plugins/frameworks/effect/skills/effect-testing/SKILL.md",
+      "computedHash": "9ac0a70306a171c8df2af313c7fa0897a000558c506252160cc749fcf0b6b3ef"
+    },
+    "effect-ts": {
+      "source": "effect-ts/skills",
+      "sourceType": "github",
+      "skillPath": "skills/effect-ts/SKILL.md",
+      "computedHash": "301521e167410dd42d834dd0e7cedbe9cfffa519f630a12241dbea7b1d932324"
+    },
     "tdd": {
       "source": "pproenca/dot-skills",
       "sourceType": "github",
