@@ -1,3 +1,5 @@
+import { type } from "arktype";
+
 import { ProxyError } from "./errors.ts";
 import { OPENAI_NULL } from "./openai-constants.ts";
 
@@ -33,6 +35,28 @@ const UNSUPPORTED_ANTHROPIC_REQUEST_FIELDS: ReadonlyArray<string> = [
 	"tools",
 	"top_logprobs",
 ];
+
+export const AnthropicMessage = type({
+	content: [
+		{
+			text: "string",
+			type: "'text' | 'thinking'",
+		},
+		"[]",
+	],
+	id: "string",
+	model: "string",
+	"role?": "'assistant'",
+	"stop_reason?": "string | null",
+	"stop_sequence?": "string | null",
+	"type?": "'message'",
+	"usage?": {
+		"cache_creation_input_tokens?": "number",
+		"cache_read_input_tokens?": "number",
+		input_tokens: "number",
+		output_tokens: "number",
+	},
+});
 
 export function translateOpenAIToAnthropic(
 	request: OpenAIChatCompletionRequest,
@@ -250,5 +274,5 @@ function getUnixSeconds(): number {
 }
 
 function isAnthropicMessagesResponse(value: unknown): value is AnthropicMessagesResponse {
-	return typeof value === "object" && Boolean(value) && !Array.isArray(value);
+	return !(AnthropicMessage(value) instanceof type.errors);
 }

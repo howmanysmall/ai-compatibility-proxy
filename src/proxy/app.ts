@@ -1,14 +1,26 @@
+import { type } from "arktype";
+
 import { translateAnthropicToOpenAI, translateOpenAIToAnthropic } from "./anthropic-translator.ts";
 import { createAuthContext } from "./auth.ts";
 import { normalizeCerebrasRequest } from "./cerebras-translator.ts";
 import { createErrorResponse, ProxyError } from "./errors.ts";
 import { getModelsAsync } from "./models.ts";
-import { createOpenAIStreamResponseAsync } from "./sse.ts";
 import { fetchUpstreamJsonAsync } from "./upstream.ts";
 
 import type { ProxyConfig } from "./config.ts";
 import type { OpenAIChatCompletionRequest } from "./openai-types.ts";
 import type { Fetcher } from "./upstream.ts";
+
+const OpenAIChatCompletionRequestSchema = type({
+	"max_completion_tokens?": "number",
+	"max_tokens?": "number",
+	messages: "unknown[] >= 1",
+	"model?": "string",
+	"stop?": "string | string[] | null",
+	"stream?": "boolean",
+	"temperature?": "number",
+	"top_p?": "number",
+});
 
 export interface AppOptions {
 	readonly config: ProxyConfig;
@@ -58,6 +70,7 @@ async function handleRequestAsync(request: Request, config: ProxyConfig, fetcher
 			);
 
 			if (anthropicRequest.stream) {
+				const { createOpenAIStreamResponseAsync } = await import("./sse.ts");
 				return await createOpenAIStreamResponseAsync(upstreamResponse, anthropicRequest.model);
 			}
 
@@ -99,13 +112,10 @@ async function readJsonBodyAsync(request: Request): Promise<OpenAIChatCompletion
 		throw new ProxyError("Request body must be a JSON object.");
 	}
 
-	if (!isOpenAIChatCompletionRequest(body)) {
-		throw new ProxyError("Request body is not a supported chat completion request.");
+	const validatedBody = OpenAIChatCompletionRequestSchema(body);
+	if (validatedBody instanceof type.errors) {
+		throw new ProxyError(validatedBody.summary);
 	}
 
-	return body;
-}
-
-function isOpenAIChatCompletionRequest(value: object): value is OpenAIChatCompletionRequest {
-	return "messages" in value || "model" in value;
+	return validatedBody as OpenAIChatCompletionRequest;
 }

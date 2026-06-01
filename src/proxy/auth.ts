@@ -1,8 +1,11 @@
+import { createHash, timingSafeEqual } from "node:crypto";
+
 import { ProxyError } from "./errors.ts";
 
 import type { ProxyConfig } from "./config.ts";
 
 const BEARER_PREFIX = "bearer ";
+const textEncoder = new TextEncoder();
 
 export interface AuthContext {
 	readonly upstreamHeaders: Headers;
@@ -40,7 +43,14 @@ export function createAuthContext(request: Request, config: ProxyConfig): AuthCo
 		});
 	}
 
-	if (!clientBearerToken || clientBearerToken !== config.proxyApiKey) {
+	if (!clientBearerToken) {
+		throw new ProxyError("Invalid proxy bearer token.", {
+			status: 401,
+			type: "authentication_error",
+		});
+	}
+
+	if (!hasSameToken(clientBearerToken, config.proxyApiKey)) {
 		throw new ProxyError("Invalid proxy bearer token.", {
 			status: 401,
 			type: "authentication_error",
@@ -69,4 +79,10 @@ function setUpstreamAuthHeader(headers: Headers, headerName: string, token: stri
 	}
 
 	headers.set(headerName, token);
+}
+
+function hasSameToken(clientBearerToken: string, expectedToken: string): boolean {
+	const clientBearerTokenHash = createHash("sha256").update(textEncoder.encode(clientBearerToken)).digest();
+	const expectedTokenHash = createHash("sha256").update(textEncoder.encode(expectedToken)).digest();
+	return timingSafeEqual(clientBearerTokenHash, expectedTokenHash);
 }

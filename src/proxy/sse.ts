@@ -25,9 +25,10 @@ export async function createOpenAIStreamResponseAsync(upstreamResponse: Response
 
 export function translateAnthropicSseText(input: string, model: string): string {
 	let output = "";
+	const translateEvent = createAnthropicEventTranslator(model);
 
 	for (const event of parseSseEvents(input)) {
-		output += translateAnthropicEvent(event, model);
+		output += translateEvent(event);
 	}
 
 	return output;
@@ -35,11 +36,12 @@ export function translateAnthropicSseText(input: string, model: string): string 
 
 function createAnthropicSseTransform(model: string): TransformStream<string, string> {
 	let buffer = "";
+	const translateEvent = createAnthropicEventTranslator(model);
 
 	return new TransformStream({
 		flush(controller) {
 			for (const event of parseSseEvents(buffer)) {
-				controller.enqueue(translateAnthropicEvent(event, model));
+				controller.enqueue(translateEvent(event));
 			}
 			controller.enqueue("data: [DONE]\n\n");
 		},
@@ -52,10 +54,84 @@ function createAnthropicSseTransform(model: string): TransformStream<string, str
 			buffer = buffer.slice(lastEventBoundary + 2);
 
 			for (const event of parseSseEvents(readyText)) {
-				controller.enqueue(translateAnthropicEvent(event, model));
+				controller.enqueue(translateEvent(event));
 			}
 		},
 	});
+}
+
+function createAnthropicEventTranslator(fallbackModel: string): (event: Record<string, unknown>) => string {
+	let streamId: string | undefined;
+	let streamCreated: number | undefined;
+	let streamModel: string | undefined;
+
+	function getSharedId(): string {
+		if (!streamId) streamId = `chatcmpl-${crypto.randomUUID()}`;
+		return streamId;
+	}
+
+	function getSharedCreated(): number {
+		if (!streamCreated) streamCreated = getUnixSeconds();
+		return streamCreated;
+	}
+
+	function getSharedModel(): string {
+		if (!streamModel) streamModel = fallbackModel;
+		return streamModel;
+	}
+
+	return function translateEvent(event: Record<string, unknown>): string {
+		const { type } = event;
+
+		if (type === "message_start") {
+			const message = getRecord(event["message"]);
+			streamId = getString(message["id"]) ?? `chatcmpl-${crypto.randomUUID()}`;
+			streamModel = getString(message["model"]) ?? fallbackModel;
+			streamCreated = getUnixSeconds();
+			return formatChunk({
+				choices: [
+					{
+						delta: { role: "assistant" },
+						finish_reason: OPENAI_NULL,
+						index: 0,
+					},
+				],
+				created: streamCreated,
+				id: streamId,
+				model: streamModel,
+				object: "chat.completion.chunk",
+			});
+		}
+
+		if (type === "content_block_start") {
+			const block = getRecord(event["content_block"]);
+			if (block["type"] !== "text") return "";
+			const text = getString(block["text"]);
+			if (!text) return "";
+			return formatContentChunk(text, getSharedId(), getSharedCreated(), getSharedModel());
+		}
+
+		if (type === "content_block_delta") {
+			const delta = getRecord(event["delta"]);
+			const text = getString(delta["text"]);
+			if (!text) return "";
+			return formatContentChunk(text, getSharedId(), getSharedCreated(), getSharedModel());
+		}
+
+		if (type === "message_delta") {
+			const delta = getRecord(event["delta"]);
+			const usage = mapAnthropicUsage(getRecordOrUndefined(event["usage"]));
+			return formatFinalChunk(
+				getSharedId(),
+				getSharedCreated(),
+				getSharedModel(),
+				mapAnthropicFinishReason(getString(delta["stop_reason"])),
+				usage,
+			);
+		}
+
+		return "";
+	};
 }
 
 function parseSseEvents(input: string): Array<Record<string, unknown>> {
@@ -84,53 +160,7 @@ function parseSseEvents(input: string): Array<Record<string, unknown>> {
 		});
 }
 
-function translateAnthropicEvent(event: Record<string, unknown>, fallbackModel: string): string {
-	const { type } = event;
-
-	if (type === "message_start") {
-		const message = getRecord(event["message"]);
-		const id = getString(message["id"]) ?? `chatcmpl-${crypto.randomUUID()}`;
-		const model = getString(message["model"]) ?? fallbackModel;
-		return formatChunk({
-			choices: [
-				{
-					delta: { role: "assistant" },
-					finish_reason: OPENAI_NULL,
-					index: 0,
-				},
-			],
-			created: getUnixSeconds(),
-			id,
-			model,
-			object: "chat.completion.chunk",
-		});
-	}
-
-	if (type === "content_block_start") {
-		const block = getRecord(event["content_block"]);
-		if (block["type"] !== "text") return "";
-		const text = getString(block["text"]);
-		if (!text) return "";
-		return formatContentChunk(text, fallbackModel);
-	}
-
-	if (type === "content_block_delta") {
-		const delta = getRecord(event["delta"]);
-		const text = getString(delta["text"]);
-		if (!text) return "";
-		return formatContentChunk(text, fallbackModel);
-	}
-
-	if (type === "message_delta") {
-		const delta = getRecord(event["delta"]);
-		const usage = mapAnthropicUsage(getRecordOrUndefined(event["usage"]));
-		return formatFinalChunk(fallbackModel, mapAnthropicFinishReason(getString(delta["stop_reason"])), usage);
-	}
-
-	return "";
-}
-
-function formatContentChunk(content: string, model: string): string {
+function formatContentChunk(content: string, id: string, created: number, model: string): string {
 	return formatChunk({
 		choices: [
 			{
@@ -139,14 +169,16 @@ function formatContentChunk(content: string, model: string): string {
 				index: 0,
 			},
 		],
-		created: getUnixSeconds(),
-		id: `chatcmpl-${crypto.randomUUID()}`,
+		created,
+		id,
 		model,
 		object: "chat.completion.chunk",
 	});
 }
 
 function formatFinalChunk(
+	id: string,
+	created: number,
 	model: string,
 	finishReason: OpenAIChatCompletionChunk["choices"][number]["finish_reason"],
 	usage: OpenAIUsage | undefined,
@@ -159,8 +191,8 @@ function formatFinalChunk(
 				index: 0,
 			},
 		],
-		created: getUnixSeconds(),
-		id: `chatcmpl-${crypto.randomUUID()}`,
+		created,
+		id,
 		model,
 		object: "chat.completion.chunk",
 		...(usage ? { usage } : {}),

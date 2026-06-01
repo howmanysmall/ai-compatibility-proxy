@@ -3,6 +3,7 @@ import { createApp } from "../../src/proxy/app.ts";
 import { normalizeCerebrasRequest } from "../../src/proxy/cerebras-translator.ts";
 import { loadConfig } from "../../src/proxy/config.ts";
 import { translateAnthropicSseText } from "../../src/proxy/sse.ts";
+import { getInitHeader } from "./_test-helpers.ts";
 
 import type { ProxyConfig } from "../../src/proxy/config.ts";
 
@@ -196,7 +197,7 @@ Deno.test("proxies model list from OpenCode Go model endpoint", async () => {
 		config: createConfig(),
 		fetcher: (input, init) => {
 			seenUrl = String(input);
-			seenAuthorization = new Headers(init?.headers).get("authorization") ?? "";
+			seenAuthorization = getInitHeader(init, "authorization") ?? "";
 			return Promise.resolve(
 				Response.json({
 					data: [{ created: 0, id: "minimax-m3", object: "model", owned_by: "opencode" }],
@@ -296,7 +297,7 @@ Deno.test("server_key mode requires proxy token and uses upstream key", async ()
 			upstreamAuthMode: "server_key",
 		}),
 		fetcher: (_input, init) => {
-			seenAuthorization = new Headers(init?.headers).get("authorization") ?? "";
+			seenAuthorization = getInitHeader(init, "authorization") ?? "";
 			return Promise.resolve(Response.json({ data: [], object: "list" }));
 		},
 	});
