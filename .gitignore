@@ -75,3 +75,4 @@ opensrc/
 .agents/skills/effect-schema/
 .agents/skills/effect-testing/
 .agents/skills/effect-ts/
+.agents/skills/improve-codebase-architecture/
