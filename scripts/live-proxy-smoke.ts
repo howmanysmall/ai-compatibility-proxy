@@ -3,6 +3,7 @@
 import { setTimeout } from "node:timers/promises";
 import { Command } from "@cliffy/command";
 import { Confirm, Input, Select } from "@cliffy/prompt";
+import { bgGreen, bgRed, bold, cyan, dim, green, red, yellow } from "@std/fmt/colors";
 import { Effect, Predicate } from "effect";
 
 import type { ReadonlyRecord } from "effect/Record";
@@ -200,32 +201,40 @@ function printDryRunEffect(
 	{ port, prompt }: SmokeOptions,
 ): Effect.Effect<void, Error> {
 	return Effect.gen(function* printDryRunGenerator() {
-		console.log("Live proxy smoke dry run");
+		console.log(bold("Live proxy smoke dry run"));
 		console.log("");
-		console.log("No upstream requests were made. Pass --live to run exactly one chat completion per provider.");
-		console.log(`Port: ${port}`);
-		console.log(`Prompt: ${prompt}`);
+		console.log(
+			dim("No upstream requests were made. Pass --live to run exactly one chat completion per provider."),
+		);
+		console.log(`${bold("Port:")} ${cyan(String(port))}`);
+		console.log(`${bold("Prompt:")} ${cyan(prompt)}`);
 		console.log("");
 
-		const keyStatuses = yield* Effect.all(
-			providerConfigurations.map((providerConfiguration) => getKeyStatusEffect(providerConfiguration)),
-		);
+		const keyStatuses = yield* Effect.all(providerConfigurations.map(getKeyStatusEffect));
 		for (const [index, providerConfiguration] of providerConfigurations.entries()) {
 			const keyStatus = keyStatuses[index] ?? "unknown";
-			console.log(`${providerConfiguration.name}:`);
-			console.log(`  protocol: ${providerConfiguration.upstreamProtocol}`);
-			console.log(`  base URL: ${providerConfiguration.upstreamBaseUrl}`);
-			console.log(`  model: ${providerConfiguration.model}`);
-			console.log(`  max tokens: ${providerConfiguration.maxTokens}`);
-			console.log(`  key: ${keyStatus}`);
+
+			let formattedKeyStatus: string;
+			if (keyStatus.endsWith("is set") || keyStatus.endsWith("exists")) {
+				formattedKeyStatus = green(keyStatus);
+			} else if (keyStatus.endsWith("missing")) formattedKeyStatus = yellow(keyStatus);
+			else formattedKeyStatus = red(keyStatus);
+
+			console.log(`${bold(providerConfiguration.name)}:`);
+			console.log(`│  ${dim("protocol:")} ${cyan(providerConfiguration.upstreamProtocol)}`);
+			console.log(`│  ${dim("base URL:")} ${cyan(providerConfiguration.upstreamBaseUrl)}`);
+			console.log(`│  ${dim("model:")} ${cyan(providerConfiguration.model)}`);
+			console.log(`│  ${dim("max tokens:")} ${cyan(String(providerConfiguration.maxTokens))}`);
+			console.log(`│  ${dim("key:")} ${formattedKeyStatus}`);
+			console.log("");
 		}
-		console.log("");
-		console.log("Examples:");
-		console.log("  mise run live-smoke");
-		console.log("  mise run live-smoke -- --dry-run");
-		console.log("  mise run live-smoke -- --live");
-		console.log("  mise run live-smoke -- --live --provider opencode-go");
-		console.log("  mise run live-smoke -- --live --provider cerebras");
+
+		console.log(bold("Examples:"));
+		console.log(dim("  mise run live-smoke"));
+		console.log(dim("  mise run live-smoke -- --dry-run"));
+		console.log(dim("  mise run live-smoke -- --live"));
+		console.log(dim("  mise run live-smoke -- --live --provider opencode-go"));
+		console.log(dim("  mise run live-smoke -- --live --provider cerebras"));
 	});
 }
 
@@ -547,19 +556,30 @@ function printResult({
 	success,
 	upstreamModel,
 }: SmokeResult): void {
-	const state = success ? "PASS" : "FAIL";
+	const state = success ? bgGreen(bold(" PASS ")) : bgRed(bold(" FAIL "));
+	const statusColor = httpStatus >= 200 && httpStatus < 300 ? green(String(httpStatus)) : red(String(httpStatus));
 	console.log(
-		`${state} ${provider}: HTTP ${httpStatus}, requested_model=${requestedModel}, upstream_model=${upstreamModel}, finish_reason=${
-			finishReason ?? "undefined"
-		}`,
+		`${state} ${bold(provider)}: HTTP ${statusColor}, ${dim("requested_model=")}${cyan(requestedModel)}, ${
+			dim(
+				"upstream_model=",
+			)
+		}${cyan(upstreamModel)}, ${dim("finish_reason=")}${yellow(finishReason ?? "undefined")}`,
 	);
-	console.log(`  content: ${JSON.stringify(content)}`);
+	console.log(`  ${dim("content:")} ${JSON.stringify(content)}`);
+	console.log(dim("─".repeat(80)));
 }
 
 function printSummary(results: ReadonlyArray<SmokeResult>): void {
 	const passed = results.filter((result) => result.success).length;
+	const total = results.length;
+
+	let countColor = red;
+	if (passed === total) countColor = green;
+	else if (passed > 0) countColor = yellow;
+
+	const countText = countColor(`${passed}/${total} providers passed.`);
 	console.log("");
-	console.log(`Summary: ${passed}/${results.length} providers passed.`);
+	console.log(`${bold("Summary:")} ${countText}`);
 }
 
 function getHomeDirectory(): string {
