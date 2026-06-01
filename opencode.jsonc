@@ -7,7 +7,7 @@
 			"disable": false,
 			"mode": "all",
 			"permission": {
-				"bash": "ask",
+				"bash": "allow",
 				"codesearch": "allow",
 				"doom_loop": "deny",
 				"edit": "deny",
@@ -21,7 +21,7 @@
 				"skill": "allow",
 				"task": "allow",
 				"todoread": "allow",
-				"todowrite": "ask",
+				"todowrite": "allow",
 				"webfetch": "allow",
 				"websearch": "allow"
 			},
@@ -232,7 +232,7 @@
 	},
 	"permission": {
 		"bash": {
-			"*": "ask",
+			"*": "allow",
 			"bat *": "allow",
 			"bat*": "allow",
 			"cat *": "allow",
@@ -283,20 +283,20 @@
 			"wc*": "allow"
 		},
 		"codesearch": "allow",
-		"doom_loop": "ask",
-		"edit": "ask",
-		"external_directory": "ask",
+		"doom_loop": "allow",
+		"edit": "allow",
+		"external_directory": "allow",
 		"glob": "allow",
 		"grep": "allow",
 		"list": "allow",
 		"lsp": "allow",
 		"question": "allow",
 		"read": "allow",
-		"skill": "ask",
+		"skill": "allow",
 		"task": "allow",
 		"todoread": "allow",
 		"todowrite": "allow",
-		"webfetch": "ask",
+		"webfetch": "allow",
 		"websearch": "allow"
 	},
 	"plugin": ["opencode-wakatime"],
