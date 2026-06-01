@@ -1,90 +1,109 @@
-export type OpenAIChatRole = "system" | "developer" | "user" | "assistant" | "tool" | "function";
+import { type } from "arktype";
 
-export type OpenAIFinishReason = "stop" | "length" | "tool_calls" | "content_filter";
+export const isOpenAiChatRole = type('"system" | "developer" | "user" | "assistant" | "tool" | "function"');
+export type OpenAiChatRole = typeof isOpenAiChatRole.infer;
 
-export interface OpenAITextContentPart {
-	type: "text";
-	text: string;
-}
+export const isOpenAiFinishReason = type('"stop" | "length" | "tool_calls" | "content_filter"');
+export type OpenAiFinishReason = typeof isOpenAiFinishReason.infer;
 
-export interface OpenAIChatMessage {
-	role: OpenAIChatRole;
-	content?: string | ReadonlyArray<OpenAITextContentPart | Readonly<Record<string, unknown>>> | null;
-	name?: string;
-	tool_call_id?: string;
-	tool_calls?: unknown;
-	function_call?: unknown;
-}
+export const isOpenAiTextContentPart = type({
+	text: "string",
+	type: '"text"',
+}).readonly();
+export type OpenAiTextContentPart = typeof isOpenAiTextContentPart.infer;
 
-export interface OpenAIChatCompletionRequest {
-	model?: string;
-	messages?: ReadonlyArray<OpenAIChatMessage>;
-	max_tokens?: number;
-	max_completion_tokens?: number;
-	temperature?: number;
-	top_p?: number;
-	stop?: string | Array<string> | null;
-	stream?: boolean;
-	[key: string]: unknown;
-}
+export const isOpenAiChatMessage = type({
+	"content?": type("string | null").or(
+		isOpenAiTextContentPart.or("Record<string, unknown>").readonly().array().readonly(),
+	),
+	"function_call?": "unknown",
+	"name?": "string",
+	role: isOpenAiChatRole,
+	"tool_call_id?": "string",
+	"tool_calls?": "unknown",
+}).readonly();
+export type OpenAiChatMessage = typeof isOpenAiChatMessage.infer;
 
-export interface OpenAIErrorBody {
-	error: {
-		message: string;
-		type: string;
-		param: string | null;
-		code: string | null;
-	};
-}
+export const isOpenAiChatCompletionRequest = type({
+	"[string]": "unknown",
+	"max_completion_tokens?": "number % 1",
+	"max_tokens?": "number % 1",
+	"messages?": isOpenAiChatMessage.array().readonly().atLeastLength(1),
+	"model?": "string",
+	"stop?": type("string | null").or(type("string[]").readonly()),
+	"stream?": "boolean",
+	"temperature?": "number",
+	"top_p?": "number",
+}).readonly();
+export type OpenAiChatCompletionRequest = typeof isOpenAiChatCompletionRequest.infer;
 
-export interface OpenAIChatCompletionChoice {
-	index: number;
-	message: {
-		role: "assistant";
-		content: string;
-	};
-	finish_reason: OpenAIFinishReason | null;
-}
+export const isOpenAiErrorBody = type({
+	error: type({
+		code: type("string | null"),
+		message: "string",
+		param: type("string | null"),
+		type: "string",
+	}).readonly(),
+}).readonly();
+export type OpenAiErrorBody = typeof isOpenAiErrorBody.infer;
 
-export interface OpenAIUsage {
-	prompt_tokens: number;
-	completion_tokens: number;
-	total_tokens: number;
-}
+export const isOpenAiChatCompletionChoice = type({
+	finish_reason: isOpenAiFinishReason.or("null"),
+	index: "number % 1",
+	message: type({
+		content: "string",
+		role: "'assistant'",
+	}).readonly(),
+}).readonly();
+export type OpenAiChatCompletionChoice = typeof isOpenAiChatCompletionChoice.infer;
 
-export interface OpenAIChatCompletionResponse {
-	id: string;
-	object: "chat.completion";
-	created: number;
-	model: string;
-	choices: Array<OpenAIChatCompletionChoice>;
-	usage?: OpenAIUsage;
-}
+export const isOpenAiUsage = type({
+	completion_tokens: "number % 1",
+	prompt_tokens: "number % 1",
+	total_tokens: "number % 1",
+}).readonly();
+export type OpenAiUsage = typeof isOpenAiUsage.infer;
 
-export interface OpenAIChatCompletionChunk {
-	id: string;
-	object: "chat.completion.chunk";
-	created: number;
-	model: string;
-	choices: Array<{
-		index: number;
-		delta: {
-			role?: "assistant";
-			content?: string;
-		};
-		finish_reason: OpenAIFinishReason | null;
-	}>;
-	usage?: OpenAIUsage;
-}
+export const isOpenAiChatCompletionResponse = type({
+	choices: isOpenAiChatCompletionChoice.array().readonly(),
+	created: "number",
+	id: "string",
+	model: "string",
+	object: "'chat.completion'",
+	"usage?": isOpenAiUsage,
+}).readonly();
+export type OpenAiChatCompletionResponse = typeof isOpenAiChatCompletionResponse.infer;
 
-export interface OpenAIModel {
-	id: string;
-	object: "model";
-	created: number;
-	owned_by: string;
-}
+export const isOpenAiChatCompletionChunk = type({
+	choices: type({
+		delta: type({
+			"content?": "string",
+			"role?": "'assistant'",
+		}).readonly(),
+		finish_reason: isOpenAiFinishReason.or("null"),
+		index: "number % 1",
+	})
+		.readonly()
+		.array()
+		.readonly(),
+	created: "number",
+	id: "string",
+	model: "string",
+	object: '"chat.completion.chunk"',
+	"usage?": isOpenAiUsage,
+}).readonly();
+export type OpenAiChatCompletionChunk = typeof isOpenAiChatCompletionChunk.infer;
 
-export interface OpenAIModelListResponse {
-	object: "list";
-	data: ReadonlyArray<OpenAIModel>;
-}
+export const isOpenAiModel = type({
+	created: "number",
+	id: "string",
+	object: "'model'",
+	owned_by: "string",
+}).readonly();
+export type OpenAiModel = typeof isOpenAiModel.infer;
+
+export const isOpenAiModelListResponse = type({
+	data: isOpenAiModel.array().readonly(),
+	object: "'list'",
+}).readonly();
+export type OpenAiModelListResponse = typeof isOpenAiModelListResponse.infer;

@@ -1,31 +1,22 @@
-import { logger } from "../../src/logging/logger.ts";
-import { ProxyError } from "../../src/proxy/errors.ts";
-import { UpstreamTimeoutError } from "../../src/proxy/upstream-errors.ts";
-import { fetchUpstreamJsonAsync } from "../../src/proxy/upstream.ts";
+import { logger } from "@logging/logger.ts";
+import { ProxyError } from "@proxy/errors.ts";
+import { UpstreamTimeoutError } from "@proxy/upstream-errors.ts";
+import { fetchUpstreamJsonAsync } from "@proxy/upstream.ts";
+import { Predicate } from "effect";
 
-import type { ProxyConfig } from "../../src/proxy/config.ts";
-import type { Fetcher } from "../../src/proxy/upstream.ts";
+import { assert, assertEquals } from "../utilities/test-utilities.ts";
 
-declare const Deno: {
-	readonly test: (name: string, fn: () => void | Promise<void>) => void;
-};
+import type { ProxyConfiguration } from "@proxy/config.ts";
+import type { Fetcher } from "@proxy/upstream.ts";
 
 const successFetcher: Fetcher = () => Promise.resolve(Response.json({ ok: true }));
-
-function assert(condition: boolean, message: string): asserts condition {
-	if (!condition) throw new Error(message);
-}
-
-function assertEquals<Value>(actual: Value, expected: Value, message: string): void {
-	if (actual !== expected) throw new Error(`${message} Expected ${String(expected)}, got ${String(actual)}.`);
-}
 
 function createNeverResolvingFetcher(): Fetcher {
 	const deferred = Promise.withResolvers<Response>();
 	return () => deferred.promise;
 }
 
-function createConfig(overrides: Partial<ProxyConfig> = {}): ProxyConfig {
+function createConfig(overrides: Partial<ProxyConfiguration> = {}): ProxyConfiguration {
 	return {
 		cerebrasDropUnsupportedFields: true,
 		cerebrasStrictRequestValidation: true,
@@ -54,8 +45,8 @@ Deno.test("Effect upstream POST returns parsed JSON on success", async () => {
 	);
 	const body = await response.json();
 
-	assert(isRecord(body), "Expected response JSON object.");
-	assertEquals(body["ok"], true, "Expected successful upstream JSON.");
+	assert(Predicate.isRecord(body), "Expected response JSON object.");
+	assertEquals(body.ok, true, "Expected successful upstream JSON.");
 });
 
 Deno.test("Effect upstream POST timeout throws UpstreamTimeoutError", async () => {
@@ -101,8 +92,8 @@ Deno.test("Effect upstream POST retries transient HTTP 500 then succeeds", async
 	const body = await response.json();
 
 	assertEquals(calls, 2, "Expected one retry after HTTP 500.");
-	assert(isRecord(body), "Expected response JSON object.");
-	assertEquals(body["ok"], true, "Expected retry success JSON.");
+	assert(Predicate.isRecord(body), "Expected response JSON object.");
+	assertEquals(body.ok, true, "Expected retry success JSON.");
 });
 
 Deno.test("Effect upstream POST does not retry client HTTP 400", async () => {
@@ -149,8 +140,8 @@ Deno.test("Effect upstream POST retries network failures then succeeds", async (
 	const body = await response.json();
 
 	assertEquals(calls, 2, "Expected one retry after network failure.");
-	assert(isRecord(body), "Expected response JSON object.");
-	assertEquals(body["ok"], true, "Expected retry success JSON.");
+	assert(Predicate.isRecord(body), "Expected response JSON object.");
+	assertEquals(body.ok, true, "Expected retry success JSON.");
 });
 
 Deno.test("Effect upstream logs only safe upstream metadata", async () => {
@@ -198,8 +189,4 @@ Deno.test("Effect upstream logs only safe upstream metadata", async () => {
 interface LogRecord {
 	readonly message: unknown;
 	readonly properties: unknown;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-	return typeof value === "object" && Boolean(value) && !Array.isArray(value);
 }

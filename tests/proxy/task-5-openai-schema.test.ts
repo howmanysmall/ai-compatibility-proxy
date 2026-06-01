@@ -1,16 +1,11 @@
-import { createApp } from "../../src/proxy/app.ts";
+import { createApp } from "@proxy/app.ts";
+import { Predicate } from "effect";
 
-import type { ProxyConfig } from "../../src/proxy/config.ts";
+import { assert } from "../utilities/test-utilities.ts";
 
-declare const Deno: {
-	test(name: string, fn: () => void | Promise<void>): void;
-};
+import type { ProxyConfiguration } from "@proxy/config.ts";
 
-function assert(condition: boolean, message: string): asserts condition {
-	if (!condition) throw new Error(message);
-}
-
-function createConfig(overrides: Partial<ProxyConfig> = {}): ProxyConfig {
+function createConfiguration(overrides: Partial<ProxyConfiguration> = {}): ProxyConfiguration {
 	return {
 		cerebrasDropUnsupportedFields: true,
 		cerebrasStrictRequestValidation: true,
@@ -41,25 +36,29 @@ function createJsonRequest(body: unknown): Request {
 }
 
 async function readRecordAsync(response: Response): Promise<Record<string, unknown>> {
-	const body: unknown = await response.json();
-	if (!isRecord(body)) throw new Error("Expected response body to be an object.");
+	const body = await response.json();
+	if (!Predicate.isRecord(body)) {
+		const error = new Error("Expected response body to be an object.");
+		Error.captureStackTrace(error, readRecordAsync);
+		throw error;
+	}
 	return body;
 }
 
 function getRecord(value: Record<string, unknown>, key: string): Record<string, unknown> {
 	const childValue = value[key];
-	if (!isRecord(childValue)) throw new Error(`Expected ${key} to be an object.`);
+	if (!Predicate.isRecord(childValue)) {
+		const error = new Error(`Expected ${key} to be an object.`);
+		Error.captureStackTrace(error, getRecord);
+		throw error;
+	}
 	return childValue;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-	return typeof value === "object" && Boolean(value) && !Array.isArray(value);
 }
 
 Deno.test("rejects request bodies missing messages", async () => {
 	const app = createApp({
-		config: createConfig(),
 		fetcher: () => Promise.reject(new Error("fetch should not be called")),
+		proxyConfiguration: createConfiguration(),
 	});
 	const response = await app(createJsonRequest({ model: "minimax-m3" }));
 	const body = await readRecordAsync(response);
@@ -71,8 +70,8 @@ Deno.test("rejects request bodies missing messages", async () => {
 
 Deno.test("rejects request bodies with non-array messages", async () => {
 	const app = createApp({
-		config: createConfig(),
 		fetcher: () => Promise.reject(new Error("fetch should not be called")),
+		proxyConfiguration: createConfiguration(),
 	});
 	const response = await app(createJsonRequest({ messages: "not an array" }));
 	const body = await readRecordAsync(response);
@@ -84,8 +83,8 @@ Deno.test("rejects request bodies with non-array messages", async () => {
 
 Deno.test("rejects request bodies with empty messages arrays", async () => {
 	const app = createApp({
-		config: createConfig(),
 		fetcher: () => Promise.reject(new Error("fetch should not be called")),
+		proxyConfiguration: createConfiguration(),
 	});
 	const response = await app(createJsonRequest({ messages: [] }));
 	const body = await readRecordAsync(response);
@@ -97,8 +96,8 @@ Deno.test("rejects request bodies with empty messages arrays", async () => {
 
 Deno.test("rejects empty request bodies", async () => {
 	const app = createApp({
-		config: createConfig(),
 		fetcher: () => Promise.reject(new Error("fetch should not be called")),
+		proxyConfiguration: createConfiguration(),
 	});
 	const response = await app(createJsonRequest({}));
 	const body = await readRecordAsync(response);

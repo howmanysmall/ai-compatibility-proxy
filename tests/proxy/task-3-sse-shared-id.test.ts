@@ -1,21 +1,23 @@
-import { translateAnthropicSseText } from "../../src/proxy/sse.ts";
+import { translateAnthropicSseText } from "@proxy/sse.ts";
+import { Predicate } from "effect";
 
-function assert(condition: boolean, message: string): asserts condition {
-	if (!condition) throw new Error(message);
-}
+import { assert, assertEquals } from "../utilities/test-utilities.ts";
 
-function assertEquals<Value>(actual: Value, expected: Value, message: string): void {
-	if (actual !== expected) {
-		throw new Error(`${message} (expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)})`);
+import type { ReadonlyRecord } from "@ts-types/utility-types.ts";
+
+function parseChunks(output: string): ReadonlyArray<ReadonlyRecord<string, unknown>> {
+	const chunks: Array<ReadonlyRecord<string, unknown>> = [];
+	let size = 0;
+
+	for (const baseLine of output.split("\n\n")) {
+		const line = baseLine.trim();
+		if (!line.startsWith("data:") || line.includes("[DONE]")) continue;
+
+		const json = JSON.parse(line.slice(5).trim());
+		if (Predicate.isReadonlyRecord(json)) chunks[size++] = json;
 	}
-}
 
-function parseChunks(output: string): Array<Record<string, unknown>> {
-	return output
-		.split("\n\n")
-		.map((line) => line.trim())
-		.filter((line) => line.startsWith("data:") && !line.includes("[DONE]"))
-		.map((line) => JSON.parse(line.slice("data:".length).trim()) as Record<string, unknown>);
+	return chunks;
 }
 
 Deno.test("all chunks in one Anthropic stream share a single id, created, and model", () => {
@@ -35,9 +37,17 @@ Deno.test("all chunks in one Anthropic stream share a single id, created, and mo
 
 	assert(chunks.length >= 3, `Expected at least 3 chunks, got ${chunks.length}`);
 
-	const chunkIds = chunks.map((chunk) => chunk["id"]);
-	const chunkCreated = chunks.map((chunk) => chunk["created"]);
-	const chunkModels = chunks.map((chunk) => chunk["model"]);
+	const chunkIds: Array<unknown> = [];
+	const chunkCreated: Array<unknown> = [];
+	const chunkModels: Array<unknown> = [];
+
+	let size = 0;
+
+	for (const { id, created, model } of chunks) {
+		chunkIds[size] = id;
+		chunkCreated[size] = created;
+		chunkModels[size++] = model;
+	}
 
 	assertEquals(new Set(chunkIds).size, 1, `All chunks must share one id; got: ${JSON.stringify(chunkIds)}`);
 	assertEquals(
@@ -62,8 +72,8 @@ Deno.test("stream id is taken from message_start, not generated per-chunk", () =
 	const chunks = parseChunks(output);
 
 	for (const chunk of chunks) {
-		assertEquals(chunk["id"], "msg_xyz", "All chunks must use the id from message_start");
-		assertEquals(chunk["model"], "test-model", "All chunks must use the model from message_start");
+		assertEquals(chunk.id, "msg_xyz", "All chunks must use the id from message_start");
+		assertEquals(chunk.model, "test-model", "All chunks must use the model from message_start");
 	}
 });
 
@@ -80,8 +90,15 @@ Deno.test("falls back to generated UUID and configured model when message_start 
 
 	assert(chunks.length >= 2, "Expected at least 2 chunks");
 
-	const ids = chunks.map((chunk) => chunk["id"] as string);
-	const models = chunks.map((chunk) => chunk["model"]);
+	const ids: Array<string> = [];
+	const models: Array<unknown> = [];
+
+	let size = 0;
+
+	for (const { id, model } of chunks) {
+		ids[size] = id as string;
+		models[size++] = model;
+	}
 
 	assertEquals(new Set(ids).size, 1, "All chunks must share one id even without message_start");
 	assert(ids[0]?.startsWith("chatcmpl-") === true, "Fallback id should be chatcmpl-<uuid>");

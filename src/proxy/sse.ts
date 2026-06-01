@@ -1,7 +1,12 @@
+import { getUnixSeconds } from "@utilities/time-utilities.ts";
+import { Predicate, String } from "effect";
+
 import { mapAnthropicFinishReason, mapAnthropicUsage } from "./anthropic-translator.ts";
 import { OPENAI_NULL } from "./openai-constants.ts";
 
-import type { OpenAIChatCompletionChunk, OpenAIUsage } from "./openai-types.ts";
+import type { Writable } from "type-fest";
+
+import type { OpenAiChatCompletionChunk, OpenAiFinishReason, OpenAiUsage } from "./openai-types.ts";
 
 const SSE_EVENT_SEPARATOR_PATTERN = /\n\n/u;
 
@@ -9,7 +14,7 @@ export async function createOpenAIStreamResponseAsync(upstreamResponse: Response
 	const upstreamBody = upstreamResponse.body;
 	if (!upstreamBody) {
 		return new Response("data: [DONE]\n\n", {
-			headers: createSseHeaders(),
+			headers: SSE_HEADERS,
 		});
 	}
 
@@ -19,7 +24,7 @@ export async function createOpenAIStreamResponseAsync(upstreamResponse: Response
 		.pipeThrough(new TextEncoderStream());
 
 	return new Response(stream, {
-		headers: createSseHeaders(),
+		headers: SSE_HEADERS,
 	});
 }
 
@@ -27,9 +32,7 @@ export function translateAnthropicSseText(input: string, model: string): string 
 	let output = "";
 	const translateEvent = createAnthropicEventTranslator(model);
 
-	for (const event of parseSseEvents(input)) {
-		output += translateEvent(event);
-	}
+	for (const event of parseSseEvents(input)) output += translateEvent(event);
 
 	return output;
 }
@@ -40,9 +43,7 @@ function createAnthropicSseTransform(model: string): TransformStream<string, str
 
 	return new TransformStream({
 		flush(controller) {
-			for (const event of parseSseEvents(buffer)) {
-				controller.enqueue(translateEvent(event));
-			}
+			for (const event of parseSseEvents(buffer)) controller.enqueue(translateEvent(event));
 			controller.enqueue("data: [DONE]\n\n");
 		},
 		transform(chunk, controller) {
@@ -53,9 +54,7 @@ function createAnthropicSseTransform(model: string): TransformStream<string, str
 			const readyText = buffer.slice(0, lastEventBoundary + 2);
 			buffer = buffer.slice(lastEventBoundary + 2);
 
-			for (const event of parseSseEvents(readyText)) {
-				controller.enqueue(translateEvent(event));
-			}
+			for (const event of parseSseEvents(readyText)) controller.enqueue(translateEvent(event));
 		},
 	});
 }
@@ -84,9 +83,9 @@ function createAnthropicEventTranslator(fallbackModel: string): (event: Record<s
 		const { type } = event;
 
 		if (type === "message_start") {
-			const message = getRecord(event["message"]);
-			streamId = getString(message["id"]) ?? `chatcmpl-${crypto.randomUUID()}`;
-			streamModel = getString(message["model"]) ?? fallbackModel;
+			const message = getRecord(event.message);
+			streamId = getString(message.id) ?? `chatcmpl-${crypto.randomUUID()}`;
+			streamModel = getString(message.model) ?? fallbackModel;
 			streamCreated = getUnixSeconds();
 			return formatChunk({
 				choices: [
@@ -104,28 +103,31 @@ function createAnthropicEventTranslator(fallbackModel: string): (event: Record<s
 		}
 
 		if (type === "content_block_start") {
-			const block = getRecord(event["content_block"]);
-			if (block["type"] !== "text") return "";
-			const text = getString(block["text"]);
-			if (!text) return "";
+			const block = getRecord(event.content_block);
+			if (block.type !== "text") return "";
+
+			const text = getString(block.text);
+			if (text === undefined || text.length === 0) return "";
+
 			return formatContentChunk(text, getSharedId(), getSharedCreated(), getSharedModel());
 		}
 
 		if (type === "content_block_delta") {
-			const delta = getRecord(event["delta"]);
-			const text = getString(delta["text"]);
-			if (!text) return "";
+			const delta = getRecord(event.delta);
+			const text = getString(delta.text);
+			if (text === undefined || text.length === 0) return "";
+
 			return formatContentChunk(text, getSharedId(), getSharedCreated(), getSharedModel());
 		}
 
 		if (type === "message_delta") {
-			const delta = getRecord(event["delta"]);
-			const usage = mapAnthropicUsage(getRecordOrUndefined(event["usage"]));
+			const delta = getRecord(event.delta);
+			const usage = mapAnthropicUsage(getRecordOrUndefined(event.usage));
 			return formatFinalChunk(
 				getSharedId(),
 				getSharedCreated(),
 				getSharedModel(),
-				mapAnthropicFinishReason(getString(delta["stop_reason"])),
+				mapAnthropicFinishReason(getString(delta.stop_reason)),
 				usage,
 			);
 		}
@@ -137,14 +139,14 @@ function createAnthropicEventTranslator(fallbackModel: string): (event: Record<s
 function parseSseEvents(input: string): Array<Record<string, unknown>> {
 	return input
 		.split(SSE_EVENT_SEPARATOR_PATTERN)
-		.map((eventText) => eventText.trim())
+		.map(String.trim)
 		.filter(Boolean)
 		.flatMap((eventText) => {
 			const dataLines = eventText
 				.split("\n")
-				.map((line) => line.trim())
+				.map(String.trim)
 				.filter((line) => line.startsWith("data:"))
-				.map((line) => line.slice("data:".length).trim());
+				.map((line) => line.slice(5).trim());
 
 			if (dataLines.length === 0) return [];
 
@@ -153,7 +155,7 @@ function parseSseEvents(input: string): Array<Record<string, unknown>> {
 
 			try {
 				const parsedData: unknown = JSON.parse(data);
-				return isRecord(parsedData) ? [parsedData] : [];
+				return Predicate.isRecord(parsedData) ? [parsedData] : [];
 			} catch {
 				return [];
 			}
@@ -180,10 +182,10 @@ function formatFinalChunk(
 	id: string,
 	created: number,
 	model: string,
-	finishReason: OpenAIChatCompletionChunk["choices"][number]["finish_reason"],
-	usage: OpenAIUsage | undefined,
+	finishReason: OpenAiFinishReason | null,
+	openAiUsage?: OpenAiUsage,
 ): string {
-	return formatChunk({
+	const openAiChatCompletionChunk: Writable<OpenAiChatCompletionChunk> = {
 		choices: [
 			{
 				delta: {},
@@ -195,39 +197,31 @@ function formatFinalChunk(
 		id,
 		model,
 		object: "chat.completion.chunk",
-		...(usage ? { usage } : {}),
-	});
+	};
+	if (openAiUsage) openAiChatCompletionChunk.usage = openAiUsage;
+
+	return formatChunk(openAiChatCompletionChunk);
 }
 
-function formatChunk(chunk: OpenAIChatCompletionChunk): string {
-	return `data: ${JSON.stringify(chunk)}\n\n`;
+function formatChunk(openAiChatCompletionChunk: OpenAiChatCompletionChunk): string {
+	return `data: ${JSON.stringify(openAiChatCompletionChunk)}\n\n`;
 }
 
-function createSseHeaders(): Headers {
-	return new Headers({
-		"cache-control": "no-cache, no-transform",
-		connection: "keep-alive",
-		"content-type": "text/event-stream; charset=utf-8",
-		"x-accel-buffering": "no",
-	});
-}
+const SSE_HEADERS = new Headers({
+	"cache-control": "no-cache, no-transform",
+	connection: "keep-alive",
+	"content-type": "text/event-stream; charset=utf-8",
+	"x-accel-buffering": "no",
+});
 
 function getRecord(value: unknown): Record<string, unknown> {
-	return isRecord(value) ? value : {};
+	return Predicate.isRecord(value) ? value : {};
 }
 
 function getRecordOrUndefined(value: unknown): Record<string, unknown> | undefined {
-	return isRecord(value) ? value : undefined;
+	return Predicate.isRecord(value) ? value : undefined;
 }
 
 function getString(value: unknown): string | undefined {
 	return typeof value === "string" ? value : undefined;
-}
-
-function getUnixSeconds(): number {
-	return Math.floor(Date.now() / 1000);
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-	return typeof value === "object" && Boolean(value) && !Array.isArray(value);
 }

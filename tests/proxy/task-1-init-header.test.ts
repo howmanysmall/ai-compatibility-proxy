@@ -1,8 +1,4 @@
-import { getInitHeader } from "./_test-helpers.ts";
-
-function assert(condition: boolean, message: string): asserts condition {
-	if (!condition) throw new Error(message);
-}
+import { assert, getInitHeader } from "../utilities/test-utilities.ts";
 
 Deno.test("getInitHeader reads Headers instances", () => {
 	const init: RequestInit = { headers: new Headers({ authorization: "Bearer headers" }) };

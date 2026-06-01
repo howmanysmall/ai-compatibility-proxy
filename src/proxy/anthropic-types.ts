@@ -1,50 +1,61 @@
-export type AnthropicMessageRole = "user" | "assistant";
+import { type } from "arktype";
 
-export type AnthropicStopReason =
-	| "end_turn"
-	| "stop_sequence"
-	| "max_tokens"
-	| "tool_use"
-	| "pause_turn"
-	| "refusal"
-	| string;
+import type { LiteralUnion } from "type-fest";
 
-export interface AnthropicTextBlock {
-	type: "text";
-	text: string;
-}
+export const isAnthropicMessageRole = type('"user" | "assistant"');
+export type AnthropicMessageRole = typeof isAnthropicMessageRole.infer;
 
-export interface AnthropicMessage {
-	role: AnthropicMessageRole;
-	content: string | ReadonlyArray<AnthropicTextBlock>;
-}
+export type AnthropicStopReason = LiteralUnion<
+	"end_turn" | "stop_sequence" | "max_tokens" | "tool_use" | "pause_turn" | "refusal",
+	string
+>;
+export const isAnthropicStopReason = type("string").as<AnthropicStopReason>();
 
-export interface AnthropicMessagesRequest {
-	model: string;
-	max_tokens: number;
-	messages: ReadonlyArray<AnthropicMessage>;
-	system?: string;
-	temperature?: number;
-	top_p?: number;
-	stop_sequences?: ReadonlyArray<string>;
-	stream?: boolean;
-}
+export const isAnthropicTextBlock = type({
+	"+": "reject",
+	text: "string",
+	type: "'text'",
+}).readonly();
+export type AnthropicTextBlock = typeof isAnthropicTextBlock.infer;
 
-export interface AnthropicUsage {
-	input_tokens?: number;
-	cache_creation_input_tokens?: number;
-	cache_read_input_tokens?: number;
-	output_tokens?: number;
-	[key: string]: unknown;
-}
+export const isAnthropicMessage = type({
+	"+": "reject",
+	content: isAnthropicTextBlock.array().readonly().or("string"),
+	role: isAnthropicMessageRole,
+}).readonly();
+export type AnthropicMessage = typeof isAnthropicMessage.infer;
 
-export interface AnthropicMessagesResponse {
-	id?: string;
-	type?: string;
-	role?: "assistant";
-	model?: string;
-	content?: ReadonlyArray<Readonly<Record<string, unknown>>>;
-	stop_reason?: AnthropicStopReason | null;
-	stop_sequence?: string | null;
-	usage?: AnthropicUsage;
-}
+export const isAnthropicMessagesRequest = type({
+	"+": "reject",
+	max_tokens: "number % 1",
+	messages: isAnthropicMessage.array().readonly(),
+	model: "string",
+	"stop_sequences?": type("string[]").readonly(),
+	"stream?": "boolean",
+	"system?": "string",
+	"temperature?": "number",
+	"top_p?": "number",
+}).readonly();
+export type AnthropicMessagesRequest = typeof isAnthropicMessagesRequest.infer;
+
+export const isAnthropicUsage = type({
+	"[string]": "unknown",
+	"cache_creation_input_tokens?": "number % 1",
+	"cache_read_input_tokens?": "number % 1",
+	"input_tokens?": "number % 1",
+	"output_tokens?": "number % 1",
+}).readonly();
+export type AnthropicUsage = typeof isAnthropicUsage.infer;
+
+export const isAnthropicMessagesResponse = type({
+	"+": "reject",
+	"content?": type("Record<string, unknown>").readonly().array().readonly(),
+	"id?": "string",
+	"model?": "string",
+	"role?": "'assistant'",
+	"stop_reason?": isAnthropicStopReason.or("null"),
+	"stop_sequence?": "string | null",
+	type: "'message'",
+	"usage?": isAnthropicUsage,
+}).readonly();
+export type AnthropicMessagesResponse = typeof isAnthropicMessagesResponse.infer;

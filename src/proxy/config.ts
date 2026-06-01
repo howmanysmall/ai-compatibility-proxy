@@ -3,7 +3,7 @@ import arkenv, { type } from "arkenv";
 export type UpstreamProtocol = "anthropic_messages" | "cerebras_openai";
 export type UpstreamAuthMode = "client_bearer" | "server_key";
 
-export interface ProxyConfig {
+export interface ProxyConfiguration {
 	readonly port: number;
 	readonly upstreamProtocol: UpstreamProtocol;
 	readonly upstreamBaseUrl: string;
@@ -19,7 +19,7 @@ export interface ProxyConfig {
 	readonly cerebrasDropUnsupportedFields: boolean;
 }
 
-const ProxyEnvironment = type({
+const isProxyEnvironment = type({
 	CEREBRAS_DROP_UNSUPPORTED_FIELDS: "boolean = true",
 	CEREBRAS_STRICT_REQUEST_VALIDATION: "boolean = true",
 	DEFAULT_MAX_TOKENS: "number.integer > 0 = 4096",
@@ -33,9 +33,11 @@ const ProxyEnvironment = type({
 	UPSTREAM_AUTH_MODE: "'client_bearer' | 'server_key' = 'client_bearer'",
 	UPSTREAM_BASE_URL: "string = 'https://opencode.ai/zen/go/v1'",
 	UPSTREAM_PROTOCOL: "'anthropic_messages' | 'cerebras_openai' = 'anthropic_messages'",
-});
+}).readonly();
 
-export function loadConfig(environment: Record<string, string | undefined> = Deno.env.toObject()): ProxyConfig {
+export function loadConfiguration(
+	environment: Record<string, string | undefined> = Deno.env.toObject(),
+): ProxyConfiguration {
 	const normalizedEnvironment = removeEmptyValues(environment);
 	const {
 		CEREBRAS_DROP_UNSUPPORTED_FIELDS,
@@ -49,13 +51,13 @@ export function loadConfig(environment: Record<string, string | undefined> = Den
 		UPSTREAM_AUTH_HEADER,
 		UPSTREAM_AUTH_MODE,
 		UPSTREAM_PROTOCOL,
-	} = arkenv(ProxyEnvironment, {
+	} = arkenv(isProxyEnvironment, {
 		coerce: true,
 		env: normalizedEnvironment,
 		onUndeclaredKey: "delete",
 	});
-	const upstreamBaseUrl = normalizedEnvironment["UPSTREAM_BASE_URL"] ?? getDefaultBaseUrl(UPSTREAM_PROTOCOL);
-	const defaultModel = normalizedEnvironment["DEFAULT_MODEL"] ?? getDefaultModel(UPSTREAM_PROTOCOL);
+	const upstreamBaseUrl = normalizedEnvironment.UPSTREAM_BASE_URL ?? getDefaultBaseUrl(UPSTREAM_PROTOCOL);
+	const defaultModel = normalizedEnvironment.DEFAULT_MODEL ?? getDefaultModel(UPSTREAM_PROTOCOL);
 
 	return {
 		cerebrasDropUnsupportedFields: CEREBRAS_DROP_UNSUPPORTED_FIELDS,

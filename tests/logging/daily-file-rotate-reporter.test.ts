@@ -1,12 +1,10 @@
 import { serializeLogEntry } from "@logging/reports/daily-file-rotate-reporter.ts";
 
+import { assert } from "../utilities/test-utilities.ts";
+
 import type { StructuredLogEntry } from "@logging/log-entry.ts";
 
 const textEncoder = new TextEncoder();
-
-function assert(condition: boolean, message: string): asserts condition {
-	if (!condition) throw new Error(message);
-}
 
 function createLogEntry(overrides: Partial<StructuredLogEntry> = {}): StructuredLogEntry {
 	return {

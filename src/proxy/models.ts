@@ -1,20 +1,28 @@
+import { getNumber } from "@utilities/default-utilities.ts";
+import { Predicate } from "effect";
+
 import { fetchUpstreamGetAsync } from "./upstream.ts";
 
-import type { ProxyConfig } from "./config.ts";
-import type { OpenAIModel, OpenAIModelListResponse } from "./openai-types.ts";
+import type { ProxyConfiguration } from "./config.ts";
+import type { OpenAiModel, OpenAiModelListResponse } from "./openai-types.ts";
 import type { Fetcher } from "./upstream.ts";
 
 export async function getModelsAsync(
 	fetcher: Fetcher,
 	headers: Headers,
-	config: ProxyConfig,
-): Promise<OpenAIModelListResponse> {
-	const response = await fetchUpstreamGetAsync(fetcher, `${config.upstreamBaseUrl}/models`, headers, config);
-	const body: unknown = await response.json();
+	proxyConfiguration: ProxyConfiguration,
+): Promise<OpenAiModelListResponse> {
+	const response = await fetchUpstreamGetAsync(
+		fetcher,
+		`${proxyConfiguration.upstreamBaseUrl}/models`,
+		headers,
+		proxyConfiguration,
+	);
+	const body = await response.json();
 
-	if (isRecord(body) && Array.isArray(body["data"])) {
+	if (Predicate.isRecord(body) && Array.isArray(body.data)) {
 		return {
-			data: body["data"].flatMap((model) => normalizeModel(model, config)),
+			data: body.data.flatMap((model) => normalizeModel(model, proxyConfiguration)),
 			object: "list",
 		};
 	}
@@ -23,47 +31,42 @@ export async function getModelsAsync(
 		data: [
 			{
 				created: 0,
-				id: config.defaultModel,
+				id: proxyConfiguration.defaultModel,
 				object: "model",
-				owned_by: getOwnedBy(config),
+				owned_by: getOwnedBy(proxyConfiguration),
 			},
 		],
 		object: "list",
 	};
 }
 
-function normalizeModel(value: unknown, config: ProxyConfig): Array<OpenAIModel> {
+function normalizeModel(value: unknown, proxyConfiguration: ProxyConfiguration): Array<OpenAiModel> {
 	if (typeof value === "string") {
 		return [
 			{
 				created: 0,
 				id: value,
 				object: "model",
-				owned_by: getOwnedBy(config),
+				owned_by: getOwnedBy(proxyConfiguration),
 			},
 		];
 	}
 
-	if (!isRecord(value)) return [];
+	if (!Predicate.isRecord(value)) return [];
 
-	const model = value;
-	const { id } = model;
+	const { id } = value;
 	if (typeof id !== "string") return [];
 
 	return [
 		{
-			created: typeof model["created"] === "number" ? model["created"] : 0,
+			created: getNumber(value.created),
 			id,
 			object: "model",
-			owned_by: typeof model["owned_by"] === "string" ? model["owned_by"] : getOwnedBy(config),
+			owned_by: typeof value.owned_by === "string" ? value.owned_by : getOwnedBy(proxyConfiguration),
 		},
 	];
 }
 
-function getOwnedBy(config: ProxyConfig): string {
-	return config.upstreamProtocol === "cerebras_openai" ? "cerebras" : "anthropic-compatible-upstream";
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-	return typeof value === "object" && Boolean(value) && !Array.isArray(value);
+function getOwnedBy(proxyConfiguration: ProxyConfiguration): string {
+	return proxyConfiguration.upstreamProtocol === "cerebras_openai" ? "cerebras" : "anthropic-compatible-upstream";
 }

@@ -1,17 +1,10 @@
-import { createApp } from "../../src/proxy/app.ts";
-import { getInitHeader } from "./_test-helpers.ts";
+import { createApp } from "@proxy/app.ts";
 
-import type { ProxyConfig } from "../../src/proxy/config.ts";
+import { assert, getInitHeader } from "../utilities/test-utilities.ts";
 
-declare const Deno: {
-	test(name: string, fn: () => void | Promise<void>): void;
-};
+import type { ProxyConfiguration } from "@proxy/config.ts";
 
-function assert(condition: boolean, message: string): asserts condition {
-	if (!condition) throw new Error(message);
-}
-
-function createConfig(overrides: Partial<ProxyConfig> = {}): ProxyConfig {
+function createConfiguration(overrides: Partial<ProxyConfiguration> = {}): ProxyConfiguration {
 	return {
 		cerebrasDropUnsupportedFields: true,
 		cerebrasStrictRequestValidation: true,
@@ -32,11 +25,11 @@ function createConfig(overrides: Partial<ProxyConfig> = {}): ProxyConfig {
 
 Deno.test("server_key mode rejects same-length wrong token", async () => {
 	const app = createApp({
-		config: createConfig(),
 		fetcher: (_input, init) => {
 			assert(getInitHeader(init, "authorization") === "Bearer upstream-key", "Expected upstream auth header.");
 			return Promise.resolve(Response.json({ data: [], object: "list" }));
 		},
+		proxyConfiguration: createConfiguration(),
 	});
 
 	const response = await app(
@@ -50,8 +43,8 @@ Deno.test("server_key mode rejects same-length wrong token", async () => {
 
 Deno.test("server_key mode rejects different-length wrong token", async () => {
 	const app = createApp({
-		config: createConfig(),
 		fetcher: () => Promise.resolve(Response.json({ data: [], object: "list" })),
+		proxyConfiguration: createConfiguration(),
 	});
 
 	const response = await app(
@@ -65,11 +58,11 @@ Deno.test("server_key mode rejects different-length wrong token", async () => {
 
 Deno.test("server_key mode accepts correct token", async () => {
 	const app = createApp({
-		config: createConfig(),
 		fetcher: (_input, init) => {
 			assert(getInitHeader(init, "authorization") === "Bearer upstream-key", "Expected upstream auth header.");
 			return Promise.resolve(Response.json({ data: [], object: "list" }));
 		},
+		proxyConfiguration: createConfiguration(),
 	});
 
 	const response = await app(

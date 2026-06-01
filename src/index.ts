@@ -1,19 +1,19 @@
 import { logger, parseLevel } from "@logging/logger.ts";
 
 import { createApp } from "./proxy/app.ts";
-import { loadConfig } from "./proxy/config.ts";
+import { loadConfiguration } from "./proxy/config.ts";
 
 if (import.meta.main) {
-	const config = loadConfig();
+	const config = loadConfiguration();
 	logger.level = parseLevel(config.logLevel);
 
 	Deno.serve(
 		{
 			port: config.port,
 		},
-		createApp({ config }),
+		createApp({ proxyConfiguration: config }),
 	);
 }
 
 export { createApp } from "./proxy/app.ts";
-export { loadConfig } from "./proxy/config.ts";
+export { loadConfiguration as loadConfig } from "./proxy/config.ts";
