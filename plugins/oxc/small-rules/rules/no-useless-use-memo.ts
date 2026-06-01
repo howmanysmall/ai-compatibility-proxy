@@ -247,7 +247,8 @@ function checkStaticBinaryOrLogical(
 	options: NormalizedOptions,
 ): boolean {
 	if (!isExpression(left) || !isExpression(right)) return false;
-	return isStaticExpression(sourceCode, left, seen, options) && isStaticExpression(sourceCode, right, seen, options);
+	return isStaticExpression(sourceCode, left, seen, options) &&
+		isStaticExpression(sourceCode, right, seen, options);
 }
 
 function isStaticExpressionInner(
@@ -440,7 +441,9 @@ const noUselessUseMemo = defineRule({
 
 				for (const specifier of node.specifiers) {
 					if (specifier.type === "ImportSpecifier") {
-						if (isIdentifierNamed(specifier.imported, "useMemo")) memoIdentifiers.add(specifier.local.name);
+						if (isIdentifierNamed(specifier.imported, "useMemo")) {
+							memoIdentifiers.add(specifier.local.name);
+						}
 						continue;
 					}
 

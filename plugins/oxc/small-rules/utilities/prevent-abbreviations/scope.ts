@@ -126,7 +126,8 @@ export function isDefaultOrNamespaceImportName(identifier: BroadIdentifier): boo
 	}
 
 	return (
-		isVariableDeclarator(parent) && parent.id === identifier && parent.init !== null && isStaticRequire(parent.init)
+		isVariableDeclarator(parent) && parent.id === identifier && parent.init !== null &&
+		isStaticRequire(parent.init)
 	);
 }
 

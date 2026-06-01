@@ -235,7 +235,10 @@ function containsLaterPushCall(
 	return false;
 }
 
-function buildArrayLiteralFromArguments(argumentsList: ReadonlyArray<ESTree.Argument>, sourceCode: SourceCode): string {
+function buildArrayLiteralFromArguments(
+	argumentsList: ReadonlyArray<ESTree.Argument>,
+	sourceCode: SourceCode,
+): string {
 	const parts = new Array<string>();
 	let size = 0;
 
@@ -344,7 +347,9 @@ const noArrayConstructorElements = defineRule({
 						if (callExpression === undefined) return true;
 
 						for (const argument of callExpression.arguments) {
-							if (argument.type === "SpreadElement" || !isExpressionSideEffectSafe(argument)) return true;
+							if (argument.type === "SpreadElement" || !isExpressionSideEffectSafe(argument)) {
+								return true;
+							}
 						}
 
 						return false;

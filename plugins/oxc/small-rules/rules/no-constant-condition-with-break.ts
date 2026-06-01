@@ -335,7 +335,13 @@ type LoopNode =
 	| ESTree.ForStatement
 	| ESTree.WhileStatement;
 
-const LOOP_TYPES = new Set(["DoWhileStatement", "ForInStatement", "ForOfStatement", "ForStatement", "WhileStatement"]);
+const LOOP_TYPES = new Set([
+	"DoWhileStatement",
+	"ForInStatement",
+	"ForOfStatement",
+	"ForStatement",
+	"WhileStatement",
+]);
 function isLoopNode(node: ESTree.Node): node is LoopNode {
 	return LOOP_TYPES.has(node.type);
 }

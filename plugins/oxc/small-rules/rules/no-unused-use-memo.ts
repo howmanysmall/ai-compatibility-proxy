@@ -31,7 +31,9 @@ const noUnusedUseMemo = defineRule({
 
 				for (const specifier of node.specifiers) {
 					if (specifier.type === "ImportSpecifier") {
-						if (isIdentifierNamed(specifier.imported, "useMemo")) memoIdentifiers.add(specifier.local.name);
+						if (isIdentifierNamed(specifier.imported, "useMemo")) {
+							memoIdentifiers.add(specifier.local.name);
+						}
 						continue;
 					}
 

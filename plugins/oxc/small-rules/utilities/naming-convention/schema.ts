@@ -55,7 +55,10 @@ export const SCHEMA = [
 					{ enum: [...getEnumNames(MetaSelectors), ...getEnumNames(Selectors)], type: "string" },
 					{
 						additionalItems: false,
-						items: { enum: [...getEnumNames(MetaSelectors), ...getEnumNames(Selectors)], type: "string" },
+						items: {
+							enum: [...getEnumNames(MetaSelectors), ...getEnumNames(Selectors)],
+							type: "string",
+						},
 						type: "array",
 					},
 				],

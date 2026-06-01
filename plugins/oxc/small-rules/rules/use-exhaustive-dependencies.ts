@@ -5,7 +5,11 @@ import { defineRule } from "oxlint-plugin-utilities";
 import type { CallbackFunction } from "@oxlint-types/missing-types.ts";
 import type { Context, ESTree, Fix, Scope, SourceCode, Visitor } from "oxlint-plugin-utilities";
 
-const FUNCTION_DECLARATIONS = new Set<string>(["ArrowFunctionExpression", "FunctionDeclaration", "FunctionExpression"]);
+const FUNCTION_DECLARATIONS = new Set<string>([
+	"ArrowFunctionExpression",
+	"FunctionDeclaration",
+	"FunctionExpression",
+]);
 
 const UNSTABLE_VALUES = new Set<string>([
 	"ArrayExpression",

@@ -311,7 +311,10 @@ function checkVariable(
 	report({ ...message, node: definitionName });
 }
 
-function checkPossiblyWeirdClassVariable(variable: Variable, variableChecker: (variable: VariableLike) => void): void {
+function checkPossiblyWeirdClassVariable(
+	variable: Variable,
+	variableChecker: (variable: VariableLike) => void,
+): void {
 	if (!isClassVariable(variable)) {
 		variableChecker(variable);
 		return;

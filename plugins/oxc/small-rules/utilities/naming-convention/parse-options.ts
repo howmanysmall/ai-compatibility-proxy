@@ -107,7 +107,9 @@ export function parseOptions(options: Options, context: Context): ParsedOptions 
 		for (const selector of option.selectors) selectorMap.get(selector)?.push(option);
 	}
 
-	const entries = selectorNames.map((selectorName): [string, (node: NameNode, modifiers?: Set<string>) => void] => [
+	const entries = selectorNames.map((
+		selectorName,
+	): [string, (node: NameNode, modifiers?: Set<string>) => void] => [
 		selectorName,
 		createValidator(selectorName, context, selectorMap.get(selectorName) ?? []),
 	]);

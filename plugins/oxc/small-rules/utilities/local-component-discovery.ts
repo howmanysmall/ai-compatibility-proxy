@@ -91,7 +91,10 @@ function getProjectRootFromDirectory(startDirectory: string): string | undefined
 
 	let currentDirectory = startDirectory;
 	while (true) {
-		if (existsSync(join(currentDirectory, "package.json")) || existsSync(join(currentDirectory, "tsconfig.json"))) {
+		if (
+			existsSync(join(currentDirectory, "package.json")) ||
+			existsSync(join(currentDirectory, "tsconfig.json"))
+		) {
 			projectRootCache.set(startDirectory, currentDirectory);
 			return currentDirectory;
 		}
