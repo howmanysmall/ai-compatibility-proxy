@@ -52,8 +52,9 @@ deno test --filter "test name pattern"      # by test name
 
 **Build the Oxlint plugin:**
 
+You MUST always build the oxlint plugin with `--minify`. No excuses.
+
 ```sh
-deno task build:oxc                  # default build
 deno task build:oxc --minify      # minified
 deno task build:oxc --verbose     # detailed output
 deno task build:oxc --sourcemap   # with sourcemap
