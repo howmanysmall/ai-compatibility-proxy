@@ -7,6 +7,10 @@ import { getInitHeader } from "./_test-helpers.ts";
 
 import type { ProxyConfig } from "../../src/proxy/config.ts";
 
+declare const Deno: {
+	test(name: string, fn: () => void | Promise<void>): void;
+};
+
 function assert(condition: boolean, message: string): asserts condition {
 	if (!condition) throw new Error(message);
 }
@@ -115,6 +119,7 @@ Deno.test("translates Anthropic response to OpenAI response with cache usage", (
 			id: "msg_123",
 			model: "minimax-m3",
 			stop_reason: "max_tokens",
+			type: "message",
 			usage: {
 				cache_creation_input_tokens: 2,
 				cache_read_input_tokens: 3,

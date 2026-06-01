@@ -49,7 +49,7 @@ export const AnthropicMessage = type({
 	"role?": "'assistant'",
 	"stop_reason?": "string | null",
 	"stop_sequence?": "string | null",
-	"type?": "'message'",
+	type: "'message'",
 	"usage?": {
 		"cache_creation_input_tokens?": "number",
 		"cache_read_input_tokens?": "number",

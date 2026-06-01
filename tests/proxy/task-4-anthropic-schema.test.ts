@@ -40,6 +40,41 @@ Deno.test("translates a valid Anthropic message response", () => {
 	assert(openAIResponse.usage?.total_tokens === 22, "Expected total token mapping.");
 });
 
+Deno.test("falls through to the fallback for Anthropic message responses missing type", () => {
+	const openAIResponse = translateAnthropicToOpenAI(
+		{
+			content: [{ text: "Hello", type: "text" }],
+			id: "msg_missing_type",
+			model: "minimax-m3",
+			role: "assistant",
+		},
+		"fallback-model",
+	);
+
+	assert(openAIResponse.model === "fallback-model", "Expected request model fallback.");
+	assert(openAIResponse.choices[0]?.message.content === "", "Expected empty assistant content.");
+	assert(openAIResponse.choices[0]?.finish_reason === null, "Expected no finish reason.");
+	assert(openAIResponse.id.startsWith("chatcmpl-"), "Expected generated id fallback.");
+});
+
+Deno.test("falls through to the fallback for Anthropic message responses with wrong type", () => {
+	const openAIResponse = translateAnthropicToOpenAI(
+		{
+			content: [{ text: "Hello", type: "text" }],
+			id: "msg_wrong_type",
+			model: "minimax-m3",
+			role: "assistant",
+			type: "error",
+		},
+		"fallback-model",
+	);
+
+	assert(openAIResponse.model === "fallback-model", "Expected request model fallback.");
+	assert(openAIResponse.choices[0]?.message.content === "", "Expected empty assistant content.");
+	assert(openAIResponse.choices[0]?.finish_reason === null, "Expected no finish reason.");
+	assert(openAIResponse.id.startsWith("chatcmpl-"), "Expected generated id fallback.");
+});
+
 Deno.test("falls through to the fallback for Anthropic error responses", () => {
 	const openAIResponse = translateAnthropicToOpenAI(
 		{ error: { message: "bad request", type: "error" }, type: "error" },
