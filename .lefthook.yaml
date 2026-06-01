@@ -27,6 +27,7 @@ pre-commit:
         mise x -- deno task biome lint --write --no-errors-on-unmatched {staged_files}
         mise x -- deno lint --fix --permit-no-files {staged_files}
         mise x -- deno task oxfmt --no-error-on-unmatched-pattern {staged_files}
+        mise x -- deno fmt --permit-no-files {staged_files}
       stage_fixed: true
 
     - exclude:
