@@ -58,7 +58,15 @@
 	"exports": {},
 	"fmt": {
 		"bracePosition": "sameLine",
-		"exclude": ["skills-lock.json"],
+		"exclude": [
+			".agents/skills/oxlint-rule-creator/SKILL.md",
+			".lefthook.yaml",
+			".vscode/mcp.json",
+			"AGENTS.md",
+			"plugins/oxc/small-rules.js",
+			"plugins/oxc/small-rules/utilities/prevent-abbreviations/replacements.ts",
+			"skills-lock.json"
+		],
 		"indentWidth": 4,
 		"jsx.bracketPosition": "nextLine",
 		"jsx.multiLineParens": "prefer",

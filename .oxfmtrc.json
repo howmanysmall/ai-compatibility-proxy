@@ -8,9 +8,17 @@
 	"htmlWhitespaceSensitivity": "css",
 	"ignorePatterns": [
 		"**/*.{md,toml}",
+		".omo/**",
+		".lefthook.yaml",
 		"**/do-not-sync-ever/**",
+		".vscode/mcp.json",
+		"opencode.jsonc",
+		"plugins/deno.jsonc",
+		"plugins/oxc/small-rules/**/*.ts",
 		"plugins/oxc/**/*.js",
+		"scripts/deno.jsonc",
 		"docker-compose.yml",
+		"src/logging/sanitizer.ts",
 		".tsbuildinfo*",
 		"skills-lock.json",
 		"aube-lock.yaml"
