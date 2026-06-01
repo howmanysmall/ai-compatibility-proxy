@@ -60,3 +60,7 @@ else
 	echo "ℹ All skills already in .gitignore"
 fi
 """
+
+[tasks.live-smoke]
+description = "Run repeatable live smoke tests for OpenCode Go and Cerebras proxy paths"
+run = "mise x -- deno run --allow-net --allow-env --allow-read --allow-run scripts/live-proxy-smoke.ts"
