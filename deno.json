@@ -1,11 +1,7 @@
 {
 	"allowScripts": false,
 	"bench": {
-		"exclude": [],
 		"include": ["benchmarks/**"]
-	},
-	"compile": {
-		"permissions": {}
 	},
 	"compilerOptions": {
 		"allowUnreachableCode": false,
@@ -26,18 +22,9 @@
 		"noUnusedLocals": false,
 		"noUnusedParameters": false,
 		"paths": {
-			"@apis/*": ["./src/apis/*"],
-			"@classes/*": ["./src/classes/*"],
-			"@commands/*": ["./src/commands/*"],
 			"@constants/*": ["./src/constants/*"],
-			"@environment": ["./src/environment.ts"],
-			"@errors/*": ["./src/classes/errors/*"],
-			"@functions/*": ["./src/functions/*"],
 			"@logging/*": ["./src/logging/*"],
-			"@meta/*": ["./src/meta/*"],
-			"@packages/*": ["./src/packages/*"],
 			"@polyfills/*": ["./src/polyfills/*"],
-			"@prompts/*": ["./src/prompts/*"],
 			"@providers/*": ["./src/providers/*"],
 			"@proxy/*": ["./src/proxy/*"],
 			"@ts-types/*": ["./src/types/*"],
@@ -89,24 +76,15 @@
 		"useTabs": true
 	},
 	"imports": {
-		"@apis/": "./src/apis/",
 		"@biomejs/biome": "npm:@biomejs/biome@^2.4.15",
-		"@classes/": "./src/classes/",
 		"@commitlint/config-conventional": "npm:@commitlint/config-conventional@^21.0.1",
 		"@commitlint/types": "npm:@commitlint/types@^21.0.1",
 		"@constants/": "./src/constants/",
-		"@environment": "./src/environment.ts",
-		"@errors/": "./src/classes/errors/",
 		"@faker-js/faker": "npm:@faker-js/faker@^10.4.0",
-		"@functions/": "./src/functions/",
-		"@hono/hono": "jsr:@hono/hono@^4.12.23",
 		"@logging/": "./src/logging/",
-		"@meta/": "./src/meta/",
 		"@oxc-project/types": "npm:@oxc-project/types@^0.133.0",
 		"@oxlint/plugins": "npm:@oxlint/plugins@^1.66.0",
-		"@packages/": "./src/packages/",
 		"@polyfills/": "./src/polyfills/",
-		"@prompts/": "./src/prompts/",
 		"@providers/": "./src/providers/",
 		"@proxy/": "./src/proxy/",
 		"@std/crypto": "jsr:@std/crypto@^1.1.0",
@@ -139,7 +117,7 @@
 		"tsdown": "npm:tsdown@^0.22.0",
 		"type-fest": "npm:type-fest@^5.6.0"
 	},
-	"license": "UNLICENSED",
+	"license": "MIT",
 	"lint": {
 		"exclude": [".repos", "**/*.js"],
 		"report": "pretty",
@@ -201,11 +179,9 @@
 	},
 	"name": "api-conversion",
 	"nodeModulesDir": "auto",
-	"permissions": {},
 	"publish": {
 		"exclude": ["**"]
 	},
-	"scopes": {},
 	"tasks": {
 		"biome": "biome",
 		"build:oxc": "deno run --allow-env --allow-ffi --allow-read --allow-write --allow-run ./scripts/build-small-rules.ts",
@@ -230,8 +206,7 @@
 		"sanitizeOps": true,
 		"sanitizeResources": true
 	},
-	"unstable": [],
 	"vendor": false,
-	"version": "0.0.0",
+	"version": "0.1.0",
 	"workspace": ["./plugins/", "./scripts/", "./benchmarks/"]
 }
