@@ -67,7 +67,7 @@
 			"plugins/oxc/small-rules.js",
 			"plugins/oxc/small-rules/utilities/prevent-abbreviations/replacements.ts",
 			"skills-lock.json",
-			"**/*.{yaml,yml}"
+			".github/workflows/*.yml"
 		],
 		"indentWidth": 4,
 		"jsx.bracketPosition": "nextLine",
