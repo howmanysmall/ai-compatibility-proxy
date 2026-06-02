@@ -62,42 +62,22 @@ run = "mise x -- deno run --allow-net --allow-env --allow-read --allow-run scrip
 
 [tasks.bench-http]
 alias = "bench"
-description = "Run real localhost HTTP benchmarks for /health, /v1/models, and /v1/chat/completions using oha against the proxy and a socat-backed mock upstream."
+description = "Run real localhost HTTP benchmarks and print a compare-ready report that is easy to read at a glance. Saves snapshots under benchmarks/results/."
 dir = "."
-env = { DURATION = "10s", CONCURRENCY = "50", WARMUP_REQUESTS = "5" }
+env = { BENCH_LABEL = "default", CONCURRENCY = "50", DURATION = "10s", WARMUP_REQUESTS = "5" }
 raw = true
-run = "./scripts/benchmark-http.zsh"
-shell = "zsh -uec"
-sources = [
-	"benchmarks/fixtures/chat-completions.json",
-	"scripts/benchmark-http.zsh",
-	"scripts/mock-upstream-handler.zsh",
-]
+run = "deno run --allow-env --allow-net --allow-read --allow-run --allow-write --allow-sys scripts/http-bench.ts run --label $BENCH_LABEL --duration $DURATION --concurrency $CONCURRENCY --warmup-requests $WARMUP_REQUESTS"
 
 [tasks.bench-http-quick]
 alias = "bench-quick"
-description = "Run a short real localhost HTTP benchmark pass with low concurrency for quick sanity checks and local comparisons."
+description = "Run a short benchmark pass with a readable report for quick local comparisons."
 dir = "."
-env = { DURATION = "2s", CONCURRENCY = "10", WARMUP_REQUESTS = "2" }
 raw = true
-run = "./scripts/benchmark-http.zsh"
-shell = "zsh -uec"
-sources = [
-	"benchmarks/fixtures/chat-completions.json",
-	"scripts/benchmark-http.zsh",
-	"scripts/mock-upstream-handler.zsh",
-]
+run = "deno run --allow-env --allow-net --allow-read --allow-run --allow-write --allow-sys scripts/http-bench.ts run --label quick --duration 2s --concurrency 10 --warmup-requests 2"
 
 [tasks.bench-http-stress]
 alias = "bench-stress"
-description = "Run a longer real localhost HTTP benchmark pass with higher concurrency to pressure the proxy over /health, /v1/models, and /v1/chat/completions."
+description = "Run a longer benchmark pass with a readable report for higher-load comparisons."
 dir = "."
-env = { DURATION = "15s", CONCURRENCY = "50", WARMUP_REQUESTS = "10" }
 raw = true
-run = "./scripts/benchmark-http.zsh"
-shell = "zsh -uec"
-sources = [
-	"benchmarks/fixtures/chat-completions.json",
-	"scripts/benchmark-http.zsh",
-	"scripts/mock-upstream-handler.zsh",
-]
+run = "deno run --allow-env --allow-net --allow-read --allow-run --allow-write --allow-sys scripts/http-bench.ts run --label stress --duration 15s --concurrency 50 --warmup-requests 10"
