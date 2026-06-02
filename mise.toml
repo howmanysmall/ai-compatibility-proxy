@@ -7,26 +7,20 @@ HK_MISE = 1
 "github:howmanysmall/npm-registry-mcp" = "latest"
 "github:howmanysmall/pullhook" = "latest"
 deno = "2.8.1"
+gum = "latest"
 hk = "latest"
 ni = "latest"
 pkl = "latest"
 rumdl = "latest"
 shfmt = "latest"
 tombi = "latest"
+jq = "latest"
 
 [settings]
 auto_install = false
 lockfile = true
 
-[tasks.lockfile]
-description = "Regenerate lockfile checksums for all tools, then install"
-run = ["mise lock", "mise install"]
-
-[tasks.lockfile-tool]
-description = "Regenerate lockfile checksums for a specific tool, then install"
-usage = 'arg "<tool>" help="Tool to refresh in the lockfile"'
-run = ["mise lock ${usage_tool?}", "mise install"]
-
+[tasks]
 [tasks.ignore-skills]
 description = "Ignores skills from the lockfile."
 run = """
@@ -65,3 +59,45 @@ fi
 [tasks.live-smoke]
 description = "Run repeatable live smoke tests for OpenCode Go and Cerebras proxy paths"
 run = "mise x -- deno run --allow-net --allow-env --allow-read --allow-run scripts/live-proxy-smoke.ts"
+
+[tasks.bench-http]
+alias = "bench"
+description = "Run real localhost HTTP benchmarks for /health, /v1/models, and /v1/chat/completions using oha against the proxy and a socat-backed mock upstream."
+dir = "."
+env = { DURATION = "10s", CONCURRENCY = "50", WARMUP_REQUESTS = "5" }
+raw = true
+run = "./scripts/benchmark-http.zsh"
+shell = "zsh -uec"
+sources = [
+	"benchmarks/fixtures/chat-completions.json",
+	"scripts/benchmark-http.zsh",
+	"scripts/mock-upstream-handler.zsh",
+]
+
+[tasks.bench-http-quick]
+alias = "bench-quick"
+description = "Run a short real localhost HTTP benchmark pass with low concurrency for quick sanity checks and local comparisons."
+dir = "."
+env = { DURATION = "2s", CONCURRENCY = "10", WARMUP_REQUESTS = "2" }
+raw = true
+run = "./scripts/benchmark-http.zsh"
+shell = "zsh -uec"
+sources = [
+	"benchmarks/fixtures/chat-completions.json",
+	"scripts/benchmark-http.zsh",
+	"scripts/mock-upstream-handler.zsh",
+]
+
+[tasks.bench-http-stress]
+alias = "bench-stress"
+description = "Run a longer real localhost HTTP benchmark pass with higher concurrency to pressure the proxy over /health, /v1/models, and /v1/chat/completions."
+dir = "."
+env = { DURATION = "15s", CONCURRENCY = "50", WARMUP_REQUESTS = "10" }
+raw = true
+run = "./scripts/benchmark-http.zsh"
+shell = "zsh -uec"
+sources = [
+	"benchmarks/fixtures/chat-completions.json",
+	"scripts/benchmark-http.zsh",
+	"scripts/mock-upstream-handler.zsh",
+]

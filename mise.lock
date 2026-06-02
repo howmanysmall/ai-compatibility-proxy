@@ -110,6 +110,38 @@ checksum = "sha256:89089232002d3c6eaa5a033f015985fab3e16aea6ca0d633bf609ac34bffa
 url = "https://github.com/howmanysmall/pullhook/releases/download/v1.1.1/pullhook-x86_64-pc-windows-msvc.zip"
 url_api = "https://api.github.com/repos/howmanysmall/pullhook/releases/assets/419689296"
 
+[[tools.gum]]
+version = "0.17.0"
+backend = "aqua:charmbracelet/gum"
+
+[tools.gum."platforms.linux-arm64"]
+checksum = "sha256:b0b9ed95cbf7c8b7073f17b9591811f5c001e33c7cfd066ca83ce8a07c576f9c"
+url = "https://github.com/charmbracelet/gum/releases/download/v0.17.0/gum_0.17.0_Linux_arm64.tar.gz"
+
+[tools.gum."platforms.linux-arm64-musl"]
+checksum = "sha256:b0b9ed95cbf7c8b7073f17b9591811f5c001e33c7cfd066ca83ce8a07c576f9c"
+url = "https://github.com/charmbracelet/gum/releases/download/v0.17.0/gum_0.17.0_Linux_arm64.tar.gz"
+
+[tools.gum."platforms.linux-x64"]
+checksum = "sha256:69ee169bd6387331928864e94d47ed01ef649fbfe875baed1bbf27b5377a6fdb"
+url = "https://github.com/charmbracelet/gum/releases/download/v0.17.0/gum_0.17.0_Linux_x86_64.tar.gz"
+
+[tools.gum."platforms.linux-x64-musl"]
+checksum = "sha256:69ee169bd6387331928864e94d47ed01ef649fbfe875baed1bbf27b5377a6fdb"
+url = "https://github.com/charmbracelet/gum/releases/download/v0.17.0/gum_0.17.0_Linux_x86_64.tar.gz"
+
+[tools.gum."platforms.macos-arm64"]
+checksum = "sha256:e2a4b8596efa05821d8c58d0c1afbcd7ad1699ba69c689cc3ff23a4a99c8b237"
+url = "https://github.com/charmbracelet/gum/releases/download/v0.17.0/gum_0.17.0_Darwin_arm64.tar.gz"
+
+[tools.gum."platforms.macos-x64"]
+checksum = "sha256:cd66576aeebe6cd19c771863c7e8d696e0e1d5387d1e7075666baa67c2052e53"
+url = "https://github.com/charmbracelet/gum/releases/download/v0.17.0/gum_0.17.0_Darwin_x86_64.tar.gz"
+
+[tools.gum."platforms.windows-x64"]
+checksum = "sha256:b2be80531c6babc8d4e0e6ca95773d58118a2e1582ae006aace08dbc55503072"
+url = "https://github.com/charmbracelet/gum/releases/download/v0.17.0/gum_0.17.0_Windows_x86_64.zip"
+
 [[tools.hk]]
 version = "1.46.0"
 backend = "aqua:jdx/hk"
@@ -137,6 +169,45 @@ url = "https://github.com/jdx/hk/releases/download/v1.46.0/hk-aarch64-apple-darw
 [tools.hk."platforms.windows-x64"]
 checksum = "sha256:5af7e769acb7f70d8630ed53ae1fb2cc4b205117f29df5d83619fa0ff72a3bf1"
 url = "https://github.com/jdx/hk/releases/download/v1.46.0/hk-x86_64-pc-windows-msvc.zip"
+
+[[tools.jq]]
+version = "1.8.1"
+backend = "aqua:jqlang/jq"
+
+[tools.jq."platforms.linux-arm64"]
+checksum = "sha256:6bc62f25981328edd3cfcfe6fe51b073f2d7e7710d7ef7fcdac28d4e384fc3d4"
+url = "https://github.com/jqlang/jq/releases/download/jq-1.8.1/jq-linux-arm64"
+provenance = "github-attestations"
+
+[tools.jq."platforms.linux-arm64-musl"]
+checksum = "sha256:6bc62f25981328edd3cfcfe6fe51b073f2d7e7710d7ef7fcdac28d4e384fc3d4"
+url = "https://github.com/jqlang/jq/releases/download/jq-1.8.1/jq-linux-arm64"
+provenance = "github-attestations"
+
+[tools.jq."platforms.linux-x64"]
+checksum = "sha256:020468de7539ce70ef1bceaf7cde2e8c4f2ca6c3afb84642aabc5c97d9fc2a0d"
+url = "https://github.com/jqlang/jq/releases/download/jq-1.8.1/jq-linux-amd64"
+provenance = "github-attestations"
+
+[tools.jq."platforms.linux-x64-musl"]
+checksum = "sha256:020468de7539ce70ef1bceaf7cde2e8c4f2ca6c3afb84642aabc5c97d9fc2a0d"
+url = "https://github.com/jqlang/jq/releases/download/jq-1.8.1/jq-linux-amd64"
+provenance = "github-attestations"
+
+[tools.jq."platforms.macos-arm64"]
+checksum = "sha256:a9fe3ea2f86dfc72f6728417521ec9067b343277152b114f4e98d8cb0e263603"
+url = "https://github.com/jqlang/jq/releases/download/jq-1.8.1/jq-macos-arm64"
+provenance = "github-attestations"
+
+[tools.jq."platforms.macos-x64"]
+checksum = "sha256:e80dbe0d2a2597e3c11c404f03337b981d74b4a8504b70586c354b7697a7c27f"
+url = "https://github.com/jqlang/jq/releases/download/jq-1.8.1/jq-macos-amd64"
+provenance = "github-attestations"
+
+[tools.jq."platforms.windows-x64"]
+checksum = "sha256:23cb60a1354eed6bcc8d9b9735e8c7b388cd1fdcb75726b93bc299ef22dd9334"
+url = "https://github.com/jqlang/jq/releases/download/jq-1.8.1/jq-windows-amd64.exe"
+provenance = "github-attestations"
 
 [[tools.ni]]
 version = "30.1.0"
