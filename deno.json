@@ -211,6 +211,7 @@
 		"build:oxc": "deno run --allow-env --allow-ffi --allow-read --allow-write --allow-run ./scripts/build-small-rules.ts",
 		"commitlint": "commitlint",
 		"context7": "deno run -A npm:ctx7",
+		"dev": "deno run --allow-net --allow-env --allow-sys --allow-write --allow-read src/index.ts",
 		"format": "bash -c 'a=$(bash scripts/get-defaults.sh \"$@\"); deno task biome check --fix $a && deno task oxfmt $a && deno fmt $a' _",
 		"format:check": "bash -c 'a=$(bash scripts/get-defaults.sh \"$@\"); deno task biome check --no-errors-on-unmatched $a && deno task oxfmt --no-error-on-unmatched-pattern --check $a && deno fmt --permit-no-files --check $a' _",
 		"format:safe": "bash -c 'a=$(bash scripts/get-defaults.sh \"$@\"); deno task biome check --no-errors-on-unmatched --fix $a && deno task oxfmt --no-error-on-unmatched-pattern $a && deno fmt --permit-no-files $a' _",
@@ -220,10 +221,14 @@
 		"lint:safe": "bash -c 'a=$(bash scripts/get-defaults.sh \"$@\"); deno task oxlint --no-error-on-unmatched-pattern $a && deno task biome check --no-errors-on-unmatched $a && deno lint --permit-no-files $a' _",
 		"oxfmt": "oxfmt",
 		"oxlint": "oxlint",
-		"skills": "skills"
+		"skills": "skills",
+		"test": "deno test --coverage --trace-leaks --fail-fast --clean --parallel",
+		"type-check": "deno check"
 	},
 	"test": {
-		"include": ["tests/**/*.test.ts"]
+		"include": ["tests/**/*.test.ts"],
+		"sanitizeOps": true,
+		"sanitizeResources": true
 	},
 	"unstable": [],
 	"vendor": false,

@@ -43,6 +43,7 @@
     "npm:@typescript/native-preview@^7.0.0-dev.20260522.1": "7.0.0-dev.20260527.2",
     "npm:arkenv@0.11": "0.11.0_arktype@2.2.0",
     "npm:arktype@^2.2.0": "2.2.0",
+    "npm:chrome-devtools-mcp@latest": "1.1.1",
     "npm:commitlint@^21.0.1": "21.0.2_@types+node@25.9.1_typescript@5.9.3",
     "npm:consola@^3.4.2": "3.4.2",
     "npm:ctx7@*": "0.4.4_@types+node@25.9.1",
@@ -1448,6 +1449,10 @@
     },
     "chardet@2.1.1": {
       "integrity": "sha512-PsezH1rqdV9VvyNhxxOW32/d75r01NY7TQCmOqomRo15ZSOKbpTFVsfjghxo6JloQUCGnH4k1LGu0R4yCLlWQQ=="
+    },
+    "chrome-devtools-mcp@1.1.1": {
+      "integrity": "sha512-Fs/ASXAkQqvYCbJjHIx/pnShjyIoZoPxdg4J3wjaA9FLkRb2ngGnisu2AGcBIXdw5qrPkOuV/cOlGOonpsE1qw==",
+      "bin": true
     },
     "cli-cursor@5.0.0": {
       "integrity": "sha512-aCj4O5wKyszjMmDT4tZj93kxyydN/K5zPWSCe6/0AV/AA1pqe5ZBIw0a2ZfPQV7lL5/yb5HsUreJ6UFAF1tEQw==",

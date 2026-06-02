@@ -20,7 +20,7 @@ interface ProviderConfiguration {
 
 interface SmokeOptions {
 	readonly isLive: boolean;
-	readonly opencodeGoModel: OpenCodeGoModel;
+	readonly opencodeGoModel: string;
 	readonly port: number;
 	readonly provider: ProviderSelection;
 	readonly prompt: string;
@@ -47,14 +47,12 @@ interface LiveSmokeCommandOptions {
 	readonly provider?: string | undefined;
 }
 
-type OpenCodeGoModel = (typeof OPENCODE_GO_MODELS)[number];
 type ProviderName = "opencode-go" | "cerebras";
 type ProviderSelection = ProviderName | "all";
 
 const DEFAULT_PORT = 9876;
 const DEFAULT_PROMPT = "Reply with only the single word: pong";
-const OPENCODE_GO_MODELS = ["minimax-m3", "minimax-m2.7", "minimax-m2.5", "qwen3.7-max", "qwen3.6-plus"] as const;
-const DEFAULT_OPENCODE_GO_MODEL = "minimax-m3" satisfies OpenCodeGoModel;
+const DEFAULT_OPENCODE_GO_MODEL = "minimax-m3";
 const KEY_DIRECTORY = `${getHomeDirectory()}/.config/ai-compatibility-proxy`;
 const DOT = dim("•");
 const DIM_FINISH_REASON = dim("finish_reason");
@@ -186,12 +184,13 @@ function promptForSmokeOptionsEffect(commandOptions: LiveSmokeCommandOptions): E
 	});
 }
 
-async function promptForOpenCodeGoModelAsync(): Promise<OpenCodeGoModel> {
-	const selectedModel = await Select.prompt({
-		message: "OpenCode Go model",
-		options: OPENCODE_GO_MODELS.map((availableModel) => ({ name: availableModel, value: availableModel })),
-	});
-	return parseOpenCodeGoModel(selectedModel);
+async function promptForOpenCodeGoModelAsync(): Promise<string> {
+	return parseOpenCodeGoModel(
+		await Input.prompt({
+			default: DEFAULT_OPENCODE_GO_MODEL,
+			message: "OpenCode Go model",
+		}),
+	);
 }
 
 function shouldAskForOpenCodeGoModel(provider: ProviderSelection): boolean {
@@ -492,12 +491,11 @@ function normalizeCommandOptions({
 	};
 }
 
-function parseOpenCodeGoModel(value: string): OpenCodeGoModel {
-	for (const model of OPENCODE_GO_MODELS) {
-		if (value === model) return model;
-	}
+function parseOpenCodeGoModel(value: string): string {
+	const normalizedValue = value.trim();
+	if (normalizedValue.length > 0) return normalizedValue;
 
-	const error = new Error(`Unknown OpenCode Go model: ${value}. Expected ${OPENCODE_GO_MODELS.join(", ")}.`);
+	const error = new Error("OpenCode Go model must be a non-empty string.");
 	Error.captureStackTrace(error, parseOpenCodeGoModel);
 	throw error;
 }
@@ -530,7 +528,7 @@ function getProviderConfigurations({ opencodeGoModel, provider }: SmokeOptions):
 
 function createProviderConfiguration(
 	providerConfiguration: ProviderConfiguration,
-	model: OpenCodeGoModel,
+	model: string,
 ): ProviderConfiguration {
 	return {
 		keyEnvironmentVariable: providerConfiguration.keyEnvironmentVariable,

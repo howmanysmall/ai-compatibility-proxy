@@ -16,6 +16,9 @@ function createConfiguration(overrides: Partial<ProxyConfiguration> = {}): Proxy
 		defaultMaxTokens: 4096,
 		defaultModel: "minimax-m3",
 		logLevel: "info",
+		opencodeModelsCacheTtlMs: 300_000,
+		opencodeModelsFetchTimeoutMs: 2000,
+		opencodeModelsUrl: "https://models.dev/api.json",
 		port: 8000,
 		proxyApiKey: undefined,
 		requestTimeoutMs: 60_000,
@@ -229,6 +232,133 @@ Deno.test("proxies model list from OpenCode Go model endpoint", async () => {
 	assert(seenUrl === "https://opencode.ai/zen/go/v1/models", "Expected /models upstream URL.");
 	assert(seenAuthorization === "Bearer upstream-key", "Expected client bearer forwarding.");
 	assert(Predicate.isRecord(firstModel) && firstModel.id === "minimax-m3", "Expected model id.");
+});
+
+Deno.test("probes OpenCode Go passthrough dynamically without hardcoded model ids", async () => {
+	let seenAuthorization = "";
+	let seenBody: Record<string, unknown> = {};
+	let seenXApiKey = "";
+	let seenUrl = "";
+	const app = createApp({
+		fetcher: (input, init) => {
+			if (String(input) === "https://models.dev/api.json") {
+				return Promise.resolve(
+					Response.json({
+						opencode: {
+							models: {
+								"future-openai-model": { provider: { npm: "@ai-sdk/openai-compatible" } },
+							},
+							npm: "@ai-sdk/openai-compatible",
+						},
+					}),
+				);
+			}
+			seenAuthorization = getInitHeader(init, "authorization") ?? "";
+			seenUrl = String(input);
+			seenXApiKey = getInitHeader(init, "x-api-key") ?? "";
+			const body = init?.body;
+			if (typeof body === "string") {
+				const parsedBody = JSON.parse(body);
+				if (Predicate.isRecord(parsedBody)) seenBody = parsedBody;
+			}
+			return Promise.resolve(
+				Response.json({
+					choices: [
+						{
+							finish_reason: "stop",
+							index: 0,
+							message: { content: "pong", role: "assistant" },
+						},
+					],
+					created: 0,
+					id: "chatcmpl_1",
+					model: "deepseek-v4-flash",
+					object: "chat.completion",
+				}),
+			);
+		},
+		proxyConfiguration: createConfiguration(),
+	});
+
+	const response = await app(
+		createJsonRequest("/v1/chat/completions", {
+			messages: [{ content: "Reply pong.", role: "user" }],
+			model: "future-openai-model",
+			response_format: { type: "json_object" },
+			stream: false,
+		}),
+	);
+	const body = await readRecordAsync(response);
+
+	assert(response.status === 200, "Expected OpenAI-compatible response to pass through.");
+	assert(seenUrl === "https://opencode.ai/zen/go/v1/chat/completions", "Expected OpenAI-compatible upstream URL.");
+	assert(seenAuthorization === "Bearer test-token", "Expected OpenAI-compatible auth header.");
+	assert(seenXApiKey === "", "Expected Anthropic x-api-key header to be removed.");
+	assert(seenBody.model === "future-openai-model", "Expected model to pass through.");
+	assert(Predicate.isRecord(seenBody.response_format), "Expected Anthropic-unsupported field to pass through.");
+	assert(body.model === "deepseek-v4-flash", "Expected upstream response body to pass through.");
+});
+
+Deno.test("falls back to Anthropic translation when passthrough returns a client error", async () => {
+	const seenUrls: Array<string> = [];
+	const app = createApp({
+		fetcher: (input, init) => {
+			const url = String(input);
+			if (url === "https://models.dev/api.json") {
+				return Promise.resolve(
+					Response.json({
+						opencode: {
+							models: {},
+							npm: "@ai-sdk/openai-compatible",
+						},
+					}),
+				);
+			}
+			seenUrls.push(url);
+			if (url.endsWith("/chat/completions")) {
+				return Promise.resolve(Response.json({ error: { message: "unsupported route" } }, { status: 404 }));
+			}
+
+			let model = "minimax-m3";
+			if (typeof init?.body === "string") {
+				const parsedBody = JSON.parse(init.body);
+				if (Predicate.isRecord(parsedBody)) {
+					const { model: parsedModel } = parsedBody;
+					if (typeof parsedModel === "string") model = parsedModel;
+				}
+			}
+			return Promise.resolve(
+				Response.json({
+					content: [{ text: `fallback:${model}`, type: "text" }],
+					id: "msg_fallback",
+					model,
+					role: "assistant",
+					stop_reason: "end_turn",
+					type: "message",
+					usage: { input_tokens: 1, output_tokens: 1 },
+				}),
+			);
+		},
+		proxyConfiguration: createConfiguration(),
+	});
+
+	const response = await app(
+		createJsonRequest("/v1/chat/completions", {
+			messages: [{ content: "Reply pong.", role: "user" }],
+			model: "fallback-model",
+		}),
+	);
+	const body = await readRecordAsync(response);
+	const choices = getArray(body, "choices");
+	const [firstChoice] = choices;
+
+	assert(seenUrls[0] === "https://opencode.ai/zen/go/v1/chat/completions", "Expected passthrough probe first.");
+	assert(seenUrls[1] === "https://opencode.ai/zen/go/v1/messages", "Expected Anthropic fallback second.");
+	assert(Predicate.isRecord(firstChoice), "Expected first choice record.");
+	assert(
+		Predicate.isRecord(firstChoice.message) && firstChoice.message.content === "fallback:fallback-model",
+		"Expected Anthropic fallback response.",
+	);
 });
 
 Deno.test("maps upstream 400 errors to OpenAI-compatible errors", async () => {

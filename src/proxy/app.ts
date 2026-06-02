@@ -114,5 +114,11 @@ async function readJsonBodyAsync(request: Request): Promise<OpenAiChatCompletion
 		throw error;
 	}
 
+	if (!Array.isArray(result.messages) || result.messages.length === 0) {
+		const error = new ProxyError("At least one message is required.", { param: "messages" });
+		Error.captureStackTrace(error, readJsonBodyAsync);
+		throw error;
+	}
+
 	return result;
 }
