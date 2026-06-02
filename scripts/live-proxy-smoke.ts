@@ -1,12 +1,16 @@
 #!/usr/bin/env -S deno run
 
 import { Command } from "@cliffy/command";
-import { Confirm, Input, Select } from "@cliffy/prompt";
-import { bgGreen, bgRed, bold, cyan, dim, green, magenta, red, yellow } from "@std/fmt/colors";
+// oxlint-disable-next-line import/no-namespace -- Number conflicts with Number
+import * as Prompt from "@cliffy/prompt";
+import { bgGreen, bgRed, black, bold, cyan, dim, green, magenta, red, yellow } from "@std/fmt/colors";
 import { Effect, Predicate } from "effect";
 import prettyMilliseconds from "pretty-ms";
 
 import type { ReadonlyRecord } from "effect/Record";
+
+// oxlint-disable-next-line prefer-regex-literals
+const CLEAN_REGEXP = new RegExp(String.raw`\x1b\[[0-9;]*m`, "gu");
 
 interface ProviderConfiguration {
 	readonly keyEnvironmentVariable: string;
@@ -54,10 +58,7 @@ const DEFAULT_PORT = 9876;
 const DEFAULT_PROMPT = "Reply with only the single word: pong";
 const DEFAULT_OPENCODE_GO_MODEL = "minimax-m3";
 const KEY_DIRECTORY = `${getHomeDirectory()}/.config/ai-compatibility-proxy`;
-const DOT = dim("•");
-const DIM_FINISH_REASON = dim("finish_reason");
-const DURATION = dim("duration");
-const HTTP = dim("HTTP");
+
 const PROVIDERS: ReadonlyArray<ProviderConfiguration> = [
 	{
 		keyEnvironmentVariable: "OPENCODE_GO_API_KEY",
@@ -153,7 +154,9 @@ function promptForSmokeOptionsEffect(commandOptions: LiveSmokeCommandOptions): E
 	return Effect.tryPromise({
 		catch: toError,
 		try: async () => {
-			const providerText = await Select.prompt({
+			printHeader("AI Compatibility Proxy - Interactive Smoke Test", "🚀");
+			console.log("");
+			const providerText = await Prompt.Select.prompt({
 				message: "Provider to test",
 				options: [
 					{ name: "All providers", value: "all" },
@@ -170,15 +173,18 @@ function promptForSmokeOptionsEffect(commandOptions: LiveSmokeCommandOptions): E
 				async () => parseOpenCodeGoModel(commandOptions.opencodeModel ?? DEFAULT_OPENCODE_GO_MODEL),
 			);
 
-			const isLive = await Confirm.prompt({
+			const isLive = await Prompt.Confirm.prompt({
 				default: commandOptions.live === true,
 				message: "Make live upstream requests?",
 			});
-			const portText = await Input.prompt({
-				default: String(commandOptions.port ?? DEFAULT_PORT),
+			const portText = await Prompt.Number.prompt({
+				default: commandOptions.port ?? DEFAULT_PORT,
+				float: false,
+				max: 65535,
 				message: "Local proxy port",
+				min: 1,
 			});
-			const prompt = await Input.prompt({
+			const prompt = await Prompt.Input.prompt({
 				default: commandOptions.prompt ?? DEFAULT_PROMPT,
 				message: "Prompt",
 			});
@@ -186,7 +192,7 @@ function promptForSmokeOptionsEffect(commandOptions: LiveSmokeCommandOptions): E
 			return {
 				isLive,
 				opencodeGoModel,
-				port: parsePort(Number(portText)),
+				port: parsePort(portText),
 				prompt,
 				provider,
 			};
@@ -196,7 +202,7 @@ function promptForSmokeOptionsEffect(commandOptions: LiveSmokeCommandOptions): E
 
 async function promptForOpenCodeGoModelAsync(): Promise<string> {
 	return parseOpenCodeGoModel(
-		await Input.prompt({
+		await Prompt.Input.prompt({
 			default: DEFAULT_OPENCODE_GO_MODEL,
 			message: "OpenCode Go model",
 		}),
@@ -216,6 +222,12 @@ function runSmokeTestsEffect(smokeOptions: SmokeOptions): Effect.Effect<Readonly
 			return [];
 		}
 
+		printHeader("Running Live Proxy Smoke Tests", "⚡");
+		console.log("");
+		console.log(`  ${bold("Port:")}   ${cyan(String(smokeOptions.port))}`);
+		console.log(`  ${bold("Prompt:")} ${cyan(smokeOptions.prompt)}`);
+		console.log("");
+
 		const results = yield* testProvidersEffect(providerConfigurations, smokeOptions);
 		printSummary(results);
 		return results;
@@ -227,13 +239,17 @@ function printDryRunEffect(
 	{ port, prompt }: SmokeOptions,
 ): Effect.Effect<void, Error> {
 	return Effect.gen(function* printDryRunGenerator() {
-		console.log(bold("Live proxy smoke dry run"));
+		printHeader("Live Proxy Smoke Dry Run", "🔍");
 		console.log("");
 		console.log(
-			dim("No upstream requests were made. Pass --live to run exactly one chat completion per provider."),
+			`  ${dim("No upstream requests were made. Pass --live to run exactly one completion per provider.")}`,
 		);
-		console.log(`${bold("Port:")} ${cyan(String(port))}`);
-		console.log(`${bold("Prompt:")} ${cyan(prompt)}`);
+		console.log("");
+		console.log(`  ${bold("⚙️  Configuration:")}`);
+		console.log(`  ${dim("├─")} ${bold("Port:")}   ${cyan(String(port))}`);
+		console.log(`  ${dim("└─")} ${bold("Prompt:")} ${cyan(prompt)}`);
+		console.log("");
+		console.log(`  ${bold("📦 Providers to test:")}`);
 		console.log("");
 
 		const keyStatuses = yield* Effect.all(providerConfigurations.map(getKeyStatusEffect));
@@ -246,22 +262,24 @@ function printDryRunEffect(
 			} else if (keyStatus.endsWith("missing")) formattedKeyStatus = yellow(keyStatus);
 			else formattedKeyStatus = red(keyStatus);
 
-			console.log(`${bold(providerConfiguration.name)}:`);
-			console.log(`│  ${dim("protocol:")} ${cyan(providerConfiguration.upstreamProtocol)}`);
-			console.log(`│  ${dim("base URL:")} ${cyan(providerConfiguration.upstreamBaseUrl)}`);
-			console.log(`│  ${dim("model:")} ${cyan(providerConfiguration.model)}`);
-			console.log(`│  ${dim("max tokens:")} ${cyan(String(providerConfiguration.maxTokens))}`);
-			console.log(`│  ${dim("key:")} ${formattedKeyStatus}`);
+			const borderStyle = cyan;
+			printBoxTop(bold(providerConfiguration.name), 80, borderStyle);
+			printBoxRow(`${dim("Protocol:")}   ${cyan(providerConfiguration.upstreamProtocol)}`, 80, borderStyle);
+			printBoxRow(`${dim("Base URL:")}   ${cyan(providerConfiguration.upstreamBaseUrl)}`, 80, borderStyle);
+			printBoxRow(`${dim("Model:")}      ${cyan(providerConfiguration.model)}`, 80, borderStyle);
+			printBoxRow(`${dim("Max Tokens:")} ${cyan(String(providerConfiguration.maxTokens))}`, 80, borderStyle);
+			printBoxRow(`${dim("API Key:")}    ${formattedKeyStatus}`, 80, borderStyle);
+			printBoxBottom(80, borderStyle);
 			console.log("");
 		}
-
-		console.log(bold("Examples:"));
-		console.log(dim("  mise run live-smoke"));
-		console.log(dim("  mise run live-smoke -- --dry-run"));
-		console.log(dim("  mise run live-smoke -- --live"));
-		console.log(dim("  mise run live-smoke -- --live --provider opencode-go"));
-		console.log(dim("  mise run live-smoke -- --live --provider cerebras"));
-		console.log(dim("  mise run live-smoke -- --live --provider kimi-for-coding"));
+		console.log(`  ${bold("💡 Examples:")}`);
+		console.log(`  ${dim("  mise run live-smoke")}`);
+		console.log(`  ${dim("  mise run live-smoke -- --dry-run")}`);
+		console.log(`  ${dim("  mise run live-smoke -- --live")}`);
+		console.log(`  ${dim("  mise run live-smoke -- --live --provider opencode-go")}`);
+		console.log(`  ${dim("  mise run live-smoke -- --live --provider cerebras")}`);
+		console.log(`  ${dim("  mise run live-smoke -- --live --provider kimi-for-coding")}`);
+		console.log("");
 	});
 }
 
@@ -562,8 +580,7 @@ function getFirstChoiceMessageContent(body: ReadonlyRecord<string, unknown>): st
 
 function getFirstChoiceFinishReason(body: ReadonlyRecord<string, unknown>): string | undefined {
 	const firstChoice = getFirstChoice(body);
-	if (!firstChoice) return undefined;
-	return getString(firstChoice.finish_reason);
+	return firstChoice ? getString(firstChoice.finish_reason) : undefined;
 }
 
 function getFirstChoice(body: ReadonlyRecord<string, unknown>): ReadonlyRecord<string, unknown> | undefined {
@@ -588,50 +605,73 @@ function printResult({
 	success,
 	upstreamModel,
 }: SmokeResult): void {
-	const state = success ? bgGreen(bold(" PASS ")) : bgRed(bold(" FAIL "));
+	const borderStyle = success ? green : red;
+	const stateLabel = success ? bgGreen(bold(black(" PASS "))) : bgRed(bold(black(" FAIL ")));
+	const title = `${stateLabel}  ${bold(provider)}`;
+
 	const statusColor = httpStatus >= 200 && httpStatus < 300 ? green(String(httpStatus)) : red(String(httpStatus));
 	const modelMatches = requestedModel === upstreamModel;
 	const modelColor = modelMatches ? cyan : yellow;
 	const durationText = magenta(prettyMilliseconds(durationMs));
 	const yellowFinish = yellow(finishReason ?? "undefined");
 
-	console.log(`${state} ${bold(provider)}`);
-	console.log(
-		`  ${HTTP} ${statusColor}  ${DOT}  ${DURATION} ${durationText}  ${DOT}  ${DIM_FINISH_REASON} ${yellowFinish}`,
-	);
-	console.log(`  ${dim("requested_model")}  ${modelColor(requestedModel)}`);
-	console.log(
-		`  ${dim("upstream_model")}   ${modelColor(upstreamModel)}${modelMatches ? "" : yellow("  ⚠ differs")}`,
-	);
-	console.log("");
-	printContentBlock(content, success);
-	console.log(dim("─".repeat(80)));
-}
+	printBoxTop(title, 80, borderStyle);
+	printBoxRow(`${dim(bold("HTTP Status:"))}      ${statusColor}`, 80, borderStyle);
+	printBoxRow(`${dim(bold("Duration:"))}         ${durationText}`, 80, borderStyle);
+	printBoxRow(`${dim(bold("Finish Reason:"))}    ${yellowFinish}`, 80, borderStyle);
+	printBoxRow(`${dim(bold("Requested Model:"))}  ${modelColor(requestedModel)}`, 80, borderStyle);
+	const modelWarning = modelMatches ? "" : yellow("  ⚠ differs");
+	printBoxRow(`${dim(bold("Upstream Model:"))}   ${modelColor(upstreamModel)}${modelWarning}`, 80, borderStyle);
 
-function printContentBlock(content: string, success: boolean): void {
-	const headerColor = success ? green : red;
-	const header = success ? "┌─ response" : "┌─ response (failed)";
-	console.log(`  ${headerColor(header)}`);
+	printBoxDivider(80, borderStyle);
 
-	if (content.length === 0) console.log(`  ${dim("│")} ${dim("(empty)")}`);
+	const responseHeader = success ? "Response" : "Response (failed)";
+	printBoxRow(bold(responseHeader), 80, borderStyle);
+
+	if (content.length === 0) printBoxRow(dim("(empty)"), 80, borderStyle);
 	else {
+		const maxContentWidth = 80 - 8;
 		const lines = content.split("\n");
-		for (const line of lines) console.log(`  ${dim("│")} ${line}`);
+		for (const line of lines) {
+			if (line.length === 0) {
+				printBoxRow("", 80, borderStyle);
+				continue;
+			}
+			let remaining = line;
+			while (remaining.length > maxContentWidth) {
+				const chunk = remaining.slice(0, maxContentWidth);
+				printBoxRow(`  ${chunk}`, 80, borderStyle);
+				remaining = remaining.slice(maxContentWidth);
+			}
+			printBoxRow(`  ${remaining}`, 80, borderStyle);
+		}
 	}
-	console.log(`  ${dim("└─")}`);
+	printBoxBottom(80, borderStyle);
 }
 
 function printSummary(results: ReadonlyArray<SmokeResult>): void {
-	const passed = results.filter((result) => result.success).length;
 	const total = results.length;
+	if (total === 0) return;
 
-	let countColor = red;
-	if (passed === total) countColor = green;
-	else if (passed > 0) countColor = yellow;
+	const passed = results.filter((result) => result.success).length;
+	const failed = total - passed;
 
-	const countText = countColor(`${passed}/${total} providers passed.`);
+	let statusIcon = "🟢";
+	let summaryText = green(`${passed}/${total} passed`);
+
+	if (passed === 0) {
+		statusIcon = "🔴";
+		summaryText = red(`${passed}/${total} passed`);
+	} else if (failed > 0) {
+		statusIcon = "🟡";
+		summaryText = yellow(`${passed}/${total} passed`);
+	}
+
+	const failedDetail = failed > 0 ? red(` (${failed} failed)`) : "";
+
 	console.log("");
-	console.log(`${bold("Summary:")} ${countText}`);
+	console.log(`  ${statusIcon}  ${bold("Summary:")} ${summaryText}${failedDetail}`);
+	console.log("");
 }
 
 function getHomeDirectory(): string {
@@ -645,4 +685,78 @@ function getHomeDirectory(): string {
 
 function toError(error: unknown): Error {
 	return Predicate.isError(error) ? error : new Error(String(error));
+}
+
+function visualLength(value: string): number {
+	const clean = value.replaceAll(CLEAN_REGEXP, "");
+	let length = 0;
+	let index = 0;
+	while (index < clean.length) {
+		const character = clean[index];
+		if (character === undefined) break;
+
+		const codePoint = clean.codePointAt(index);
+		if (!codePoint) {
+			index += 1;
+			continue;
+		}
+
+		const nextCharacter = clean[index + 1];
+		const nextNextCharacter = clean[index + 2];
+
+		const isDigit = (codePoint >= 0x30 && codePoint <= 0x39) || character === "#" || character === "*";
+		if (isDigit) {
+			if (nextCharacter === "\u20E3") {
+				length += 1;
+				index += 2;
+				continue;
+			}
+			if (nextCharacter === "\uFE0F" && nextNextCharacter === "\u20E3") {
+				length += 1;
+				index += 3;
+				continue;
+			}
+		}
+
+		if (codePoint > 0xffff || (codePoint >= 0x2600 && codePoint <= 0x27bf)) {
+			length += 2;
+			index += codePoint > 0xffff ? 2 : 1;
+		} else {
+			length += 1;
+			index += 1;
+		}
+	}
+	return length;
+}
+
+function printHeader(title: string, icon = "🚀"): void {
+	const titleText = `${icon}  ${title}`;
+	const contentWidth = visualLength(titleText);
+	const totalWidth = Math.max(60, contentWidth + 6);
+	const paddingLength = totalWidth - contentWidth - 6;
+	const padRight = " ".repeat(paddingLength);
+	console.log(cyan(`┌${"─".repeat(totalWidth - 2)}┐`));
+	console.log(`${cyan("│")}  ${bold(titleText)}${padRight}  ${cyan("│")}`);
+	console.log(cyan(`└${"─".repeat(totalWidth - 2)}┘`));
+}
+
+function printBoxTop(title: string, width = 80, borderStyle = cyan): void {
+	const titleLength = visualLength(title);
+	const top = borderStyle(`┌─ ${title} ${"─".repeat(Math.max(0, width - 5 - titleLength))}┐`);
+	console.log(`  ${top}`);
+}
+
+function printBoxRow(content: string, width = 80, borderStyle = cyan): void {
+	const padLength = Math.max(0, width - 6 - visualLength(content));
+	console.log(`  ${borderStyle("│")}  ${content}${" ".repeat(padLength)}  ${borderStyle("│")}`);
+}
+
+function printBoxDivider(width = 80, borderStyle = cyan): void {
+	const middle = borderStyle(`├${"─".repeat(width - 2)}┤`);
+	console.log(`  ${middle}`);
+}
+
+function printBoxBottom(width = 80, borderStyle = cyan): void {
+	const bottom = borderStyle(`└${"─".repeat(width - 2)}┘`);
+	console.log(`  ${bottom}`);
 }
