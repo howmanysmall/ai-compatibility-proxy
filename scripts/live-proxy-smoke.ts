@@ -1,10 +1,10 @@
 #!/usr/bin/env -S deno run
 
-import { setTimeout } from "node:timers/promises";
 import { Command } from "@cliffy/command";
 import { Confirm, Input, Select } from "@cliffy/prompt";
 import { bgGreen, bgRed, bold, cyan, dim, green, magenta, red, yellow } from "@std/fmt/colors";
 import { Effect, Predicate } from "effect";
+import prettyMilliseconds from "pretty-ms";
 
 import type { ReadonlyRecord } from "effect/Record";
 
@@ -47,7 +47,7 @@ interface LiveSmokeCommandOptions {
 	readonly provider?: string | undefined;
 }
 
-type ProviderName = "opencode-go" | "cerebras";
+type ProviderName = "opencode-go" | "cerebras" | "kimi-for-coding";
 type ProviderSelection = ProviderName | "all";
 
 const DEFAULT_PORT = 9876;
@@ -76,6 +76,15 @@ const PROVIDERS: ReadonlyArray<ProviderConfiguration> = [
 		name: "cerebras",
 		upstreamBaseUrl: "https://api.cerebras.ai/v1",
 		upstreamProtocol: "cerebras_openai",
+	},
+	{
+		keyEnvironmentVariable: "KIMI_API_KEY",
+		keyFilePath: `${KEY_DIRECTORY}/kimi-coding.key`,
+		maxTokens: 1024,
+		model: "kimi-k2-thinking",
+		name: "kimi-for-coding",
+		upstreamBaseUrl: "https://api.kimi.com/coding/v1",
+		upstreamProtocol: "anthropic_messages",
 	},
 ];
 
@@ -150,6 +159,7 @@ function promptForSmokeOptionsEffect(commandOptions: LiveSmokeCommandOptions): E
 					{ name: "All providers", value: "all" },
 					{ name: "OpenCode Go", value: "opencode-go" },
 					{ name: "Cerebras", value: "cerebras" },
+					{ name: "Kimi For Coding", value: "kimi-for-coding" },
 				],
 			});
 			const provider = parseProvider(providerText);
@@ -251,6 +261,7 @@ function printDryRunEffect(
 		console.log(dim("  mise run live-smoke -- --live"));
 		console.log(dim("  mise run live-smoke -- --live --provider opencode-go"));
 		console.log(dim("  mise run live-smoke -- --live --provider cerebras"));
+		console.log(dim("  mise run live-smoke -- --live --provider kimi-for-coding"));
 	});
 }
 
@@ -415,7 +426,7 @@ function waitForHealthAttemptEffect(
 		const isHealthy = yield* isHealthyEffect(port);
 		if (isHealthy) return;
 
-		yield* Effect.promise(() => setTimeout(100));
+		yield* Effect.sleep("100 millis");
 		yield* waitForHealthAttemptEffect(port, providerName, attempt + 1);
 	});
 }
@@ -501,9 +512,9 @@ function parseOpenCodeGoModel(value: string): string {
 }
 
 function parseProvider(value: string): ProviderSelection {
-	if (value === "all" || value === "opencode-go" || value === "cerebras") return value;
+	if (value === "all" || value === "opencode-go" || value === "cerebras" || value === "kimi-for-coding") return value;
 
-	const error = new Error(`Unknown provider: ${value}. Expected all, opencode-go, or cerebras.`);
+	const error = new Error(`Unknown provider: ${value}. Expected all, opencode-go, cerebras, or kimi-for-coding.`);
 	Error.captureStackTrace(error, parseProvider);
 	throw error;
 }
@@ -519,9 +530,9 @@ function parsePort(value: number): number {
 function getProviderConfigurations({ opencodeGoModel, provider }: SmokeOptions): ReadonlyArray<ProviderConfiguration> {
 	const providerConfigurations = PROVIDERS.map((providerConfiguration) => {
 		if (providerConfiguration.name !== "opencode-go") return providerConfiguration;
-
 		return createProviderConfiguration(providerConfiguration, opencodeGoModel);
 	});
+
 	if (provider === "all") return providerConfigurations;
 	return providerConfigurations.filter((providerConfiguration) => providerConfiguration.name === provider);
 }
@@ -581,7 +592,7 @@ function printResult({
 	const statusColor = httpStatus >= 200 && httpStatus < 300 ? green(String(httpStatus)) : red(String(httpStatus));
 	const modelMatches = requestedModel === upstreamModel;
 	const modelColor = modelMatches ? cyan : yellow;
-	const durationText = magenta(formatDuration(durationMs));
+	const durationText = magenta(prettyMilliseconds(durationMs));
 	const yellowFinish = yellow(finishReason ?? "undefined");
 
 	console.log(`${state} ${bold(provider)}`);
@@ -595,13 +606,6 @@ function printResult({
 	console.log("");
 	printContentBlock(content, success);
 	console.log(dim("─".repeat(80)));
-}
-
-function formatDuration(durationMs: number): string {
-	if (!Number.isFinite(durationMs) || durationMs < 0) return "?";
-	if (durationMs < 1000) return `${Math.round(durationMs)}ms`;
-	const seconds = durationMs / 1000;
-	return `${seconds.toFixed(seconds >= 10 ? 1 : 2)}s`;
 }
 
 function printContentBlock(content: string, success: boolean): void {
