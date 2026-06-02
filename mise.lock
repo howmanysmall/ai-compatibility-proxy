@@ -32,45 +32,6 @@ url = "https://dl.deno.land/release/v2.8.1/deno-x86_64-apple-darwin.zip"
 checksum = "sha256:Algorithm"
 url = "https://dl.deno.land/release/v2.8.1/deno-x86_64-pc-windows-msvc.zip"
 
-[[tools."github:howmanysmall/jsr-cli"]]
-version = "1.0.0"
-backend = "github:howmanysmall/jsr-cli"
-
-[tools."github:howmanysmall/jsr-cli"."platforms.linux-arm64"]
-checksum = "sha256:397e77987f79f27327cbc9d74f8e8c59337bf38b8916b885d49a39aae2efda22"
-url = "https://github.com/howmanysmall/jsr-cli/releases/download/v1.0.0/jsr-cli_linux_arm64.tar.gz"
-url_api = "https://api.github.com/repos/howmanysmall/jsr-cli/releases/assets/434699513"
-
-[tools."github:howmanysmall/jsr-cli"."platforms.linux-arm64-musl"]
-checksum = "sha256:397e77987f79f27327cbc9d74f8e8c59337bf38b8916b885d49a39aae2efda22"
-url = "https://github.com/howmanysmall/jsr-cli/releases/download/v1.0.0/jsr-cli_linux_arm64.tar.gz"
-url_api = "https://api.github.com/repos/howmanysmall/jsr-cli/releases/assets/434699513"
-
-[tools."github:howmanysmall/jsr-cli"."platforms.linux-x64"]
-checksum = "sha256:2e2c5b20793a7d3d8b27bd4d9e2473c22a411704aba0d175c577706f2e228027"
-url = "https://github.com/howmanysmall/jsr-cli/releases/download/v1.0.0/jsr-cli_linux_x86_64.tar.gz"
-url_api = "https://api.github.com/repos/howmanysmall/jsr-cli/releases/assets/434699512"
-
-[tools."github:howmanysmall/jsr-cli"."platforms.linux-x64-musl"]
-checksum = "sha256:2e2c5b20793a7d3d8b27bd4d9e2473c22a411704aba0d175c577706f2e228027"
-url = "https://github.com/howmanysmall/jsr-cli/releases/download/v1.0.0/jsr-cli_linux_x86_64.tar.gz"
-url_api = "https://api.github.com/repos/howmanysmall/jsr-cli/releases/assets/434699512"
-
-[tools."github:howmanysmall/jsr-cli"."platforms.macos-arm64"]
-checksum = "sha256:ac9b4167edb9f945caa21e17afc4cf113d5e782d3c76bf123ea85355e26a95bd"
-url = "https://github.com/howmanysmall/jsr-cli/releases/download/v1.0.0/jsr-cli_darwin_arm64.tar.gz"
-url_api = "https://api.github.com/repos/howmanysmall/jsr-cli/releases/assets/434699517"
-
-[tools."github:howmanysmall/jsr-cli"."platforms.macos-x64"]
-checksum = "sha256:aa806585ae74abdce41f3ece96b56e76e9dc362241ef1e2c52cebe7b6f1a93c3"
-url = "https://github.com/howmanysmall/jsr-cli/releases/download/v1.0.0/jsr-cli_darwin_x86_64.tar.gz"
-url_api = "https://api.github.com/repos/howmanysmall/jsr-cli/releases/assets/434699518"
-
-[tools."github:howmanysmall/jsr-cli"."platforms.windows-x64"]
-checksum = "sha256:b49c66b33c27a0d56aa2af187af1aa8eb096f20c4da94d06de01e2176e5a8f38"
-url = "https://github.com/howmanysmall/jsr-cli/releases/download/v1.0.0/jsr-cli_windows_x86_64.zip"
-url_api = "https://api.github.com/repos/howmanysmall/jsr-cli/releases/assets/434699529"
-
 [[tools."github:howmanysmall/npm-registry-mcp"]]
 version = "0.5.0"
 backend = "github:howmanysmall/npm-registry-mcp"

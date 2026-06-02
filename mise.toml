@@ -4,7 +4,6 @@ _.path = ["{{config_root}}/node_modules/.bin", "{{cwd}}/node_modules/.bin"]
 HK_MISE = 1
 
 [tools]
-"github:howmanysmall/jsr-cli" = "latest"
 "github:howmanysmall/npm-registry-mcp" = "latest"
 "github:howmanysmall/pullhook" = "latest"
 deno = "2.8.1"
