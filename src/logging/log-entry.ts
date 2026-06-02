@@ -91,9 +91,8 @@ function extractCustomProperties(logObject: LogObject): Readonly<Record<string, 
 	if (Object.keys(customProperties).length === 0) return undefined;
 
 	const sanitizedCustomProperties = sanitize(customProperties);
-	return Predicate.isRecord(sanitizedCustomProperties) ?
-		sanitizedCustomProperties :
-		{ value: sanitizedCustomProperties };
+	if (Predicate.isRecord(sanitizedCustomProperties)) return sanitizedCustomProperties;
+	return { value: sanitizedCustomProperties };
 }
 
 function getLogParameters(logObject: LogObject): Array<unknown> {

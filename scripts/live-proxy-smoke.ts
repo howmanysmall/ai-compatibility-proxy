@@ -130,6 +130,14 @@ function shouldPrompt({ dryRun, live, opencodeModel, port, prompt, provider }: L
 	);
 }
 
+async function ternaryAsync<TValue>(
+	condition: boolean,
+	getTrueAsync: () => Promise<TValue>,
+	getFalseAsync: () => Promise<TValue>,
+): Promise<TValue> {
+	return condition ? getTrueAsync() : getFalseAsync();
+}
+
 function promptForSmokeOptionsEffect(commandOptions: LiveSmokeCommandOptions): Effect.Effect<SmokeOptions, Error> {
 	return Effect.tryPromise({
 		catch: toError,
@@ -143,9 +151,13 @@ function promptForSmokeOptionsEffect(commandOptions: LiveSmokeCommandOptions): E
 				],
 			});
 			const provider = parseProvider(providerText);
-			const opencodeGoModel = shouldAskForOpenCodeGoModel(provider) ?
-				await promptForOpenCodeGoModelAsync() :
-				parseOpenCodeGoModel(commandOptions.opencodeModel ?? DEFAULT_OPENCODE_GO_MODEL);
+
+			const opencodeGoModel = await ternaryAsync(
+				shouldAskForOpenCodeGoModel(provider),
+				async () => await promptForOpenCodeGoModelAsync(),
+				async () => parseOpenCodeGoModel(commandOptions.opencodeModel ?? DEFAULT_OPENCODE_GO_MODEL),
+			);
+
 			const isLive = await Confirm.prompt({
 				default: commandOptions.live === true,
 				message: "Make live upstream requests?",
@@ -553,6 +565,11 @@ function getString(value: unknown): string | undefined {
 	return Predicate.isString(value) ? value : undefined;
 }
 
+const DOT = dim("•");
+const DIM_FINISH_REASON = dim("finish_reason");
+const DURATION = dim("duration");
+const HTTP = dim("HTTP");
+
 function printResult({
 	content,
 	durationMs,
@@ -567,15 +584,12 @@ function printResult({
 	const statusColor = httpStatus >= 200 && httpStatus < 300 ? green(String(httpStatus)) : red(String(httpStatus));
 	const modelMatches = requestedModel === upstreamModel;
 	const modelColor = modelMatches ? cyan : yellow;
-	const durationText = formatDuration(durationMs);
+	const durationText = magenta(formatDuration(durationMs));
+	const yellowFinish = yellow(finishReason ?? "undefined");
 
 	console.log(`${state} ${bold(provider)}`);
 	console.log(
-		`  ${dim("HTTP")} ${statusColor}  ${dim("•")}  ${dim("duration")} ${magenta(durationText)}  ${
-			dim(
-				"•",
-			)
-		}  ${dim("finish_reason")} ${yellow(finishReason ?? "undefined")}`,
+		`  ${HTTP} ${statusColor}  ${DOT}  ${DURATION} ${durationText}  ${DOT}  ${DIM_FINISH_REASON} ${yellowFinish}`,
 	);
 	console.log(`  ${dim("requested_model")}  ${modelColor(requestedModel)}`);
 	console.log(
@@ -598,13 +612,10 @@ function printContentBlock(content: string, success: boolean): void {
 	const header = success ? "┌─ response" : "┌─ response (failed)";
 	console.log(`  ${headerColor(header)}`);
 
-	if (content.length === 0) {
-		console.log(`  ${dim("│")} ${dim("(empty)")}`);
-	} else {
+	if (content.length === 0) console.log(`  ${dim("│")} ${dim("(empty)")}`);
+	else {
 		const lines = content.split("\n");
-		for (const line of lines) {
-			console.log(`  ${dim("│")} ${line}`);
-		}
+		for (const line of lines) console.log(`  ${dim("│")} ${line}`);
 	}
 	console.log(`  ${dim("└─")}`);
 }

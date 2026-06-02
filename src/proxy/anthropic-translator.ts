@@ -110,13 +110,18 @@ export function translateOpenAiToAnthropic(
 	return anthropicRequest;
 }
 
+function getAnthropicResponse(
+	anthropicMessagesResponse: AnthropicMessagesResponse | unknown,
+): AnthropicMessagesResponse | undefined {
+	if (isAnthropicMessagesResponse.allows(anthropicMessagesResponse)) return anthropicMessagesResponse;
+	return undefined;
+}
+
 export function translateAnthropicToOpenAi(
 	anthropicMessagesResponse: AnthropicMessagesResponse | unknown,
 	requestModel: string,
 ): OpenAiChatCompletionResponse {
-	const anthropicResponse = isAnthropicMessagesResponse.allows(anthropicMessagesResponse) ?
-		anthropicMessagesResponse :
-		undefined;
+	const anthropicResponse = getAnthropicResponse(anthropicMessagesResponse);
 	const created = getUnixSeconds();
 	const model = anthropicResponse?.model ?? requestModel;
 	const content = getAnthropicText(anthropicResponse?.content ?? []);
