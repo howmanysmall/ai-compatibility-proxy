@@ -1,3 +1,4 @@
+import { getProviderTargetDefaults } from "@providers/registry.ts";
 import arkenv, { type } from "arkenv";
 
 export type UpstreamProtocol = "anthropic_messages" | "cerebras_openai";
@@ -77,15 +78,15 @@ export function loadConfiguration(
 }
 
 function getDefaultBaseUrl(upstreamProtocol: UpstreamProtocol): string {
-	return upstreamProtocol === "anthropic_messages" ? "https://opencode.ai/zen/go/v1" : "https://api.cerebras.ai/v1";
+	return getProviderTargetDefaults(upstreamProtocol).baseUrl;
 }
 
 function getDefaultAuthHeader(upstreamProtocol: UpstreamProtocol): string {
-	return upstreamProtocol === "anthropic_messages" ? "x-api-key" : "Authorization";
+	return getProviderTargetDefaults(upstreamProtocol).authHeader;
 }
 
 function getDefaultModel(upstreamProtocol: UpstreamProtocol): string {
-	return upstreamProtocol === "anthropic_messages" ? "minimax-m3" : "gpt-oss-120b";
+	return getProviderTargetDefaults(upstreamProtocol).model;
 }
 
 function removeEmptyValues(environment: Record<string, string | undefined>): Record<string, string | undefined> {

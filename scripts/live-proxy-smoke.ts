@@ -56,6 +56,10 @@ const DEFAULT_PROMPT = "Reply with only the single word: pong";
 const OPENCODE_GO_MODELS = ["minimax-m3", "minimax-m2.7", "minimax-m2.5", "qwen3.7-max", "qwen3.6-plus"] as const;
 const DEFAULT_OPENCODE_GO_MODEL = "minimax-m3" satisfies OpenCodeGoModel;
 const KEY_DIRECTORY = `${getHomeDirectory()}/.config/ai-compatibility-proxy`;
+const DOT = dim("•");
+const DIM_FINISH_REASON = dim("finish_reason");
+const DURATION = dim("duration");
+const HTTP = dim("HTTP");
 const PROVIDERS: ReadonlyArray<ProviderConfiguration> = [
 	{
 		keyEnvironmentVariable: "OPENCODE_GO_API_KEY",
@@ -564,11 +568,6 @@ function getFirstChoice(body: ReadonlyRecord<string, unknown>): ReadonlyRecord<s
 function getString(value: unknown): string | undefined {
 	return Predicate.isString(value) ? value : undefined;
 }
-
-const DOT = dim("•");
-const DIM_FINISH_REASON = dim("finish_reason");
-const DURATION = dim("duration");
-const HTTP = dim("HTTP");
 
 function printResult({
 	content,
