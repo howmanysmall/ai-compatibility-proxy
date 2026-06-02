@@ -1,38 +1,39 @@
+import { Predicate } from "effect";
+
 import { OPENAI_NULL } from "./openai-constants.ts";
 
-import type { OpenAIErrorBody } from "./openai-types.ts";
+import type { OpenAiErrorBody } from "./openai-types.ts";
+
+interface ProxyErrorOptions {
+	readonly code?: string | null;
+	readonly param?: string | null;
+	readonly status?: number;
+	readonly type?: string;
+}
 
 export class ProxyError extends Error {
-	readonly status: number;
-	readonly type: string;
-	readonly param: string | null;
-	readonly code: string | null;
-	override name = "ProxyError";
+	public readonly status: number;
+	public readonly type: string;
+	public readonly param: string | null;
+	public readonly code: string | null;
+	public override readonly name = "ProxyError";
 
-	constructor(
-		message: string,
-		options: {
-			status?: number;
-			type?: string;
-			param?: string | null;
-			code?: string | null;
-		} = {},
-	) {
+	public constructor(message: string, proxyErrorOptions: ProxyErrorOptions = {}) {
 		super(message);
-		this.status = options.status ?? 400;
-		this.type = options.type ?? "invalid_request_error";
-		this.param = options.param ?? OPENAI_NULL;
-		this.code = options.code ?? OPENAI_NULL;
+		this.status = proxyErrorOptions.status ?? 400;
+		this.type = proxyErrorOptions.type ?? "invalid_request_error";
+		this.param = proxyErrorOptions.param ?? OPENAI_NULL;
+		this.code = proxyErrorOptions.code ?? OPENAI_NULL;
 	}
 }
 
-export function createErrorBody(error: ProxyError): OpenAIErrorBody {
+export function createErrorBody(proxyError: ProxyError): OpenAiErrorBody {
 	return {
 		error: {
-			code: error.code,
-			message: error.message,
-			param: error.param,
-			type: error.type,
+			code: proxyError.code,
+			message: proxyError.message,
+			param: proxyError.param,
+			type: proxyError.type,
 		},
 	};
 }
@@ -41,16 +42,16 @@ export function createErrorResponse(error: unknown): Response {
 	const proxyError = getProxyError(error);
 
 	return Response.json(createErrorBody(proxyError), {
-		headers: {
-			"cache-control": "no-store",
-		},
+		headers: { "cache-control": "no-store" },
 		status: proxyError.status,
 	});
 }
 
 function getProxyError(error: unknown): ProxyError {
 	if (error instanceof ProxyError) return error;
-	return new ProxyError("Internal server error", { status: 500, type: "server_error" });
+	const exception = new ProxyError("Internal server error", { status: 500, type: "server_error" });
+	Error.captureStackTrace(exception, getProxyError);
+	return exception;
 }
 
 export async function createUpstreamErrorAsync(response: Response): Promise<ProxyError> {
@@ -59,29 +60,33 @@ export async function createUpstreamErrorAsync(response: Response): Promise<Prox
 
 	if (!contentType.includes("application/json")) {
 		const text = await response.text();
-		return new ProxyError(text.trim() || fallbackMessage, {
+		const error = new ProxyError(text.trim() || fallbackMessage, {
 			status: response.status,
 			type: "upstream_error",
 		});
+		Error.captureStackTrace(error, createUpstreamErrorAsync);
+		return error;
 	}
 
-	const body: unknown = await response.json();
-	const upstreamError = isRecord(body) ? body : {};
+	const body = await response.json();
+	const upstreamError = Predicate.isRecord(body) ? body : {};
 	const message = getUpstreamErrorMessage(upstreamError) ?? fallbackMessage;
 
-	return new ProxyError(message, {
+	const error = new ProxyError(message, {
 		code: getStringValue(upstreamError, "code"),
 		param: getStringValue(upstreamError, "param"),
 		status: response.status,
 		type: response.status >= 500 ? "upstream_error" : "invalid_request_error",
 	});
+	Error.captureStackTrace(error, createUpstreamErrorAsync);
+	return error;
 }
 
 function getUpstreamErrorMessage(body: Record<string, unknown>): string | undefined {
 	const { error } = body;
 
 	if (typeof error === "string") return error;
-	if (isRecord(error)) {
+	if (Predicate.isRecord(error)) {
 		const { message } = error;
 		if (typeof message === "string") return message;
 	}
@@ -92,11 +97,7 @@ function getUpstreamErrorMessage(body: Record<string, unknown>): string | undefi
 
 function getStringValue(body: Record<string, unknown>, key: string): string | null {
 	const { error } = body;
-	if (isRecord(error) && typeof error[key] === "string") return error[key];
+	if (Predicate.isRecord(error) && typeof error[key] === "string") return error[key];
 	if (typeof body[key] === "string") return body[key];
 	return OPENAI_NULL;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-	return typeof value === "object" && Boolean(value) && !Array.isArray(value);
 }

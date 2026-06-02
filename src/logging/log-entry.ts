@@ -3,8 +3,10 @@ import { name, version } from "@constants/package-json.ts";
 import { getActiveLogContext, mergeLogContexts, sanitizeLogContext } from "@logging/log-context.ts";
 import { sanitize } from "@logging/sanitizer.ts";
 import { basename } from "@std/path";
+import { Predicate } from "effect";
 
 import type { LogObject, LogType } from "consola";
+import type { Writable } from "type-fest";
 
 const UNKNOWN_HOST_NAME = "unknown";
 const STANDARD_LOG_OBJECT_KEYS = new Set(["additional", "args", "context", "date", "level", "message", "tag", "type"]);
@@ -38,10 +40,6 @@ export interface StructuredLogEntry {
 	};
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-	return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
 function getHostName(): string {
 	try {
 		return Deno.hostname();
@@ -63,27 +61,26 @@ function getSeverityName(level: number, type: LogType): string {
 }
 
 function stringify(value: unknown): string {
-	if (typeof value === "string") return value;
-	return JSON.stringify(value);
+	return Predicate.isString(value) ? value : JSON.stringify(value);
 }
 
-function buildMessage(logObject: LogObject, sanitizedArguments: ReadonlyArray<unknown>): string {
+function buildMessage({ message, additional, type }: LogObject, sanitizedArguments: ReadonlyArray<unknown>): string {
 	const explicitMessageParts: Array<string> = [];
+	let size = 0;
 
-	if (typeof logObject.message === "string" && logObject.message.length > 0) {
-		explicitMessageParts.push(logObject.message);
-	}
-	if (typeof logObject.additional === "string" && logObject.additional.length > 0) {
-		explicitMessageParts.push(logObject.additional);
-	}
-	if (Array.isArray(logObject.additional)) {
-		explicitMessageParts.push(...logObject.additional.filter((value) => value.length > 0));
+	if (Predicate.isString(message) && message.length > 0) explicitMessageParts[size++] = message;
+	if (Predicate.isString(additional) && additional.length > 0) explicitMessageParts[size++] = additional;
+	if (Array.isArray(additional)) {
+		for (const value of additional) {
+			if (value.length === 0) continue;
+			explicitMessageParts[size++] = value;
+		}
 	}
 
 	if (explicitMessageParts.length > 0) return explicitMessageParts.join(" ");
 
 	const fallbackMessage = sanitizedArguments.map(stringify).join(" ").trim();
-	return fallbackMessage.length > 0 ? fallbackMessage : `logger.${logObject.type}`;
+	return fallbackMessage.length > 0 ? fallbackMessage : `logger.${type}`;
 }
 
 function extractCustomProperties(logObject: LogObject): Readonly<Record<string, unknown>> | undefined {
@@ -94,30 +91,31 @@ function extractCustomProperties(logObject: LogObject): Readonly<Record<string, 
 	if (Object.keys(customProperties).length === 0) return undefined;
 
 	const sanitizedCustomProperties = sanitize(customProperties);
-	return isRecord(sanitizedCustomProperties) ? sanitizedCustomProperties : { value: sanitizedCustomProperties };
+	if (Predicate.isRecord(sanitizedCustomProperties)) return sanitizedCustomProperties;
+	return { value: sanitizedCustomProperties };
 }
 
 function getLogParameters(logObject: LogObject): Array<unknown> {
-	return Reflect.get(logObject, "args") as Array<unknown>;
+	const parameters = Reflect.get(logObject, "args");
+	return Array.isArray(parameters) ? parameters : [];
 }
 
 function extractErrors(logObject: LogObject): ReadonlyArray<unknown> {
-	const errorValues = getLogParameters(logObject)
-		.filter((value) => value instanceof Error)
-		.map((value) => sanitize(value));
+	const errorValues: Array<unknown> = [];
+	let size = 0;
+
+	for (const value of getLogParameters(logObject)) {
+		if (!Predicate.isError(value)) continue;
+		errorValues[size++] = sanitize(value);
+	}
+
 	if ("error" in logObject && logObject.error !== undefined) errorValues.unshift(sanitize(logObject.error));
 	return errorValues;
 }
 
-function isEmptyArray(array: ReadonlyArray<unknown>): array is readonly [] {
-	return array.length === 0;
-}
-function isOneArray(array: ReadonlyArray<unknown>): array is readonly [unknown] {
-	return array.length === 1;
-}
 function getPayload(sanitizedArguments: ReadonlyArray<unknown>): unknown {
-	if (isEmptyArray(sanitizedArguments)) return undefined;
-	if (isOneArray(sanitizedArguments)) return sanitizedArguments[0];
+	if (sanitizedArguments.length === 0) return undefined;
+	if (sanitizedArguments.length === 1) return sanitizedArguments[0];
 	return sanitizedArguments;
 }
 
@@ -133,12 +131,12 @@ export function normalizeLogEntry(logObject: LogObject): StructuredLogEntry {
 	const errors = extractErrors(logObject);
 	const context = mergeLogContexts(
 		getActiveLogContext(),
-		isRecord(logObject.context) ? sanitizeLogContext(logObject.context) : undefined,
+		Predicate.isRecord(logObject.context) ? sanitizeLogContext(logObject.context) : undefined,
 	);
 	const customProperties = extractCustomProperties(logObject);
 	const payload = getPayload(sanitizedArguments);
 
-	const normalizedEntry: StructuredLogEntry = {
+	const normalizedEntry: Writable<StructuredLogEntry> = {
 		application: { name, version },
 		context,
 		host: { name: getHostName() },
@@ -154,12 +152,13 @@ export function normalizeLogEntry(logObject: LogObject): StructuredLogEntry {
 		sequenceNumber: ++currentSequenceNumber,
 		timestamp: logObject.date.toISOString(),
 		type: logObject.type,
-		...(customProperties === undefined ? {} : { customProperties }),
-		...(errors[0] === undefined ? {} : { error: errors[0] }),
-		...(errors.length > 1 ? { errors } : {}),
-		...(payload === undefined ? {} : { payload }),
-		...(logObject.tag.length > 0 ? { tag: logObject.tag } : {}),
 	};
+	if (customProperties !== undefined) normalizedEntry.customProperties = customProperties;
+	// oxlint-disable-next-line prefer-destructuring
+	if (errors[0] !== undefined) normalizedEntry.error = errors[0];
+	if (errors.length > 1) normalizedEntry.errors = errors;
+	if (payload !== undefined) normalizedEntry.payload = payload;
+	if (logObject.tag.length > 0) normalizedEntry.tag = logObject.tag;
 
 	return normalizedEntry;
 }

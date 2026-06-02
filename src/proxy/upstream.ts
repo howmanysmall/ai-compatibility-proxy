@@ -1,10 +1,10 @@
+import { logger } from "@logging/logger.ts";
 import { Data, Duration, Effect, Either, Schedule } from "effect";
 
-import { logger } from "../logging/logger.ts";
 import { createUpstreamErrorAsync, ProxyError } from "./errors.ts";
 import { UpstreamHttpError, UpstreamTimeoutError } from "./upstream-errors.ts";
 
-import type { ProxyConfig } from "./config.ts";
+import type { ProxyConfiguration } from "./config.ts";
 
 export type Fetcher = typeof fetch;
 
@@ -20,10 +20,10 @@ export async function fetchUpstreamJsonAsync(
 	url: string,
 	headers: Headers,
 	body: unknown,
-	config: ProxyConfig,
+	{ requestTimeoutMs }: ProxyConfiguration,
 ): Promise<Response> {
 	return await runUpstreamEffectAsync(
-		fetchUpstreamJsonEffect(fetcher, url, headers, body, config.requestTimeoutMs),
+		fetchUpstreamJsonEffect(fetcher, url, headers, body, requestTimeoutMs),
 		"POST",
 		url,
 	);
@@ -33,13 +33,9 @@ export async function fetchUpstreamGetAsync(
 	fetcher: Fetcher,
 	url: string,
 	headers: Headers,
-	config: ProxyConfig,
+	{ requestTimeoutMs }: ProxyConfiguration,
 ): Promise<Response> {
-	return await runUpstreamEffectAsync(
-		fetchUpstreamGetEffect(fetcher, url, headers, config.requestTimeoutMs),
-		"GET",
-		url,
-	);
+	return await runUpstreamEffectAsync(fetchUpstreamGetEffect(fetcher, url, headers, requestTimeoutMs), "GET", url);
 }
 
 const fetchUpstreamJsonEffect = Effect.fn("fetchUpstreamJson")(function* fetchUpstreamJsonGenerator(
@@ -81,10 +77,10 @@ const fetchUpstreamGetEffect = Effect.fn("fetchUpstreamGet")(function* fetchUpst
 function fetchWithRetryEffect(
 	fetcher: Fetcher,
 	url: string,
-	init: RequestInit,
+	requestInit: RequestInit,
 	timeoutMs: number,
 ): Effect.Effect<Response, Error | ProxyError | UpstreamHttpError | UpstreamTimeoutError> {
-	return fetchOnceEffect(fetcher, url, init).pipe(
+	return fetchOnceEffect(fetcher, url, requestInit).pipe(
 		Effect.retry({
 			schedule: retryTransientHttpFailures,
 			while: isRetryableUpstreamError,
@@ -99,12 +95,12 @@ function fetchWithRetryEffect(
 function fetchOnceEffect(
 	fetcher: Fetcher,
 	url: string,
-	init: RequestInit,
+	requestInit: RequestInit,
 ): Effect.Effect<Response, Error | ProxyError | UpstreamHttpError | UpstreamNetworkError> {
 	return Effect.gen(function* fetchOnceGenerator() {
 		const response = yield* Effect.tryPromise({
 			catch: (cause) => new UpstreamNetworkError({ cause, url }),
-			try: () => fetcher(url, init),
+			try: () => fetcher(url, requestInit),
 		});
 
 		if (response.ok) return response;

@@ -3,6 +3,9 @@ FROM denoland/deno:2.8.0
 WORKDIR /app
 
 COPY deno.json deno.lock ./
+COPY plugins/ ./plugins/
+COPY scripts/ ./scripts/
+COPY benchmarks/ ./benchmarks/
 COPY src ./src
 
 RUN deno cache src/index.ts

@@ -1,7 +1,13 @@
-import { type } from "arktype";
+import { getFiniteNumber } from "@utilities/default-utilities.ts";
+import { getUnixSeconds } from "@utilities/time-utilities.ts";
+import { isArrayOfStrings } from "@validators/simple-types.ts";
 
+import { isAnthropicMessagesResponse } from "./anthropic-types.ts";
 import { ProxyError } from "./errors.ts";
 import { OPENAI_NULL } from "./openai-constants.ts";
+
+import type { ReadonlyRecord } from "@ts-types/utility-types.ts";
+import type { Writable } from "type-fest";
 
 import type {
 	AnthropicMessagesRequest,
@@ -10,11 +16,11 @@ import type {
 	AnthropicUsage,
 } from "./anthropic-types.ts";
 import type {
-	OpenAIChatCompletionRequest,
-	OpenAIChatCompletionResponse,
-	OpenAIChatMessage,
-	OpenAIFinishReason,
-	OpenAIUsage,
+	OpenAiChatCompletionRequest,
+	OpenAiChatCompletionResponse,
+	OpenAiChatMessage,
+	OpenAiFinishReason,
+	OpenAiUsage,
 } from "./openai-types.ts";
 
 const UNSUPPORTED_ANTHROPIC_REQUEST_FIELDS: ReadonlyArray<string> = [
@@ -36,96 +42,95 @@ const UNSUPPORTED_ANTHROPIC_REQUEST_FIELDS: ReadonlyArray<string> = [
 	"top_logprobs",
 ];
 
-export const AnthropicMessage = type({
-	content: [
-		{
-			text: "string",
-			type: "'text' | 'thinking'",
-		},
-		"[]",
-	],
-	id: "string",
-	model: "string",
-	"role?": "'assistant'",
-	"stop_reason?": "string | null",
-	"stop_sequence?": "string | null",
-	type: "'message'",
-	"usage?": {
-		"cache_creation_input_tokens?": "number",
-		"cache_read_input_tokens?": "number",
-		input_tokens: "number",
-		output_tokens: "number",
-	},
-});
-
-export function translateOpenAIToAnthropic(
-	request: OpenAIChatCompletionRequest,
+export function translateOpenAiToAnthropic(
+	openAiChatCompletionRequest: OpenAiChatCompletionRequest,
 	defaultModel: string,
 	defaultMaxTokens: number,
 ): AnthropicMessagesRequest {
-	validateAnthropicRequest(request);
+	validateAnthropicRequest(openAiChatCompletionRequest);
 
-	const model = getModel(request, defaultModel);
-	const messages = getMessages(request);
+	const model = getModel(openAiChatCompletionRequest, defaultModel);
+	const messages = getMessages(openAiChatCompletionRequest);
+
 	const systemMessages: Array<string> = [];
+	let systemMessagesSize = 0;
+
 	const anthropicMessages: Array<AnthropicMessagesRequest["messages"][number]> = [];
+	let anthropicMessagesSize = 0;
 
 	for (const message of messages) {
 		validateMessageForAnthropic(message);
 		const content = getTextContent(message.content, `messages.${message.role}.content`);
 
 		if (message.role === "system" || message.role === "developer") {
-			if (content) systemMessages.push(content);
+			if (content) systemMessages[systemMessagesSize++] = content;
 			continue;
 		}
 
 		if (message.role !== "user" && message.role !== "assistant") {
-			throw new ProxyError(`Unsupported message role "${message.role}" for Anthropic Messages.`, {
+			const error = new ProxyError(`Unsupported message role "${message.role}" for Anthropic Messages.`, {
 				param: "messages.role",
 			});
+			Error.captureStackTrace(error, translateOpenAiToAnthropic);
+			throw error;
 		}
 
-		anthropicMessages.push({
+		anthropicMessages[anthropicMessagesSize++] = {
 			content,
 			role: message.role,
-		});
+		};
 	}
 
-	if (anthropicMessages.length === 0) {
-		throw new ProxyError("At least one user or assistant message is required.", { param: "messages" });
+	if (anthropicMessagesSize === 0) {
+		const error = new ProxyError("At least one user or assistant message is required.", { param: "messages" });
+		Error.captureStackTrace(error, translateOpenAiToAnthropic);
+		throw error;
 	}
 
-	const anthropicRequest: AnthropicMessagesRequest = {
-		max_tokens: getMaxTokens(request, defaultMaxTokens),
+	const anthropicRequest: Writable<AnthropicMessagesRequest> = {
+		max_tokens: getMaxTokens(openAiChatCompletionRequest, defaultMaxTokens),
 		messages: anthropicMessages,
 		model,
 	};
 
-	if (systemMessages.length > 0) anthropicRequest.system = systemMessages.join("\n\n");
-	if (typeof request.temperature === "number") anthropicRequest.temperature = request.temperature;
-	if (typeof request.top_p === "number") anthropicRequest.top_p = request.top_p;
-	if (typeof request.stream === "boolean") anthropicRequest.stream = request.stream;
+	if (systemMessagesSize > 0) anthropicRequest.system = systemMessages.join("\n\n");
+	if (typeof openAiChatCompletionRequest.temperature === "number") {
+		anthropicRequest.temperature = openAiChatCompletionRequest.temperature;
+	}
+	if (typeof openAiChatCompletionRequest.top_p === "number") {
+		anthropicRequest.top_p = openAiChatCompletionRequest.top_p;
+	}
+	if (typeof openAiChatCompletionRequest.stream === "boolean") {
+		anthropicRequest.stream = openAiChatCompletionRequest.stream;
+	}
 
-	const stopSequences = getStopSequences(request.stop);
+	const stopSequences = getStopSequences(openAiChatCompletionRequest.stop);
 	if (stopSequences.length > 0) anthropicRequest.stop_sequences = stopSequences;
 
 	return anthropicRequest;
 }
 
-export function translateAnthropicToOpenAI(
-	response: AnthropicMessagesResponse | unknown,
-	requestModel: string,
-): OpenAIChatCompletionResponse {
-	const anthropicResponse = isAnthropicMessagesResponse(response) ? response : {};
-	const created = getUnixSeconds();
-	const model = anthropicResponse.model ?? requestModel;
-	const content = getAnthropicText(anthropicResponse.content ?? []);
-	const usage = mapAnthropicUsage(anthropicResponse.usage);
+function getAnthropicResponse(
+	anthropicMessagesResponse: AnthropicMessagesResponse | unknown,
+): AnthropicMessagesResponse | undefined {
+	if (isAnthropicMessagesResponse.allows(anthropicMessagesResponse)) return anthropicMessagesResponse;
+	return undefined;
+}
 
-	return {
+export function translateAnthropicToOpenAi(
+	anthropicMessagesResponse: AnthropicMessagesResponse | unknown,
+	requestModel: string,
+): OpenAiChatCompletionResponse {
+	const anthropicResponse = getAnthropicResponse(anthropicMessagesResponse);
+	const created = getUnixSeconds();
+	const model = anthropicResponse?.model ?? requestModel;
+	const content = getAnthropicText(anthropicResponse?.content ?? []);
+	const usage = mapAnthropicUsage(anthropicResponse?.usage);
+
+	const openAiChatCompletionResponse: Writable<OpenAiChatCompletionResponse> = {
 		choices: [
 			{
-				finish_reason: mapAnthropicFinishReason(anthropicResponse.stop_reason),
+				finish_reason: mapAnthropicFinishReason(anthropicResponse?.stop_reason),
 				index: 0,
 				message: {
 					content,
@@ -134,27 +139,29 @@ export function translateAnthropicToOpenAI(
 			},
 		],
 		created,
-		id: anthropicResponse.id ?? `chatcmpl-${crypto.randomUUID()}`,
+		id: anthropicResponse?.id ?? `chatcmpl-${crypto.randomUUID()}`,
 		model,
 		object: "chat.completion",
-		...(usage ? { usage } : {}),
 	};
+	if (usage) openAiChatCompletionResponse.usage = usage;
+	return openAiChatCompletionResponse;
 }
 
-export function mapAnthropicFinishReason(reason: AnthropicStopReason | null | undefined): OpenAIFinishReason | null {
-	if (!reason) return OPENAI_NULL;
+export function mapAnthropicFinishReason(anthropicStopReason?: AnthropicStopReason | null): OpenAiFinishReason | null {
+	if (!anthropicStopReason) return OPENAI_NULL;
 
-	if (reason === "max_tokens") return "length";
-	if (reason === "tool_use") return "tool_calls";
-	if (reason === "refusal") return "content_filter";
+	if (anthropicStopReason === "max_tokens") return "length";
+	if (anthropicStopReason === "tool_use") return "tool_calls";
+	if (anthropicStopReason === "refusal") return "content_filter";
+
 	return "stop";
 }
 
-export function mapAnthropicUsage(usage: AnthropicUsage | undefined): OpenAIUsage | undefined {
-	if (!usage) return undefined;
+export function mapAnthropicUsage(anthropicUsage?: AnthropicUsage): OpenAiUsage | undefined {
+	if (!anthropicUsage) return undefined;
 
-	const promptTokens = getPromptTokens(usage);
-	const completionTokens = getNumber(usage.output_tokens);
+	const promptTokens = getPromptTokens(anthropicUsage);
+	const completionTokens = getFiniteNumber(anthropicUsage.output_tokens);
 
 	return {
 		completion_tokens: completionTokens,
@@ -163,116 +170,138 @@ export function mapAnthropicUsage(usage: AnthropicUsage | undefined): OpenAIUsag
 	};
 }
 
-function validateAnthropicRequest(request: OpenAIChatCompletionRequest): void {
+function validateAnthropicRequest(openAiChatCompletionRequest: OpenAiChatCompletionRequest): void {
 	for (const field of UNSUPPORTED_ANTHROPIC_REQUEST_FIELDS) {
-		if (request[field] !== undefined) {
-			throw new ProxyError(`Field "${field}" is not supported by the Anthropic Messages adapter.`, {
+		if (openAiChatCompletionRequest[field] !== undefined) {
+			const error = new ProxyError(`Field "${field}" is not supported by the Anthropic Messages adapter.`, {
 				param: field,
 			});
+			Error.captureStackTrace(error, validateAnthropicRequest);
+			throw error;
 		}
 	}
 
-	const choiceCount = request["n"];
+	const choiceCount = openAiChatCompletionRequest.n;
 	if (choiceCount !== undefined && choiceCount !== 1) {
-		throw new ProxyError("Only n=1 is supported.", { param: "n" });
+		const error = new ProxyError("Only n=1 is supported.", { param: "n" });
+		Error.captureStackTrace(error, validateAnthropicRequest);
+		throw error;
 	}
 }
 
-function validateMessageForAnthropic(message: OpenAIChatMessage): void {
-	if (message.tool_calls !== undefined) {
-		throw new ProxyError("Tool call messages are not supported.", { param: "messages.tool_calls" });
+function validateMessageForAnthropic(openAiChatMessage: OpenAiChatMessage): void {
+	if (openAiChatMessage.tool_calls !== undefined) {
+		const error = new ProxyError("Tool call messages are not supported.", { param: "messages.tool_calls" });
+		Error.captureStackTrace(error, validateMessageForAnthropic);
+		throw error;
 	}
 
-	if (message.function_call !== undefined) {
-		throw new ProxyError("Function call messages are not supported.", { param: "messages.function_call" });
+	if (openAiChatMessage.function_call !== undefined) {
+		const error = new ProxyError("Function call messages are not supported.", { param: "messages.function_call" });
+		Error.captureStackTrace(error, validateMessageForAnthropic);
+		throw error;
 	}
 
-	if (message.role === "tool" || message.role === "function") {
-		throw new ProxyError(`Unsupported message role "${message.role}".`, { param: "messages.role" });
+	if (openAiChatMessage.role === "tool" || openAiChatMessage.role === "function") {
+		const error = new ProxyError(`Unsupported message role "${openAiChatMessage.role}".`, {
+			param: "messages.role",
+		});
+		Error.captureStackTrace(error, validateMessageForAnthropic);
+		throw error;
 	}
 }
 
-function getModel(request: OpenAIChatCompletionRequest, defaultModel: string): string {
-	const model = request.model?.trim() || defaultModel;
-	if (!model) throw new ProxyError("A model is required.", { param: "model" });
+function getModel(openAiChatCompletionRequest: OpenAiChatCompletionRequest, defaultModel: string): string {
+	const model = openAiChatCompletionRequest.model?.trim() || defaultModel;
+	if (model.length === 0) {
+		const error = new ProxyError("A model is required.", { param: "model" });
+		Error.captureStackTrace(error, getModel);
+		throw error;
+	}
+
 	return model;
 }
 
-function getMessages(request: OpenAIChatCompletionRequest): ReadonlyArray<OpenAIChatMessage> {
-	if (!Array.isArray(request.messages) || request.messages.length === 0) {
-		throw new ProxyError("messages must be a non-empty array.", { param: "messages" });
+function getMessages({ messages }: OpenAiChatCompletionRequest): ReadonlyArray<OpenAiChatMessage> {
+	if (!Array.isArray(messages) || messages.length === 0) {
+		const error = new ProxyError("messages must be a non-empty array.", { param: "messages" });
+		Error.captureStackTrace(error, getMessages);
+		throw error;
 	}
-
-	return request.messages;
+	return messages;
 }
 
-function getMaxTokens(request: OpenAIChatCompletionRequest, defaultMaxTokens: number): number {
-	const maxTokens = request.max_completion_tokens ?? request.max_tokens ?? defaultMaxTokens;
+function getMaxTokens(
+	{ max_completion_tokens, max_tokens }: OpenAiChatCompletionRequest,
+	defaultMaxTokens: number,
+): number {
+	const maxTokens = max_completion_tokens ?? max_tokens ?? defaultMaxTokens;
 
 	if (!Number.isInteger(maxTokens) || maxTokens <= 0) {
-		throw new ProxyError("max_tokens must be a positive integer.", { param: "max_tokens" });
+		const error = new ProxyError("max_tokens must be a positive integer.", { param: "max_tokens" });
+		Error.captureStackTrace(error, getMaxTokens);
+		throw error;
 	}
 
 	return maxTokens;
 }
 
-function getTextContent(content: OpenAIChatMessage["content"], parameter: string): string {
+function getTextContent(content: OpenAiChatMessage["content"], parameter: string): string {
 	if (typeof content === "string") return content;
 
 	if (Array.isArray(content)) {
 		const textParts: Array<string> = [];
+		let size = 0;
 
 		for (const part of content) {
 			if (part.type !== "text" || typeof part.text !== "string") {
-				throw new ProxyError("Only text message content parts are supported.", { param: parameter });
+				const error = new ProxyError("Only text message content parts are supported.", { param: parameter });
+				Error.captureStackTrace(error, getTextContent);
+				throw error;
 			}
 
-			textParts.push(part.text);
+			textParts[size++] = part.text;
 		}
 
 		return textParts.join("");
 	}
 
 	if (content === OPENAI_NULL || content === undefined) {
-		throw new ProxyError("Message content must be text.", { param: parameter });
+		const error = new ProxyError("Message content must be text.", { param: parameter });
+		Error.captureStackTrace(error, getTextContent);
+		throw error;
 	}
 
-	throw new ProxyError("Unsupported message content shape.", { param: parameter });
+	const error = new ProxyError("Unsupported message content shape.", { param: parameter });
+	Error.captureStackTrace(error, getTextContent);
+	throw error;
 }
 
-function getStopSequences(stop: OpenAIChatCompletionRequest["stop"]): ReadonlyArray<string> {
+function getStopSequences(stop: OpenAiChatCompletionRequest["stop"]): ReadonlyArray<string> {
 	if (stop === OPENAI_NULL || stop === undefined) return [];
 	if (typeof stop === "string") return [stop];
-	if (Array.isArray(stop) && stop.every((sequence) => typeof sequence === "string")) return stop;
-	throw new ProxyError("stop must be a string or an array of strings.", { param: "stop" });
+	if (isArrayOfStrings(stop)) return stop;
+
+	const error = new ProxyError("stop must be a string or an array of strings.", { param: "stop" });
+	Error.captureStackTrace(error, getStopSequences);
+	throw error;
 }
 
-function getAnthropicText(content: ReadonlyArray<Readonly<Record<string, unknown>>>): string {
+function getAnthropicText(content: ReadonlyArray<ReadonlyRecord<string, unknown>>): string {
 	const textParts: Array<string> = [];
+	let size = 0;
 
 	for (const block of content) {
-		if (block["type"] === "text" && typeof block["text"] === "string") textParts.push(block["text"]);
+		if (block.type === "text" && typeof block.text === "string") textParts[size++] = block.text;
 	}
 
 	return textParts.join("");
 }
 
-function getNumber(value: unknown): number {
-	return typeof value === "number" && Number.isFinite(value) ? value : 0;
-}
-
-function getPromptTokens(usage: AnthropicUsage): number {
+function getPromptTokens(anthropicUsage: AnthropicUsage): number {
 	return (
-		getNumber(usage.input_tokens) +
-		getNumber(usage.cache_creation_input_tokens) +
-		getNumber(usage.cache_read_input_tokens)
+		getFiniteNumber(anthropicUsage.input_tokens) +
+		getFiniteNumber(anthropicUsage.cache_creation_input_tokens) +
+		getFiniteNumber(anthropicUsage.cache_read_input_tokens)
 	);
-}
-
-function getUnixSeconds(): number {
-	return Math.floor(Date.now() / 1000);
-}
-
-function isAnthropicMessagesResponse(value: unknown): value is AnthropicMessagesResponse {
-	return !(AnthropicMessage(value) instanceof type.errors);
 }

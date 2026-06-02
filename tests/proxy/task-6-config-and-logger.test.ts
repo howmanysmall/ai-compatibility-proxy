@@ -1,11 +1,9 @@
-import { loadConfig } from "../../src/proxy/config.ts";
+import { loadConfiguration } from "@proxy/config.ts";
 
-function assertEquals<TValue>(actual: TValue, expected: TValue, message: string): void {
-	if (actual !== expected) throw new Error(`${message}\nExpected: ${expected}\nActual: ${actual}`);
-}
+import { assertEquals } from "../utilities/test-utilities.ts";
 
 Deno.test("Arkenv config parses all env vars and preserves ProxyConfig field names", () => {
-	const config = loadConfig({
+	const config = loadConfiguration({
 		CEREBRAS_DROP_UNSUPPORTED_FIELDS: "false",
 		CEREBRAS_STRICT_REQUEST_VALIDATION: "false",
 		DEFAULT_MAX_TOKENS: "2048",
@@ -38,7 +36,7 @@ Deno.test("Arkenv config parses all env vars and preserves ProxyConfig field nam
 });
 
 Deno.test("Arkenv config applies defaults for all optional env vars", () => {
-	const config = loadConfig({});
+	const config = loadConfiguration({});
 
 	assertEquals(config.cerebrasDropUnsupportedFields, true, "Expected Cerebras drop default.");
 	assertEquals(config.cerebrasStrictRequestValidation, true, "Expected Cerebras strict default.");
@@ -49,23 +47,24 @@ Deno.test("Arkenv config applies defaults for all optional env vars", () => {
 	assertEquals(config.proxyApiKey, undefined, "Expected proxy key optional default.");
 	assertEquals(config.requestTimeoutMs, 60_000, "Expected timeout default.");
 	assertEquals(config.upstreamApiKey, undefined, "Expected upstream key optional default.");
-	assertEquals(config.upstreamAuthHeader, "Authorization", "Expected auth header default.");
+	assertEquals(config.upstreamAuthHeader, "x-api-key", "Expected OpenCode Go auth header default.");
 	assertEquals(config.upstreamAuthMode, "client_bearer", "Expected auth mode default.");
 	assertEquals(config.upstreamBaseUrl, "https://opencode.ai/zen/go/v1", "Expected base URL default.");
 	assertEquals(config.upstreamProtocol, "anthropic_messages", "Expected protocol default.");
 });
 
 Deno.test("Arkenv config preserves Cerebras protocol-specific defaults", () => {
-	const config = loadConfig({ UPSTREAM_PROTOCOL: "cerebras_openai" });
+	const config = loadConfiguration({ UPSTREAM_PROTOCOL: "cerebras_openai" });
 
 	assertEquals(config.upstreamProtocol, "cerebras_openai", "Expected Cerebras protocol.");
 	assertEquals(config.upstreamBaseUrl, "https://api.cerebras.ai/v1", "Expected Cerebras base URL default.");
+	assertEquals(config.upstreamAuthHeader, "Authorization", "Expected Cerebras auth header default.");
 	assertEquals(config.defaultModel, "gpt-oss-120b", "Expected Cerebras model default.");
 });
 
 Deno.test({
 	fn: async () => {
-		const { ensureLogDirectory, logger } = await import("../../src/logging/logger.ts");
+		const { ensureLogDirectory, logger } = await import("@logging/logger.ts");
 
 		assertEquals(ensureLogDirectory(), false, "Expected logger import to avoid crashing without write permission.");
 		logger.info("log directory smoke test");
@@ -75,7 +74,7 @@ Deno.test({
 
 Deno.test({
 	fn: async () => {
-		const { logger, parseLevel } = await import("../../src/logging/logger.ts");
+		const { logger, parseLevel } = await import("@logging/logger.ts");
 
 		logger.level = parseLevel("warn");
 

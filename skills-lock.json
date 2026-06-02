@@ -73,6 +73,18 @@
       "skillPath": "skills/effect-ts/SKILL.md",
       "computedHash": "301521e167410dd42d834dd0e7cedbe9cfffa519f630a12241dbea7b1d932324"
     },
+    "hk": {
+      "source": "connorads/dotfiles",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/hk/SKILL.md",
+      "computedHash": "995504fd968563ae652f3626cf7758cdbd2d9b9260de363c6a68f1159a685793"
+    },
+    "improve-codebase-architecture": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/engineering/improve-codebase-architecture/SKILL.md",
+      "computedHash": "ef32aea0a8fab9b365ff9e08a95f8d353e20ca21ea46ec2e73587c86dd341351"
+    },
     "tdd": {
       "source": "pproenca/dot-skills",
       "sourceType": "github",

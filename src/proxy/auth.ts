@@ -1,75 +1,85 @@
-import { createHash, timingSafeEqual } from "node:crypto";
+import { textEncoder } from "@constants/constant-classes.ts";
+import { crypto, timingSafeEqual } from "@std/crypto";
 
 import { ProxyError } from "./errors.ts";
 
-import type { ProxyConfig } from "./config.ts";
+import type { ProxyConfiguration } from "./config.ts";
 
 const BEARER_PREFIX = "bearer ";
-const textEncoder = new TextEncoder();
 
 export interface AuthContext {
 	readonly upstreamHeaders: Headers;
 }
 
-export function createAuthContext(request: Request, config: ProxyConfig): AuthContext {
+export function createAuthContext(request: Request, proxyConfiguration: ProxyConfiguration): AuthContext {
 	const clientBearerToken = getBearerToken(request);
 	const upstreamHeaders = new Headers({
 		"content-type": "application/json",
 	});
 
-	if (config.upstreamAuthMode === "client_bearer") {
+	if (proxyConfiguration.upstreamAuthMode === "client_bearer") {
 		if (!clientBearerToken) {
-			throw new ProxyError("Missing bearer token.", {
+			const error = new ProxyError("Missing bearer token.", {
 				status: 401,
 				type: "authentication_error",
 			});
+			Error.captureStackTrace(error, createAuthContext);
+			throw error;
 		}
 
-		setUpstreamAuthHeader(upstreamHeaders, config.upstreamAuthHeader, clientBearerToken);
+		setUpstreamAuthHeader(upstreamHeaders, proxyConfiguration.upstreamAuthHeader, clientBearerToken);
 		return { upstreamHeaders };
 	}
 
-	if (!config.proxyApiKey) {
-		throw new ProxyError("PROXY_API_KEY is required when UPSTREAM_AUTH_MODE=server_key.", {
+	if (!proxyConfiguration.proxyApiKey) {
+		const error = new ProxyError("PROXY_API_KEY is required when UPSTREAM_AUTH_MODE=server_key.", {
 			status: 500,
 			type: "configuration_error",
 		});
+		Error.captureStackTrace(error, createAuthContext);
+		throw error;
 	}
 
-	if (!config.upstreamApiKey) {
-		throw new ProxyError("UPSTREAM_API_KEY is required when UPSTREAM_AUTH_MODE=server_key.", {
+	if (!proxyConfiguration.upstreamApiKey) {
+		const error = new ProxyError("UPSTREAM_API_KEY is required when UPSTREAM_AUTH_MODE=server_key.", {
 			status: 500,
 			type: "configuration_error",
 		});
+		Error.captureStackTrace(error, createAuthContext);
+		throw error;
 	}
 
 	if (!clientBearerToken) {
-		throw new ProxyError("Invalid proxy bearer token.", {
+		const error = new ProxyError("Invalid proxy bearer token.", {
 			status: 401,
 			type: "authentication_error",
 		});
+		Error.captureStackTrace(error, createAuthContext);
+		throw error;
 	}
 
-	if (!hasSameToken(clientBearerToken, config.proxyApiKey)) {
-		throw new ProxyError("Invalid proxy bearer token.", {
+	if (!hasSameToken(clientBearerToken, proxyConfiguration.proxyApiKey)) {
+		const error = new ProxyError("Invalid proxy bearer token.", {
 			status: 401,
 			type: "authentication_error",
 		});
+		Error.captureStackTrace(error, createAuthContext);
+		throw error;
 	}
 
-	setUpstreamAuthHeader(upstreamHeaders, config.upstreamAuthHeader, config.upstreamApiKey);
+	setUpstreamAuthHeader(upstreamHeaders, proxyConfiguration.upstreamAuthHeader, proxyConfiguration.upstreamApiKey);
 	return { upstreamHeaders };
 }
 
 function getBearerToken(request: Request): string | undefined {
 	const authorization = request.headers.get("authorization");
-	if (!authorization) return undefined;
+	if (authorization === null || authorization.length === 0) return undefined;
 
 	const trimmedAuthorization = authorization.trim();
 	if (!trimmedAuthorization.toLowerCase().startsWith(BEARER_PREFIX)) return undefined;
 
 	const token = trimmedAuthorization.slice(BEARER_PREFIX.length).trim();
-	return token || undefined;
+	return token.length === 0 ? undefined : token;
 }
 
 function setUpstreamAuthHeader(headers: Headers, headerName: string, token: string): void {
@@ -82,7 +92,7 @@ function setUpstreamAuthHeader(headers: Headers, headerName: string, token: stri
 }
 
 function hasSameToken(clientBearerToken: string, expectedToken: string): boolean {
-	const clientBearerTokenHash = createHash("sha256").update(textEncoder.encode(clientBearerToken)).digest();
-	const expectedTokenHash = createHash("sha256").update(textEncoder.encode(expectedToken)).digest();
-	return timingSafeEqual(clientBearerTokenHash, expectedTokenHash);
+	const clientHash = crypto.subtle.digestSync("SHA-256", textEncoder.encode(clientBearerToken));
+	const expectedHash = crypto.subtle.digestSync("SHA-256", textEncoder.encode(expectedToken));
+	return timingSafeEqual(clientHash, expectedHash);
 }

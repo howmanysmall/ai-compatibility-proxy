@@ -1,21 +1,15 @@
-import { translateAnthropicToOpenAI, translateOpenAIToAnthropic } from "../../src/proxy/anthropic-translator.ts";
-import { createApp } from "../../src/proxy/app.ts";
-import { normalizeCerebrasRequest } from "../../src/proxy/cerebras-translator.ts";
-import { loadConfig } from "../../src/proxy/config.ts";
-import { translateAnthropicSseText } from "../../src/proxy/sse.ts";
-import { getInitHeader } from "./_test-helpers.ts";
+import { translateAnthropicToOpenAi, translateOpenAiToAnthropic } from "@proxy/anthropic-translator.ts";
+import { createApp } from "@proxy/app.ts";
+import { normalizeCerebrasRequest } from "@proxy/cerebras-translator.ts";
+import { loadConfiguration } from "@proxy/config.ts";
+import { translateAnthropicSseText } from "@proxy/sse.ts";
+import { Predicate } from "effect";
 
-import type { ProxyConfig } from "../../src/proxy/config.ts";
+import { assert, getInitHeader } from "../utilities/test-utilities.ts";
 
-declare const Deno: {
-	test(name: string, fn: () => void | Promise<void>): void;
-};
+import type { ProxyConfiguration } from "@proxy/config.ts";
 
-function assert(condition: boolean, message: string): asserts condition {
-	if (!condition) throw new Error(message);
-}
-
-function createConfig(overrides: Partial<ProxyConfig> = {}): ProxyConfig {
+function createConfiguration(overrides: Partial<ProxyConfiguration> = {}): ProxyConfiguration {
 	return {
 		cerebrasDropUnsupportedFields: true,
 		cerebrasStrictRequestValidation: true,
@@ -46,29 +40,37 @@ function createJsonRequest(path: string, body: unknown, token = "test-token"): R
 }
 
 async function readRecordAsync(response: Response): Promise<Record<string, unknown>> {
-	const body: unknown = await response.json();
-	if (!isRecord(body)) throw new Error("Expected response body to be an object.");
+	const body = await response.json();
+	if (!Predicate.isRecord(body)) {
+		const error = new Error("Expected response body to be an object.");
+		Error.captureStackTrace(error, readRecordAsync);
+		throw error;
+	}
 	return body;
 }
 
 function getRecord(value: Record<string, unknown>, key: string): Record<string, unknown> {
 	const childValue = value[key];
-	if (!isRecord(childValue)) throw new Error(`Expected ${key} to be an object.`);
+	if (!Predicate.isRecord(childValue)) {
+		const error = new Error(`Expected ${key} to be an object.`);
+		Error.captureStackTrace(error, getRecord);
+		throw error;
+	}
 	return childValue;
 }
 
 function getArray(value: Record<string, unknown>, key: string): ReadonlyArray<unknown> {
 	const childValue = value[key];
-	if (!Array.isArray(childValue)) throw new Error(`Expected ${key} to be an array.`);
+	if (!Array.isArray(childValue)) {
+		const error = new Error(`Expected ${key} to be an array.`);
+		Error.captureStackTrace(error, getArray);
+		throw error;
+	}
 	return childValue;
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-	return typeof value === "object" && Boolean(value) && !Array.isArray(value);
-}
-
 Deno.test("translates OpenAI request to OpenCode Go Anthropic request", () => {
-	const anthropicRequest = translateOpenAIToAnthropic(
+	const anthropicRequest = translateOpenAiToAnthropic(
 		{
 			max_completion_tokens: 128,
 			messages: [
@@ -97,7 +99,7 @@ Deno.test("translates OpenAI request to OpenCode Go Anthropic request", () => {
 });
 
 Deno.test("uses default token limit when OpenAI request omits one", () => {
-	const anthropicRequest = translateOpenAIToAnthropic(
+	const anthropicRequest = translateOpenAiToAnthropic(
 		{
 			messages: [{ content: "Hello", role: "user" }],
 		},
@@ -109,15 +111,17 @@ Deno.test("uses default token limit when OpenAI request omits one", () => {
 });
 
 Deno.test("translates Anthropic response to OpenAI response with cache usage", () => {
-	const openAIResponse = translateAnthropicToOpenAI(
+	const openAIResponse = translateAnthropicToOpenAi(
 		{
+			base_resp: { status_code: 0, status_msg: "success" },
 			content: [
 				{ text: "Hello ", type: "text" },
-				{ text: "hidden", type: "thinking" },
+				{ signature: "opaque", thinking: "hidden", type: "thinking" },
 				{ text: "there.", type: "text" },
 			],
+			cost: "0",
 			id: "msg_123",
-			model: "minimax-m3",
+			model: "MiniMax-M2.7",
 			stop_reason: "max_tokens",
 			type: "message",
 			usage: {
@@ -131,6 +135,7 @@ Deno.test("translates Anthropic response to OpenAI response with cache usage", (
 	);
 
 	assert(openAIResponse.id === "msg_123", "Expected upstream id.");
+	assert(openAIResponse.model === "MiniMax-M2.7", "Expected upstream model.");
 	assert(openAIResponse.choices[0]?.message.content === "Hello there.", "Expected concatenated text blocks.");
 	assert(openAIResponse.choices[0]?.finish_reason === "length", "Expected max_tokens to map to length.");
 	assert(openAIResponse.usage?.prompt_tokens === 15, "Expected cache tokens to count toward prompt tokens.");
@@ -162,7 +167,7 @@ Deno.test("rejects unsupported Anthropic message content", () => {
 	let didThrow = false;
 
 	try {
-		translateOpenAIToAnthropic(
+		translateOpenAiToAnthropic(
 			{
 				messages: [
 					{
@@ -183,8 +188,8 @@ Deno.test("rejects unsupported Anthropic message content", () => {
 
 Deno.test("rejects missing client bearer auth", async () => {
 	const app = createApp({
-		config: createConfig(),
 		fetcher: () => Promise.reject(new Error("fetch should not be called")),
+		proxyConfiguration: createConfiguration(),
 	});
 
 	const response = await app(new Request("http://localhost/v1/models"));
@@ -192,14 +197,13 @@ Deno.test("rejects missing client bearer auth", async () => {
 	const error = getRecord(body, "error");
 
 	assert(response.status === 401, "Expected missing auth to fail.");
-	assert(error["type"] === "authentication_error", "Expected OpenAI-compatible authentication error.");
+	assert(error.type === "authentication_error", "Expected OpenAI-compatible authentication error.");
 });
 
 Deno.test("proxies model list from OpenCode Go model endpoint", async () => {
 	let seenUrl = "";
 	let seenAuthorization = "";
 	const app = createApp({
-		config: createConfig(),
 		fetcher: (input, init) => {
 			seenUrl = String(input);
 			seenAuthorization = getInitHeader(init, "authorization") ?? "";
@@ -210,6 +214,7 @@ Deno.test("proxies model list from OpenCode Go model endpoint", async () => {
 				}),
 			);
 		},
+		proxyConfiguration: createConfiguration(),
 	});
 
 	const response = await app(
@@ -223,12 +228,11 @@ Deno.test("proxies model list from OpenCode Go model endpoint", async () => {
 
 	assert(seenUrl === "https://opencode.ai/zen/go/v1/models", "Expected /models upstream URL.");
 	assert(seenAuthorization === "Bearer upstream-key", "Expected client bearer forwarding.");
-	assert(isRecord(firstModel) && firstModel["id"] === "minimax-m3", "Expected model id.");
+	assert(Predicate.isRecord(firstModel) && firstModel.id === "minimax-m3", "Expected model id.");
 });
 
 Deno.test("maps upstream 400 errors to OpenAI-compatible errors", async () => {
 	const app = createApp({
-		config: createConfig(),
 		fetcher: () =>
 			Promise.resolve(
 				Response.json(
@@ -240,6 +244,7 @@ Deno.test("maps upstream 400 errors to OpenAI-compatible errors", async () => {
 					{ status: 400 },
 				),
 			),
+		proxyConfiguration: createConfiguration(),
 	});
 
 	const response = await app(
@@ -251,12 +256,12 @@ Deno.test("maps upstream 400 errors to OpenAI-compatible errors", async () => {
 	const error = getRecord(body, "error");
 
 	assert(response.status === 400, "Expected upstream status to be preserved.");
-	assert(error["message"] === "bad upstream request", "Expected upstream message.");
-	assert(error["type"] === "invalid_request_error", "Expected client error type.");
+	assert(error.message === "bad upstream request", "Expected upstream message.");
+	assert(error.type === "invalid_request_error", "Expected client error type.");
 });
 
 Deno.test("normalizes Cerebras max_tokens and rejects unsupported fields", () => {
-	const config = createConfig({
+	const config = createConfiguration({
 		defaultModel: "gpt-oss-120b",
 		upstreamBaseUrl: "https://api.cerebras.ai/v1",
 		upstreamProtocol: "cerebras_openai",
@@ -296,15 +301,15 @@ Deno.test("normalizes Cerebras max_tokens and rejects unsupported fields", () =>
 Deno.test("server_key mode requires proxy token and uses upstream key", async () => {
 	let seenAuthorization = "";
 	const app = createApp({
-		config: createConfig({
-			proxyApiKey: "proxy-key",
-			upstreamApiKey: "upstream-key",
-			upstreamAuthMode: "server_key",
-		}),
 		fetcher: (_input, init) => {
 			seenAuthorization = getInitHeader(init, "authorization") ?? "";
 			return Promise.resolve(Response.json({ data: [], object: "list" }));
 		},
+		proxyConfiguration: createConfiguration({
+			proxyApiKey: "proxy-key",
+			upstreamApiKey: "upstream-key",
+			upstreamAuthMode: "server_key",
+		}),
 	});
 
 	const invalidResponse = await app(
@@ -324,10 +329,20 @@ Deno.test("server_key mode requires proxy token and uses upstream key", async ()
 });
 
 Deno.test("loads OpenCode Go MiniMax M3 defaults", () => {
-	const config = loadConfig({});
+	const config = loadConfiguration({});
 
 	assert(config.upstreamProtocol === "anthropic_messages", "Expected Anthropic protocol default.");
 	assert(config.upstreamBaseUrl === "https://opencode.ai/zen/go/v1", "Expected OpenCode Go base URL.");
+	assert(config.upstreamAuthHeader === "x-api-key", "Expected OpenCode Go x-api-key default.");
 	assert(config.defaultModel === "minimax-m3", "Expected MiniMax M3 default.");
 	assert(config.defaultMaxTokens === 4096, "Expected token default.");
+});
+
+Deno.test("loads Cerebras defaults", () => {
+	const config = loadConfiguration({ UPSTREAM_PROTOCOL: "cerebras_openai" });
+
+	assert(config.upstreamProtocol === "cerebras_openai", "Expected Cerebras protocol.");
+	assert(config.upstreamBaseUrl === "https://api.cerebras.ai/v1", "Expected Cerebras base URL.");
+	assert(config.upstreamAuthHeader === "Authorization", "Expected Cerebras Authorization default.");
+	assert(config.defaultModel === "gpt-oss-120b", "Expected Cerebras default model.");
 });

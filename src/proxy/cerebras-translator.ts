@@ -1,7 +1,9 @@
 import { ProxyError } from "./errors.ts";
 
-import type { ProxyConfig } from "./config.ts";
-import type { OpenAIChatCompletionRequest, OpenAIChatMessage } from "./openai-types.ts";
+import type { Writable } from "type-fest";
+
+import type { ProxyConfiguration } from "./config.ts";
+import type { OpenAiChatCompletionRequest, OpenAiChatMessage } from "./openai-types.ts";
 
 const CEREBRAS_ALLOWED_FIELDS = new Set([
 	"frequency_penalty",
@@ -36,14 +38,14 @@ const CEREBRAS_UNSUPPORTED_FIELDS = new Set([
 ]);
 
 export function normalizeCerebrasRequest(
-	request: OpenAIChatCompletionRequest,
-	config: ProxyConfig,
-): OpenAIChatCompletionRequest {
-	const normalizedRequest: OpenAIChatCompletionRequest = {};
+	openAiChatCompletionRequest: OpenAiChatCompletionRequest,
+	proxyConfiguration: ProxyConfiguration,
+): OpenAiChatCompletionRequest {
+	const normalizedRequest: Writable<OpenAiChatCompletionRequest> = {};
 
-	for (const [field, value] of Object.entries(request)) {
+	for (const [field, value] of Object.entries(openAiChatCompletionRequest)) {
 		if (field === "max_tokens") {
-			if (request.max_completion_tokens === undefined && typeof value === "number") {
+			if (openAiChatCompletionRequest.max_completion_tokens === undefined && typeof value === "number") {
 				normalizedRequest.max_completion_tokens = value;
 			}
 			continue;
@@ -54,81 +56,104 @@ export function normalizeCerebrasRequest(
 			continue;
 		}
 
-		if (CEREBRAS_UNSUPPORTED_FIELDS.has(field) || config.cerebrasStrictRequestValidation) {
-			handleUnsupportedCerebrasField(field, config);
+		if (CEREBRAS_UNSUPPORTED_FIELDS.has(field) || proxyConfiguration.cerebrasStrictRequestValidation) {
+			handleUnsupportedCerebrasField(field, proxyConfiguration);
 		}
 	}
 
-	normalizedRequest.model = request.model?.trim() || config.defaultModel;
-	normalizedRequest.messages = normalizeCerebrasMessages(request.messages);
+	normalizedRequest.model = openAiChatCompletionRequest.model?.trim() || proxyConfiguration.defaultModel;
+	normalizedRequest.messages = normalizeCerebrasMessages(openAiChatCompletionRequest.messages);
 
-	const choiceCount = request["n"];
-	if (choiceCount !== undefined && choiceCount !== 1) {
-		handleUnsupportedCerebrasField("n", config);
-	}
-
+	const choiceCount = openAiChatCompletionRequest.n;
+	if (choiceCount !== undefined && choiceCount !== 1) handleUnsupportedCerebrasField("n", proxyConfiguration);
 	return normalizedRequest;
 }
 
-function handleUnsupportedCerebrasField(field: string, config: ProxyConfig): void {
-	if (!config.cerebrasStrictRequestValidation && config.cerebrasDropUnsupportedFields) return;
+function handleUnsupportedCerebrasField(
+	field: string,
+	{ cerebrasStrictRequestValidation, cerebrasDropUnsupportedFields }: ProxyConfiguration,
+): void {
+	if (!cerebrasStrictRequestValidation && cerebrasDropUnsupportedFields) return;
 
-	throw new ProxyError(`Field "${field}" is not supported by the Cerebras adapter configuration.`, {
+	const error = new ProxyError(`Field "${field}" is not supported by the Cerebras adapter configuration.`, {
 		param: field,
 	});
+	Error.captureStackTrace(error, handleUnsupportedCerebrasField);
+	throw error;
 }
 
-function normalizeCerebrasMessages(
-	messages: OpenAIChatCompletionRequest["messages"],
-): ReadonlyArray<OpenAIChatMessage> {
+function normalizeCerebrasMessages(messages?: ReadonlyArray<OpenAiChatMessage>): ReadonlyArray<OpenAiChatMessage> {
 	if (!Array.isArray(messages) || messages.length === 0) {
-		throw new ProxyError("messages must be a non-empty array.", { param: "messages" });
+		const error = new ProxyError("messages must be a non-empty array.", { param: "messages" });
+		Error.captureStackTrace(error, normalizeCerebrasMessages);
+		throw error;
 	}
 
-	return messages.map((message) => {
+	const openAiChatMessages: Array<OpenAiChatMessage> = [];
+	let size = 0;
+
+	for (const message of messages) {
 		if (
 			message.role !== "system" &&
 			message.role !== "developer" &&
 			message.role !== "user" &&
 			message.role !== "assistant"
 		) {
-			throw new ProxyError(`Unsupported Cerebras message role "${message.role}".`, { param: "messages.role" });
+			const error = new ProxyError(`Unsupported Cerebras message role "${message.role}".`, {
+				param: "messages.role",
+			});
+			Error.captureStackTrace(error, normalizeCerebrasMessages);
+			throw error;
 		}
 
 		if (message.tool_calls !== undefined || message.function_call !== undefined) {
-			throw new ProxyError("Tool and function call messages are not supported by this proxy mode.", {
+			const error = new ProxyError("Tool and function call messages are not supported by this proxy mode.", {
 				param: "messages",
 			});
+			Error.captureStackTrace(error, normalizeCerebrasMessages);
+			throw error;
 		}
 
-		return {
+		const openAiChatMessage: Writable<OpenAiChatMessage> = {
 			content: normalizeTextContent(message.content),
 			role: message.role,
-			...(message.name ? { name: message.name } : {}),
 		};
-	});
+		if (message.name !== undefined) openAiChatMessage.name = message.name;
+		openAiChatMessages[size++] = openAiChatMessage;
+	}
+
+	return openAiChatMessages;
 }
 
-function normalizeTextContent(content: OpenAIChatMessage["content"]): string {
+function normalizeTextContent(content: OpenAiChatMessage["content"]): string {
 	if (typeof content === "string") return content;
 
 	if (Array.isArray(content)) {
-		return content
-			.map((part) => {
-				if (part.type !== "text" || typeof part.text !== "string") {
-					throw new ProxyError("Only text message content parts are supported.", {
-						param: "messages.content",
-					});
-				}
+		const stringBuilder: Array<string> = [];
+		let size = 0;
 
-				return part.text;
-			})
-			.join("");
+		for (const part of content) {
+			if (part.type !== "text" || typeof part.text !== "string") {
+				const error = new ProxyError("Only text message content parts are supported.", {
+					param: "messages.content",
+				});
+				Error.captureStackTrace(error, normalizeTextContent);
+				throw error;
+			}
+
+			stringBuilder[size++] = part.text;
+		}
+
+		return stringBuilder.join("");
 	}
 
 	if (content === undefined) {
-		throw new ProxyError("Message content must be text.", { param: "messages.content" });
+		const error = new ProxyError("Message content must be text.", { param: "messages.content" });
+		Error.captureStackTrace(error, normalizeTextContent);
+		throw error;
 	}
 
-	throw new ProxyError("Unsupported message content shape.", { param: "messages.content" });
+	const error = new ProxyError("Unsupported message content shape.", { param: "messages.content" });
+	Error.captureStackTrace(error, normalizeTextContent);
+	throw error;
 }

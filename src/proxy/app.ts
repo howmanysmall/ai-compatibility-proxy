@@ -1,37 +1,27 @@
 import { logger } from "@logging/logger.ts";
 import { type } from "arktype";
 
-import { translateAnthropicToOpenAI, translateOpenAIToAnthropic } from "./anthropic-translator.ts";
+import { translateAnthropicToOpenAi, translateOpenAiToAnthropic } from "./anthropic-translator.ts";
 import { createAuthContext } from "./auth.ts";
 import { normalizeCerebrasRequest } from "./cerebras-translator.ts";
 import { createErrorResponse, ProxyError } from "./errors.ts";
 import { getModelsAsync } from "./models.ts";
+import { isOpenAiChatCompletionRequest } from "./openai-types.ts";
 import { fetchUpstreamJsonAsync } from "./upstream.ts";
 
-import type { ProxyConfig } from "./config.ts";
-import type { OpenAIChatCompletionRequest } from "./openai-types.ts";
+import type { ProxyConfiguration } from "./config.ts";
+import type { OpenAiChatCompletionRequest } from "./openai-types.ts";
 import type { Fetcher } from "./upstream.ts";
 
-const OpenAIChatCompletionRequestSchema = type({
-	"max_completion_tokens?": "number",
-	"max_tokens?": "number",
-	messages: "unknown[] >= 1",
-	"model?": "string",
-	"stop?": "string | string[] | null",
-	"stream?": "boolean",
-	"temperature?": "number",
-	"top_p?": "number",
-});
-
 export interface AppOptions {
-	readonly config: ProxyConfig;
 	readonly fetcher?: Fetcher;
+	readonly proxyConfiguration: ProxyConfiguration;
 }
 
-export function createApp(options: AppOptions): (request: Request) => Promise<Response> {
-	const { config } = options;
-	const { fetcher = fetch } = options;
-
+export function createApp({
+	proxyConfiguration: config,
+	fetcher = fetch,
+}: AppOptions): (request: Request) => Promise<Response> {
 	return async (request: Request): Promise<Response> => {
 		const requestUrl = new URL(request.url);
 		const requestLogger = logger.withContext({
@@ -61,33 +51,41 @@ export function createApp(options: AppOptions): (request: Request) => Promise<Re
 	};
 }
 
-async function handleRequestAsync(request: Request, config: ProxyConfig, fetcher: Fetcher): Promise<Response> {
+async function handleRequestAsync(
+	request: Request,
+	proxyConfiguration: ProxyConfiguration,
+	fetcher: Fetcher,
+): Promise<Response> {
 	const url = new URL(request.url);
 
 	if (request.method === "GET" && url.pathname === "/health") {
 		return Response.json({
 			status: "ok",
-			upstream_protocol: config.upstreamProtocol,
+			upstream_protocol: proxyConfiguration.upstreamProtocol,
 		});
 	}
 
 	if (request.method === "GET" && url.pathname === "/v1/models") {
-		const authContext = createAuthContext(request, config);
-		return Response.json(await getModelsAsync(fetcher, authContext.upstreamHeaders, config));
+		const authContext = createAuthContext(request, proxyConfiguration);
+		return Response.json(await getModelsAsync(fetcher, authContext.upstreamHeaders, proxyConfiguration));
 	}
 
 	if (request.method === "POST" && url.pathname === "/v1/chat/completions") {
-		const authContext = createAuthContext(request, config);
+		const authContext = createAuthContext(request, proxyConfiguration);
 		const body = await readJsonBodyAsync(request);
 
-		if (config.upstreamProtocol === "anthropic_messages") {
-			const anthropicRequest = translateOpenAIToAnthropic(body, config.defaultModel, config.defaultMaxTokens);
+		if (proxyConfiguration.upstreamProtocol === "anthropic_messages") {
+			const anthropicRequest = translateOpenAiToAnthropic(
+				body,
+				proxyConfiguration.defaultModel,
+				proxyConfiguration.defaultMaxTokens,
+			);
 			const upstreamResponse = await fetchUpstreamJsonAsync(
 				fetcher,
-				`${config.upstreamBaseUrl}/messages`,
+				`${proxyConfiguration.upstreamBaseUrl}/messages`,
 				authContext.upstreamHeaders,
 				anthropicRequest,
-				config,
+				proxyConfiguration,
 			);
 
 			if (anthropicRequest.stream) {
@@ -95,18 +93,18 @@ async function handleRequestAsync(request: Request, config: ProxyConfig, fetcher
 				return await createOpenAIStreamResponseAsync(upstreamResponse, anthropicRequest.model);
 			}
 
-			return Response.json(translateAnthropicToOpenAI(await upstreamResponse.json(), anthropicRequest.model), {
+			return Response.json(translateAnthropicToOpenAi(await upstreamResponse.json(), anthropicRequest.model), {
 				headers: { "cache-control": "no-store" },
 			});
 		}
 
-		const cerebrasRequest = normalizeCerebrasRequest(body, config);
+		const cerebrasRequest = normalizeCerebrasRequest(body, proxyConfiguration);
 		const upstreamResponse = await fetchUpstreamJsonAsync(
 			fetcher,
-			`${config.upstreamBaseUrl}/chat/completions`,
+			`${proxyConfiguration.upstreamBaseUrl}/chat/completions`,
 			authContext.upstreamHeaders,
 			cerebrasRequest,
-			config,
+			proxyConfiguration,
 		);
 
 		if (cerebrasRequest.stream) {
@@ -119,24 +117,32 @@ async function handleRequestAsync(request: Request, config: ProxyConfig, fetcher
 		return Response.json(await upstreamResponse.json(), { headers: { "cache-control": "no-store" } });
 	}
 
-	return createErrorResponse(new ProxyError("Route not found.", { status: 404, type: "invalid_request_error" }));
+	const error = new ProxyError("Route not found.", { status: 404, type: "invalid_request_error" });
+	Error.captureStackTrace(error, handleRequestAsync);
+	return createErrorResponse(error);
 }
 
-async function readJsonBodyAsync(request: Request): Promise<OpenAIChatCompletionRequest> {
+async function readJsonBodyAsync(request: Request): Promise<OpenAiChatCompletionRequest> {
 	const contentType = request.headers.get("content-type") ?? "";
 	if (!contentType.includes("application/json")) {
-		throw new ProxyError("Content-Type must be application/json.", { param: "content-type", status: 415 });
+		const error = new ProxyError("Content-Type must be application/json.", { param: "content-type", status: 415 });
+		Error.captureStackTrace(error, readJsonBodyAsync);
+		throw error;
 	}
 
-	const body: unknown = await request.json();
+	const body = await request.json();
 	if (typeof body !== "object" || !body || Array.isArray(body)) {
-		throw new ProxyError("Request body must be a JSON object.");
+		const error = new ProxyError("Request body must be a JSON object.");
+		Error.captureStackTrace(error, readJsonBodyAsync);
+		throw error;
 	}
 
-	const validatedBody = OpenAIChatCompletionRequestSchema(body);
-	if (validatedBody instanceof type.errors) {
-		throw new ProxyError(validatedBody.summary);
+	const result = isOpenAiChatCompletionRequest(body);
+	if (result instanceof type.errors) {
+		const error = new ProxyError(result.summary);
+		Error.captureStackTrace(error, readJsonBodyAsync);
+		throw error;
 	}
 
-	return validatedBody as OpenAIChatCompletionRequest;
+	return result;
 }

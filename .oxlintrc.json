@@ -56,8 +56,8 @@
 		},
 		{
 			"files": ["benchmarks/**/*.bench.ts"],
-			"globals": { "Bun": "readonly" },
 			"rules": {
+				"import/unambiguous": "off",
 				"no-console": "off",
 				"small-rules/prevent-abbreviations": "off"
 			}

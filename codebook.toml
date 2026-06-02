@@ -37,6 +37,7 @@ words = [
 	"setmetatable",
 	"shfmt",
 	"spritesheet",
+	"sse",
 	"taze",
 	"textbutton",
 	"textlabel",

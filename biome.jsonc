@@ -176,6 +176,7 @@
 				"useArrowFunction": "off",
 				"useDateNow": "error",
 				"useFlatMap": "error",
+				"useLiteralKeys": "error",
 				"useOptionalChain": "error",
 				"useSimplifiedLogicExpression": "error"
 			},
