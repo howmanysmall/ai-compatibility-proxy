@@ -81,3 +81,29 @@ description = "Run a longer benchmark pass with a readable report for higher-loa
 dir = "."
 raw = true
 run = "deno run --allow-env --allow-net --allow-read --allow-run --allow-write --allow-sys scripts/http-bench.ts run --label stress --duration 15s --concurrency 50 --warmup-requests 10"
+
+[tasks.open-latest-bench]
+description = "Open the latest benchmark results in your browser."
+run = """
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+if [[ ! -f benchmarks/results/latest-report.html ]]; then
+	echo "error: no benchmark results found" >&2
+	exit 1
+fi
+
+# check operating system
+
+if [[ "$(uname)" == "Darwin" ]]; then
+	open benchmarks/results/latest-report.html
+elif command -v xdg-open &>/dev/null; then
+	xdg-open benchmarks/results/latest-report.html
+else
+	echo "Please manually open benchmarks/results/latest-report.html"
+fi
+"""
+run_windows = """
+cmd /c start "" benchmarks\\results\\latest-report.html
+"""

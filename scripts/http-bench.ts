@@ -4,9 +4,12 @@ import $ from "@david/dax";
 import { logger, parseLevel } from "@logging/logger.ts";
 import { createApp } from "@proxy/app.ts";
 import { loadConfiguration } from "@proxy/config.ts";
+import { html as renderHtml, raw, tag } from "@sander/html";
 import { join } from "@std/path";
 import { type } from "arktype";
 import { Effect } from "effect";
+
+import type { HtmlNode } from "@sander/html";
 
 const isOhaSummary = type({
 	average: "number",
@@ -67,8 +70,14 @@ interface BenchmarkRawJsonByName {
 	readonly models: string;
 }
 
+interface BenchmarkSnapshot {
+	readonly id: string;
+	readonly summary: BenchmarkSummary;
+}
+
 interface BenchmarkRunResult {
-	readonly previousSummary: BenchmarkSummary | undefined;
+	readonly baselineSummary: BenchmarkSummary | undefined;
+	readonly comparisonSnapshots: ReadonlyArray<BenchmarkSnapshot>;
 	readonly rawJsonByName: BenchmarkRawJsonByName;
 	readonly reportHtml: string;
 	readonly resultDirectory: string;
@@ -100,11 +109,6 @@ await new Command()
 			.option("--concurrency <connections:number>", "Concurrent oha connections.", { default: 50 })
 			.option("--warmup-requests <requests:number>", "Warmup POST requests before benchmarking.", { default: 5 })
 			.option("--label <label:string>", "Label for this snapshot.", { default: "default" })
-			.option(
-				"--compare-to <baseline:string>",
-				"Default baseline for terminal output and the HTML selector. Use latest, none, a snapshot id, a label, or a summary.json path.",
-				{ default: "latest" },
-			)
 			.option("--host <host:string>", "Bind host for the local servers.", { default: "127.0.0.1" })
 			.option("--port <port:number>", "Local port for the proxy under test. Use 0 to auto-pick a free port.", {
 				default: 0,
@@ -140,8 +144,8 @@ async function runBenchmarkAsync(options: BenchmarkOptions): Promise<BenchmarkRu
 	const payloadText = await Deno.readTextFile(payloadPath);
 	const resultsRoot = join(Deno.cwd(), options.resultsDir);
 	const resultDirectory = join(resultsRoot, `${createTimestamp()}-${sanitizeLabel(options.label)}`);
-	const previousSummaryPath = join(resultsRoot, RESULTS_LATEST_SUMMARY);
-	const previousSummary = await readSummaryIfExistsAsync(previousSummaryPath);
+	const comparisonSnapshots = await readComparisonSnapshotsAsync(resultsRoot);
+	const baselineSummary = comparisonSnapshots[0]?.summary;
 
 	await Deno.mkdir(join(resultDirectory, "raw"), { recursive: true });
 
@@ -199,11 +203,12 @@ async function runBenchmarkAsync(options: BenchmarkOptions): Promise<BenchmarkRu
 
 		const summary = buildSummary(options, rawJsonByName);
 		const sparkline = await createSparklineAsync(summary.endpoints.map((endpoint) => endpoint.requestsPerSec));
-		printReadableReport(summary, previousSummary, sparkline);
-		const reportHtml = createHtmlReport(summary, previousSummary, sparkline);
+		printReadableReport(summary, baselineSummary, sparkline);
+		const reportHtml = createHtmlReport(summary, comparisonSnapshots, sparkline);
 
 		return {
-			previousSummary,
+			baselineSummary,
+			comparisonSnapshots,
 			rawJsonByName,
 			reportHtml,
 			resultDirectory,
@@ -326,310 +331,482 @@ function printComparisonTable(current: BenchmarkSummary, previous: BenchmarkSumm
 	printAlignedTable(rows);
 }
 
-function createHtmlReport(
-	current: BenchmarkSummary,
-	previous: BenchmarkSummary | undefined,
-	_sparkline: string | undefined,
-): string {
-	const maxRequestsPerSecond = Math.max(...current.endpoints.map((endpoint) => endpoint.requestsPerSec));
-	const cards = current.endpoints.map((endpoint) => createEndpointCard(endpoint, maxRequestsPerSecond)).join("\n");
-	const comparison = previous ? createHtmlComparison(current, previous) : createNoComparisonHtml();
-	const chartData = serializeReportChartData(current, previous);
-
-	return `<!doctype html>
-<html lang="en">
-<head>
-	<meta charset="utf-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title>HTTP benchmark: ${escapeHtml(current.label)}</title>
-	<style>
-		:root {
-			color-scheme: dark;
-			--bg: #0b1020;
-			--panel: #111a2e;
-			--panel-strong: #17233d;
-			--text: #eef4ff;
-			--muted: #95a3bd;
-			--line: #263653;
-			--green: #4ade80;
-			--red: #fb7185;
-			--yellow: #facc15;
-			--cyan: #22d3ee;
-			--violet: #a78bfa;
-		}
-		* { box-sizing: border-box; }
-		body {
-			margin: 0;
-			background: radial-gradient(circle at top left, #19335f 0, transparent 32rem), var(--bg);
-			color: var(--text);
-			font: 15px/1.5 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-		}
-		main { margin: 0 auto; max-width: 1120px; padding: 40px 24px 56px; }
-		header { display: grid; gap: 16px; margin-bottom: 28px; }
-		h1 { font-size: clamp(2rem, 5vw, 4rem); line-height: 1; margin: 0; letter-spacing: -0.05em; }
-		.meta { color: var(--muted); display: flex; flex-wrap: wrap; gap: 10px; }
-		.pill {
-			background: rgb(255 255 255 / 0.07);
-			border: 1px solid var(--line);
-			border-radius: 999px;
-			padding: 6px 10px;
-		}
-		.grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
-		.chart-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); margin: 18px 0; }
-		.card, .section {
-			background: linear-gradient(180deg, rgb(255 255 255 / 0.07), rgb(255 255 255 / 0.03));
-			border: 1px solid var(--line);
-			border-radius: 20px;
-			box-shadow: 0 18px 60px rgb(0 0 0 / 0.28);
-		}
-		.card { padding: 18px; }
-		.chart-card { padding: 18px 18px 12px; }
-		.chart-card canvas { height: 300px !important; width: 100% !important; }
-		.endpoint { color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-		.rps { font-size: 2.25rem; font-weight: 800; letter-spacing: -0.04em; margin: 6px 0; }
-		.label { color: var(--muted); font-size: 0.78rem; letter-spacing: 0.09em; text-transform: uppercase; }
-		.bar { background: #0a1020; border-radius: 999px; height: 12px; margin: 14px 0; overflow: hidden; }
-		.fill { background: linear-gradient(90deg, var(--cyan), var(--violet)); border-radius: inherit; height: 100%; }
-		.stats { display: grid; gap: 8px; grid-template-columns: repeat(2, 1fr); margin-top: 14px; }
-		.stat { background: rgb(0 0 0 / 0.18); border-radius: 14px; padding: 10px; }
-		.stat strong { display: block; font-size: 1.08rem; }
-		.section { margin-top: 18px; overflow: hidden; }
-		.section h2 { margin: 0; padding: 18px 20px; }
-		.chart-card h2 { margin: 0 0 14px; }
-		table { border-collapse: collapse; width: 100%; }
-		th, td { border-top: 1px solid var(--line); padding: 12px 20px; text-align: right; }
-		th:first-child, td:first-child { text-align: left; }
-		th { color: var(--muted); font-size: 0.78rem; letter-spacing: 0.09em; text-transform: uppercase; }
-		.good { color: var(--green); }
-		.bad { color: var(--red); }
-		.mixed { color: var(--yellow); }
-		.muted { color: var(--muted); }
-		footer { color: var(--muted); margin-top: 24px; }
-	</style>
-</head>
-<body>
-	<main>
-		<header>
-			<div class="label">HTTP benchmark</div>
-			<h1>${escapeHtml(current.label)}</h1>
-			<div class="meta">
-				<span class="pill">Generated ${escapeHtml(current.generatedAt)}</span>
-				<span class="pill">Duration ${escapeHtml(current.duration)}</span>
-				<span class="pill">Concurrency ${current.concurrency}</span>
-				<span class="pill">Warmup ${current.warmupRequests}</span>
-			</div>
-		</header>
-		<section class="chart-grid" aria-label="Charts">
-			<article class="card chart-card">
-				<h2>Throughput</h2>
-				<canvas id="throughput-chart" aria-label="Requests per second by endpoint"></canvas>
-			</article>
-			<article class="card chart-card">
-				<h2>Latency</h2>
-				<canvas id="latency-chart" aria-label="Latency percentiles by endpoint"></canvas>
-			</article>
-			<article class="card chart-card">
-				<h2>Success rate</h2>
-				<canvas id="success-chart" aria-label="Success rate by endpoint"></canvas>
-			</article>
-			<article class="card chart-card">
-				<h2>Delta vs previous</h2>
-				<canvas id="delta-chart" aria-label="Percent change versus previous run"></canvas>
-			</article>
-		</section>
-		<section class="grid" aria-label="Endpoint throughput cards">
-			${cards}
-		</section>
-		${comparison}
-		<footer>Raw oha JSON and summary JSON are saved next to this report. Charts load via Chart.js CDN.</footer>
-	</main>
-	<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-	<script>
-		const reportData = ${chartData};
-		const chartTextColor = "#eef4ff";
-		const chartGridColor = "rgba(149, 163, 189, 0.18)";
-		const chartLabelColor = "#95a3bd";
-		Chart.defaults.color = chartTextColor;
-		Chart.defaults.borderColor = chartGridColor;
-		Chart.defaults.font.family = 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-
-		const commonScales = {
-			x: { ticks: { color: chartLabelColor }, grid: { color: chartGridColor } },
-			y: { ticks: { color: chartLabelColor }, grid: { color: chartGridColor } },
-		};
-
-		new Chart(document.getElementById("throughput-chart"), {
-			type: "bar",
-			data: {
-				labels: reportData.labels,
-				datasets: [{
-					label: "Req/s",
-					data: reportData.requestsPerSec,
-					backgroundColor: ["#22d3ee", "#60a5fa", "#a78bfa"],
-					borderRadius: 10,
-				}],
-			},
-			options: {
-				maintainAspectRatio: false,
-				plugins: { legend: { display: false } },
-				scales: commonScales,
-			},
-		});
-
-		new Chart(document.getElementById("latency-chart"), {
-			type: "bar",
-			data: {
-				labels: reportData.labels,
-				datasets: [
-					{ label: "Avg ms", data: reportData.averageMs, backgroundColor: "#22d3ee", borderRadius: 8 },
-					{ label: "P95 ms", data: reportData.p95Ms, backgroundColor: "#a78bfa", borderRadius: 8 },
-					{ label: "P99 ms", data: reportData.p99Ms, backgroundColor: "#f472b6", borderRadius: 8 },
-				],
-			},
-			options: {
-				maintainAspectRatio: false,
-				scales: commonScales,
-			},
-		});
-
-		new Chart(document.getElementById("success-chart"), {
-			type: "bar",
-			data: {
-				labels: reportData.labels,
-				datasets: [{
-					label: "Success %",
-					data: reportData.successRatePct,
-					backgroundColor: "#4ade80",
-					borderRadius: 10,
-				}],
-			},
-			options: {
-				maintainAspectRatio: false,
-				plugins: { legend: { display: false } },
-				scales: {
-					x: commonScales.x,
-					y: { ...commonScales.y, min: 0, max: 100 },
-				},
-			},
-		});
-
-		new Chart(document.getElementById("delta-chart"), {
-			type: "bar",
-			data: {
-				labels: reportData.labels,
-				datasets: [
-					{ label: "Req/s Δ %", data: reportData.requestsPerSecDeltaPct, backgroundColor: "#22d3ee", borderRadius: 8 },
-					{ label: "Avg Δ %", data: reportData.averageDeltaPct, backgroundColor: "#fb7185", borderRadius: 8 },
-					{ label: "P95 Δ %", data: reportData.p95DeltaPct, backgroundColor: "#facc15", borderRadius: 8 },
-				],
-			},
-			options: {
-				maintainAspectRatio: false,
-				scales: commonScales,
-			},
-		});
-	</script>
-</body>
-</html>
+function getReportStyles(): string {
+	return String.raw`
+:root {
+	color-scheme: dark;
+	--bg: #0b1020;
+	--panel: #111a2e;
+	--panel-strong: #17233d;
+	--text: #eef4ff;
+	--muted: #95a3bd;
+	--line: #263653;
+	--green: #4ade80;
+	--red: #fb7185;
+	--yellow: #facc15;
+	--cyan: #22d3ee;
+	--violet: #a78bfa;
+}
+* { box-sizing: border-box; }
+body {
+	margin: 0;
+	background: radial-gradient(circle at top left, #19335f 0, transparent 32rem), var(--bg);
+	color: var(--text);
+	font: 15px/1.5 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+main { margin: 0 auto; max-width: 1120px; padding: 40px 24px 56px; }
+header { display: grid; gap: 16px; margin-bottom: 28px; }
+h1 { font-size: clamp(2rem, 5vw, 4rem); line-height: 1; margin: 0; letter-spacing: -0.05em; }
+.meta { color: var(--muted); display: flex; flex-wrap: wrap; gap: 10px; }
+.pill {
+	background: rgb(255 255 255 / 0.07);
+	border: 1px solid var(--line);
+	border-radius: 999px;
+	padding: 6px 10px;
+}
+.comparison-header {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+	justify-content: space-between;
+	padding: 18px 20px 8px;
+}
+.comparison-header h2 { margin: 0; padding: 0; }
+.baseline-control {
+	align-items: center;
+	color: var(--muted);
+	display: flex;
+	gap: 8px;
+}
+select {
+	background: var(--panel-strong);
+	border: 1px solid var(--line);
+	border-radius: 12px;
+	color: var(--text);
+	font: inherit;
+	min-width: min(28rem, 80vw);
+	padding: 8px 10px;
+}
+#baseline-details { margin: 0; padding: 0 20px 18px; }
+.grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.chart-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); margin: 18px 0; }
+.card, .section {
+	background: linear-gradient(180deg, rgb(255 255 255 / 0.07), rgb(255 255 255 / 0.03));
+	border: 1px solid var(--line);
+	border-radius: 20px;
+	box-shadow: 0 18px 60px rgb(0 0 0 / 0.28);
+}
+.card { padding: 18px; }
+.chart-card { padding: 18px 18px 12px; }
+.chart-card canvas { height: 300px !important; width: 100% !important; }
+.endpoint { color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.rps { font-size: 2.25rem; font-weight: 800; letter-spacing: -0.04em; margin: 6px 0; }
+.label { color: var(--muted); font-size: 0.78rem; letter-spacing: 0.09em; text-transform: uppercase; }
+.bar { background: #0a1020; border-radius: 999px; height: 12px; margin: 14px 0; overflow: hidden; }
+.fill { background: linear-gradient(90deg, var(--cyan), var(--violet)); border-radius: inherit; height: 100%; }
+.stats { display: grid; gap: 8px; grid-template-columns: repeat(2, 1fr); margin-top: 14px; }
+.stat { background: rgb(0 0 0 / 0.18); border-radius: 14px; padding: 10px; }
+.stat strong { display: block; font-size: 1.08rem; }
+.section { margin-top: 18px; overflow: hidden; }
+.chart-card h2 { margin: 0 0 14px; }
+table { border-collapse: collapse; width: 100%; }
+th, td { border-top: 1px solid var(--line); padding: 12px 20px; text-align: right; }
+th:first-child, td:first-child { text-align: left; }
+th { color: var(--muted); font-size: 0.78rem; letter-spacing: 0.09em; text-transform: uppercase; }
+.good, .better { color: var(--green); }
+.bad, .worse { color: var(--red); }
+.mixed { color: var(--yellow); }
+.muted { color: var(--muted); }
+footer { color: var(--muted); margin-top: 24px; }
 `;
 }
 
-function createEndpointCard(endpoint: EndpointSummary, maxRequestsPerSecond: number): string {
+function createHtmlReport(
+	current: BenchmarkSummary,
+	comparisonSnapshots: ReadonlyArray<BenchmarkSnapshot>,
+	_sparkline: string | undefined,
+): string {
+	const maxRequestsPerSecond = Math.max(...current.endpoints.map((endpoint) => endpoint.requestsPerSec));
+	const chartData = serializeReportChartData(current, comparisonSnapshots);
+	return renderHtml(
+		tag("html", { lang: "en" }, [
+			tag("head", [
+				tag("meta", { charset: "utf8" }),
+				tag("meta", { content: "width=device-width, initial-scale=1", name: "viewport" }),
+				tag("title", `HTTP benchmark: ${current.label}`),
+				tag("style", raw(getReportStyles())),
+			]),
+			tag("body", [
+				tag("main", [
+					createReportHeader(current),
+					createChartsSection(),
+					createHtmlComparisonSection(comparisonSnapshots.length > 0),
+					tag(
+						"section",
+						{ "aria-label": "Endpoint throughput cards", class: "grid" },
+						current.endpoints.map((endpoint) => createEndpointCard(endpoint, maxRequestsPerSecond)),
+					),
+					tag(
+						"footer",
+						"Raw oha JSON and summary JSON are saved next to this report. Charts load via Chart.js CDN.",
+					),
+				]),
+				tag("script", { src: "https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" }),
+				tag("script", raw(createReportScript(chartData))),
+			]),
+		]),
+		{ doctype: "html" },
+	);
+}
+
+function createReportHeader(summary: BenchmarkSummary): HtmlNode {
+	return tag("header", [
+		tag("div", { class: "label" }, "HTTP benchmark"),
+		tag("h1", summary.label),
+		tag("div", { class: "meta" }, [
+			tag("span", { class: "pill" }, `Generated ${summary.generatedAt}`),
+			tag("span", { class: "pill" }, `Duration ${summary.duration}`),
+			tag("span", { class: "pill" }, `Concurrency ${summary.concurrency}`),
+			tag("span", { class: "pill" }, `Warmup ${summary.warmupRequests}`),
+		]),
+	]);
+}
+
+function createChartsSection(): HtmlNode {
+	return tag("section", { "aria-label": "Charts", class: "chart-grid" }, [
+		createChartCard("Throughput", "throughput-chart", "Requests per second by endpoint"),
+		createChartCard("Latency", "latency-chart", "Latency percentiles by endpoint"),
+		createChartCard("Success rate", "success-chart", "Success rate by endpoint"),
+		createChartCard("Delta vs selected baseline", "delta-chart", "Percent change versus selected baseline"),
+	]);
+}
+
+function createChartCard(title: string, canvasId: string, ariaLabel: string): HtmlNode {
+	return tag("article", { class: "card chart-card" }, [
+		tag("h2", title),
+		tag("canvas", { "aria-label": ariaLabel, id: canvasId }),
+	]);
+}
+
+function createEndpointCard(endpoint: EndpointSummary, maxRequestsPerSecond: number): HtmlNode {
 	const width = maxRequestsPerSecond > 0 ? Math.max(1, (endpoint.requestsPerSec / maxRequestsPerSecond) * 100) : 0;
-	return `<article class="card">
-	<div class="endpoint">${escapeHtml(endpoint.endpoint)}</div>
-	<div class="rps">${escapeHtml(formatNumber(endpoint.requestsPerSec))}</div>
-	<div class="label">requests/sec</div>
-	<div class="bar" aria-label="Relative throughput"><div class="fill" style="width: ${width.toFixed(2)}%"></div></div>
-	<div class="stats">
-		<div class="stat"><span class="label">Avg</span><strong>${escapeHtml(
-			formatMilliseconds(endpoint.averageMs),
-		)}</strong></div>
-		<div class="stat"><span class="label">P95</span><strong>${escapeHtml(
-			formatMilliseconds(endpoint.p95Ms),
-		)}</strong></div>
-		<div class="stat"><span class="label">P99</span><strong>${escapeHtml(
-			formatMilliseconds(endpoint.p99Ms),
-		)}</strong></div>
-		<div class="stat"><span class="label">Success</span><strong>${escapeHtml(
-			formatPercent(endpoint.successRatePct),
-		)}</strong></div>
-	</div>
-</article>`;
+	return tag("article", { class: "card" }, [
+		tag("div", { class: "endpoint" }, endpoint.endpoint),
+		tag("div", { class: "rps" }, formatNumber(endpoint.requestsPerSec)),
+		tag("div", { class: "label" }, "requests/sec"),
+		tag(
+			"div",
+			{ "aria-label": "Relative throughput", class: "bar" },
+			tag("div", { class: "fill", style: `width: ${width.toFixed(2)}%` }),
+		),
+		tag("div", { class: "stats" }, [
+			createEndpointStat("Avg", formatMilliseconds(endpoint.averageMs)),
+			createEndpointStat("P95", formatMilliseconds(endpoint.p95Ms)),
+			createEndpointStat("P99", formatMilliseconds(endpoint.p99Ms)),
+			createEndpointStat("Success", formatPercent(endpoint.successRatePct)),
+		]),
+	]);
 }
 
-function createHtmlComparison(current: BenchmarkSummary, previous: BenchmarkSummary): string {
-	const rows = current.endpoints
-		.map((endpoint) => {
-			const baseline = previous.endpoints.find((value) => value.endpoint === endpoint.endpoint);
-			if (!baseline) return "";
-			const requestsPerSecondDelta = getPercentChange(baseline.requestsPerSec, endpoint.requestsPerSec);
-			const averageDelta = getPercentChange(baseline.averageMs, endpoint.averageMs);
-			const p95Delta = getPercentChange(baseline.p95Ms, endpoint.p95Ms);
-			const verdict = stripAnsi(getVerdict(baseline, endpoint));
-			return `<tr>
-		<td><code>${escapeHtml(endpoint.endpoint)}</code></td>
-		<td class="${getDeltaClass(requestsPerSecondDelta, true)}">${escapeHtml(
-			formatDelta(requestsPerSecondDelta),
-		)}</td>
-		<td class="${getDeltaClass(averageDelta, false)}">${escapeHtml(formatDelta(averageDelta))}</td>
-		<td class="${getDeltaClass(p95Delta, false)}">${escapeHtml(formatDelta(p95Delta))}</td>
-		<td class="${escapeHtml(verdict)}">${escapeHtml(verdict)}</td>
-	</tr>`;
-		})
-		.join("\n");
-
-	return `<section class="section" aria-label="Comparison with previous snapshot">
-	<h2>Comparison vs latest previous snapshot</h2>
-	<table>
-		<thead><tr><th>Endpoint</th><th>Req/s Δ</th><th>Avg Δ</th><th>P95 Δ</th><th>Verdict</th></tr></thead>
-		<tbody>${rows}</tbody>
-	</table>
-</section>`;
+function createEndpointStat(label: string, value: string): HtmlNode {
+	return tag("div", { class: "stat" }, [tag("span", { class: "label" }, label), tag("strong", value)]);
 }
 
-function createNoComparisonHtml(): string {
-	return `<section class="section" aria-label="No comparison available">
-	<h2>No previous snapshot yet</h2>
-	<p class="muted" style="margin: 0; padding: 0 20px 20px;">Run the benchmark again to get visual deltas.</p>
-</section>`;
+function createHtmlComparisonSection(hasBaseline: boolean): HtmlNode {
+	return tag("section", { "aria-label": "Comparison with selected baseline", class: "section" }, [
+		tag("div", { class: "comparison-header" }, [
+			tag("h2", "Comparison"),
+			tag("label", { class: "baseline-control" }, [
+				"Baseline",
+				tag("select", { disabled: !hasBaseline, id: "baseline-select" }),
+			]),
+		]),
+		tag(
+			"p",
+			{ class: "muted", id: "baseline-details" },
+			hasBaseline
+				? "Select a baseline to update the charts and table."
+				: "No saved baseline yet. Run another benchmark to compare.",
+		),
+		tag("table", [
+			tag(
+				"thead",
+				tag("tr", [
+					tag("th", "Endpoint"),
+					tag("th", "Req/s Δ"),
+					tag("th", "Avg Δ"),
+					tag("th", "P95 Δ"),
+					tag("th", "Verdict"),
+				]),
+			),
+			tag("tbody", { id: "comparison-body" }),
+		]),
+	]);
 }
 
-function getDeltaClass(value: number, higherIsBetter: boolean): string {
+function serializeReportChartData(
+	current: BenchmarkSummary,
+	comparisonSnapshots: ReadonlyArray<BenchmarkSnapshot>,
+): string {
+	return JSON.stringify({
+		baselines: comparisonSnapshots,
+		current,
+	}).replaceAll("<", String.raw`\u003c`);
+}
+
+function createReportScript(chartData: string): string {
+	return String.raw`
+const reportData = ${chartData};
+const chartTextColor = "#eef4ff";
+const chartGridColor = "rgba(149, 163, 189, 0.18)";
+const chartLabelColor = "#95a3bd";
+const currentSummary = reportData.current;
+const baselineSelect = document.getElementById("baseline-select");
+const baselineDetails = document.getElementById("baseline-details");
+const comparisonBody = document.getElementById("comparison-body");
+const endpointLabels = currentSummary.endpoints.map((endpoint) => endpoint.endpoint);
+
+Chart.defaults.color = chartTextColor;
+Chart.defaults.borderColor = chartGridColor;
+Chart.defaults.font.family = 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+
+const commonScales = {
+	x: { ticks: { color: chartLabelColor }, grid: { color: chartGridColor } },
+	y: { ticks: { color: chartLabelColor }, grid: { color: chartGridColor } },
+};
+const currentThroughputColors = ["#22d3ee", "#60a5fa", "#a78bfa"];
+
+function endpointValue(summary, endpointName, key) {
+	return summary.endpoints.find((endpoint) => endpoint.endpoint === endpointName)?.[key] ?? 0;
+}
+
+function valuesFor(summary, key) {
+	return endpointLabels.map((endpointName) => endpointValue(summary, endpointName, key));
+}
+
+function percentChange(previous, current) {
+	return previous === 0 ? 0 : ((current - previous) / previous) * 100;
+}
+
+function formatDelta(value) {
+	return (value > 0 ? "+" : "") + value.toFixed(1) + "%";
+}
+
+function deltaClass(value, higherIsBetter) {
 	const isGood = higherIsBetter ? value >= 0 : value <= 0;
 	return isGood ? "good" : "bad";
 }
 
-function serializeReportChartData(current: BenchmarkSummary, previous: BenchmarkSummary | undefined): string {
-	const labels = current.endpoints.map((endpoint) => endpoint.endpoint);
-	const requestsPerSecDeltaPct = current.endpoints.map((endpoint) => {
-		const baseline = previous?.endpoints.find((value) => value.endpoint === endpoint.endpoint);
-		return baseline ? getPercentChange(baseline.requestsPerSec, endpoint.requestsPerSec) : 0;
-	});
-	const averageDeltaPct = current.endpoints.map((endpoint) => {
-		const baseline = previous?.endpoints.find((value) => value.endpoint === endpoint.endpoint);
-		return baseline ? getPercentChange(baseline.averageMs, endpoint.averageMs) : 0;
-	});
-	const p95DeltaPct = current.endpoints.map((endpoint) => {
-		const baseline = previous?.endpoints.find((value) => value.endpoint === endpoint.endpoint);
-		return baseline ? getPercentChange(baseline.p95Ms, endpoint.p95Ms) : 0;
-	});
-
-	return JSON.stringify({
-		averageDeltaPct,
-		averageMs: current.endpoints.map((endpoint) => endpoint.averageMs),
-		labels,
-		p95DeltaPct,
-		p95Ms: current.endpoints.map((endpoint) => endpoint.p95Ms),
-		p99Ms: current.endpoints.map((endpoint) => endpoint.p99Ms),
-		requestsPerSec: current.endpoints.map((endpoint) => endpoint.requestsPerSec),
-		requestsPerSecDeltaPct,
-		successRatePct: current.endpoints.map((endpoint) => endpoint.successRatePct),
-	}).replaceAll("<", String.raw`\u003c`);
+function selectedBaseline() {
+	return reportData.baselines.find((baseline) => baseline.id === baselineSelect.value);
 }
 
-function escapeHtml(value: string): string {
-	return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
+function baselineLabel(baseline) {
+	return baseline.summary.label + " • " + new Date(baseline.summary.generatedAt).toLocaleString() + " • " + baseline.id;
+}
+
+function populateBaselineSelect() {
+	if (reportData.baselines.length === 0) {
+		const option = document.createElement("option");
+		option.textContent = "No saved baselines yet";
+		baselineSelect.append(option);
+		baselineSelect.disabled = true;
+		return;
+	}
+	for (const baseline of reportData.baselines) {
+		const option = document.createElement("option");
+		option.value = baseline.id;
+		option.textContent = baselineLabel(baseline);
+		baselineSelect.append(option);
+	}
+}
+
+function throughputDatasets(baseline) {
+	const datasets = [{
+		backgroundColor: currentThroughputColors,
+		borderRadius: 10,
+		data: valuesFor(currentSummary, "requestsPerSec"),
+		label: "Current req/s",
+	}];
+	if (baseline) {
+		datasets.push({
+			backgroundColor: "rgba(149, 163, 189, 0.45)",
+			borderRadius: 10,
+			data: valuesFor(baseline.summary, "requestsPerSec"),
+			label: "Baseline req/s",
+		});
+	}
+	return datasets;
+}
+
+function deltaDatasets(baseline) {
+	if (!baseline) return [];
+	return [
+		{
+			backgroundColor: "#22d3ee",
+			borderRadius: 8,
+			data: endpointLabels.map((endpointName) => percentChange(
+				endpointValue(baseline.summary, endpointName, "requestsPerSec"),
+				endpointValue(currentSummary, endpointName, "requestsPerSec"),
+			)),
+			label: "Req/s Δ %",
+		},
+		{
+			backgroundColor: "#fb7185",
+			borderRadius: 8,
+			data: endpointLabels.map((endpointName) => percentChange(
+				endpointValue(baseline.summary, endpointName, "averageMs"),
+				endpointValue(currentSummary, endpointName, "averageMs"),
+			)),
+			label: "Avg Δ %",
+		},
+		{
+			backgroundColor: "#facc15",
+			borderRadius: 8,
+			data: endpointLabels.map((endpointName) => percentChange(
+				endpointValue(baseline.summary, endpointName, "p95Ms"),
+				endpointValue(currentSummary, endpointName, "p95Ms"),
+			)),
+			label: "P95 Δ %",
+		},
+	];
+}
+
+function verdictFor(baselineEndpoint, currentEndpoint) {
+	const rpsWon = percentChange(baselineEndpoint.requestsPerSec, currentEndpoint.requestsPerSec) > 0;
+	const avgWon = percentChange(baselineEndpoint.averageMs, currentEndpoint.averageMs) < 0;
+	const p95Won = percentChange(baselineEndpoint.p95Ms, currentEndpoint.p95Ms) < 0;
+	const score = Number(rpsWon) + Number(avgWon) + Number(p95Won);
+	if (score >= 2) return "better";
+	if (score === 1) return "mixed";
+	return "worse";
+}
+
+function appendCell(row, text, className) {
+	const cell = document.createElement("td");
+	cell.textContent = text;
+	if (className) cell.className = className;
+	row.append(cell);
+}
+
+function renderComparisonTable(baseline) {
+	comparisonBody.innerHTML = "";
+	if (!baseline) {
+		const row = document.createElement("tr");
+		const cell = document.createElement("td");
+		cell.colSpan = 5;
+		cell.className = "muted";
+		cell.textContent = "No saved baseline yet. Run another benchmark to compare.";
+		row.append(cell);
+		comparisonBody.append(row);
+		return;
+	}
+	for (const currentEndpoint of currentSummary.endpoints) {
+		const baselineEndpoint = baseline.summary.endpoints.find((endpoint) => endpoint.endpoint === currentEndpoint.endpoint);
+		if (!baselineEndpoint) continue;
+		const requestsPerSecondDelta = percentChange(baselineEndpoint.requestsPerSec, currentEndpoint.requestsPerSec);
+		const averageDelta = percentChange(baselineEndpoint.averageMs, currentEndpoint.averageMs);
+		const p95Delta = percentChange(baselineEndpoint.p95Ms, currentEndpoint.p95Ms);
+		const verdict = verdictFor(baselineEndpoint, currentEndpoint);
+		const row = document.createElement("tr");
+		appendCell(row, currentEndpoint.endpoint);
+		appendCell(row, formatDelta(requestsPerSecondDelta), deltaClass(requestsPerSecondDelta, true));
+		appendCell(row, formatDelta(averageDelta), deltaClass(averageDelta, false));
+		appendCell(row, formatDelta(p95Delta), deltaClass(p95Delta, false));
+		appendCell(row, verdict, verdict);
+		comparisonBody.append(row);
+	}
+}
+
+function updateBaselineDetails(baseline) {
+	if (!baseline) {
+		baselineDetails.textContent = "No saved baseline selected.";
+		return;
+	}
+	baselineDetails.textContent = "Comparing against " + baseline.summary.label + " from "
+		+ new Date(baseline.summary.generatedAt).toLocaleString()
+		+ " (" + baseline.summary.duration
+		+ ", concurrency " + baseline.summary.concurrency
+		+ ", warmup " + baseline.summary.warmupRequests + ").";
+}
+
+populateBaselineSelect();
+
+const throughputChart = new Chart(document.getElementById("throughput-chart"), {
+	data: {
+		datasets: throughputDatasets(selectedBaseline()),
+		labels: endpointLabels,
+	},
+	options: {
+		maintainAspectRatio: false,
+		scales: commonScales,
+	},
+	type: "bar",
+});
+
+new Chart(document.getElementById("latency-chart"), {
+	data: {
+		datasets: [
+			{ backgroundColor: "#22d3ee", borderRadius: 8, data: valuesFor(currentSummary, "averageMs"), label: "Avg ms" },
+			{ backgroundColor: "#a78bfa", borderRadius: 8, data: valuesFor(currentSummary, "p95Ms"), label: "P95 ms" },
+			{ backgroundColor: "#f472b6", borderRadius: 8, data: valuesFor(currentSummary, "p99Ms"), label: "P99 ms" },
+		],
+		labels: endpointLabels,
+	},
+	options: {
+		maintainAspectRatio: false,
+		scales: commonScales,
+	},
+	type: "bar",
+});
+
+new Chart(document.getElementById("success-chart"), {
+	data: {
+		datasets: [{
+			backgroundColor: "#4ade80",
+			borderRadius: 10,
+			data: valuesFor(currentSummary, "successRatePct"),
+			label: "Success %",
+		}],
+		labels: endpointLabels,
+	},
+	options: {
+		maintainAspectRatio: false,
+		plugins: { legend: { display: false } },
+		scales: {
+			x: commonScales.x,
+			y: { ...commonScales.y, max: 100, min: 0 },
+		},
+	},
+	type: "bar",
+});
+
+const deltaChart = new Chart(document.getElementById("delta-chart"), {
+	data: {
+		datasets: deltaDatasets(selectedBaseline()),
+		labels: endpointLabels,
+	},
+	options: {
+		maintainAspectRatio: false,
+		scales: commonScales,
+	},
+	type: "bar",
+});
+
+function updateComparison() {
+	const baseline = selectedBaseline();
+	throughputChart.data.datasets = throughputDatasets(baseline);
+	deltaChart.data.datasets = deltaDatasets(baseline);
+	throughputChart.update();
+	deltaChart.update();
+	renderComparisonTable(baseline);
+	updateBaselineDetails(baseline);
+}
+
+baselineSelect.addEventListener("change", updateComparison);
+updateComparison();
+`;
 }
 
 function printArtifactSummary(options: BenchmarkOptions, result: BenchmarkRunResult): void {
@@ -639,8 +816,11 @@ function printArtifactSummary(options: BenchmarkOptions, result: BenchmarkRunRes
 	console.log(`- Visual report: ${join(result.resultDirectory, "report.html")}`);
 	console.log(`- Latest summary: ${join(resultsRoot, RESULTS_LATEST_SUMMARY)}`);
 	console.log(`- Latest visual report: ${join(resultsRoot, RESULTS_LATEST_REPORT)}`);
-	if (result.previousSummary) {
-		console.log(`- Compared against latest snapshot in ${resultsRoot}`);
+	if (result.baselineSummary) {
+		console.log(`- Default comparison uses latest snapshot in ${resultsRoot}`);
+	}
+	if (result.comparisonSnapshots.length > 0) {
+		console.log(`- HTML report can compare against ${result.comparisonSnapshots.length} saved snapshot(s)`);
 	}
 }
 
@@ -778,13 +958,46 @@ async function ensureDependencyAsync(command: string): Promise<void> {
 	}
 }
 
-async function readSummaryIfExistsAsync(path: string): Promise<BenchmarkSummary | undefined> {
+async function readComparisonSnapshotsAsync(resultsRoot: string): Promise<ReadonlyArray<BenchmarkSnapshot>> {
+	let entries: Array<Deno.DirEntry>;
 	try {
-		return parseBenchmarkSummary(JSON.parse(await Deno.readTextFile(path)), `saved summary at ${path}`);
+		entries = await Array.fromAsync(Deno.readDir(resultsRoot));
+	} catch (error) {
+		if (error instanceof Deno.errors.NotFound) return [];
+		throw error;
+	}
+
+	const snapshots = await Promise.all(
+		entries
+			.filter((entry) => entry.isDirectory)
+			.map(async (entry) => readSnapshotSummaryIfExistsAsync(resultsRoot, entry.name)),
+	);
+	return snapshots
+		.filter(isDefined)
+		.toSorted((left, right) => right.summary.generatedAt.localeCompare(left.summary.generatedAt));
+}
+
+async function readSnapshotSummaryIfExistsAsync(
+	resultsRoot: string,
+	directoryName: string,
+): Promise<BenchmarkSnapshot | undefined> {
+	const summaryPath = join(resultsRoot, directoryName, "summary.json");
+	try {
+		return {
+			id: directoryName,
+			summary: parseBenchmarkSummary(
+				JSON.parse(await Deno.readTextFile(summaryPath)),
+				`saved summary at ${summaryPath}`,
+			),
+		};
 	} catch (error) {
 		if (error instanceof Deno.errors.NotFound) return undefined;
 		throw error;
 	}
+}
+
+function isDefined<Value>(value: Value | undefined): value is Value {
+	return value !== undefined;
 }
 
 function parseOhaResult(value: unknown, context: string): OhaResult {
