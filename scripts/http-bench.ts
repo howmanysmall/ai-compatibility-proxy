@@ -213,6 +213,7 @@ async function runBenchmarkAsync(options: BenchmarkOptions): Promise<BenchmarkRu
 
 async function persistArtifactsAsync(options: BenchmarkOptions, result: BenchmarkRunResult): Promise<void> {
 	const rawDirectory = join(result.resultDirectory, "raw");
+	await Deno.mkdir(rawDirectory, { recursive: true });
 	await Deno.writeTextFile(join(rawDirectory, "health.json"), `${result.rawJsonByName.health}\n`);
 	await Deno.writeTextFile(join(rawDirectory, "models.json"), `${result.rawJsonByName.models}\n`);
 	await Deno.writeTextFile(join(rawDirectory, "chat.json"), `${result.rawJsonByName.chat}\n`);
@@ -330,7 +331,7 @@ function createHtmlReport(
 	const comparison = previous ? createHtmlComparison(current, previous) : createNoComparisonHtml();
 	const sparklineHtml = sparkline
 		? `<div class="sparkline" aria-label="Throughput sparkline">${escapeHtml(sparkline)}</div>`
-		: `<div class="sparkline muted">Install spark for a terminal-style sparkline.</div>`;
+		: "";
 
 	return `<!doctype html>
 <html lang="en">
@@ -622,23 +623,20 @@ async function waitForHealthyAsync(url: string, deadline = Date.now() + 10_000):
 }
 
 async function createSparklineAsync(values: ReadonlyArray<number>): Promise<string | undefined> {
-	const spark = Deno.env.get("SPARK_BINARY") ?? "spark";
-	try {
-		const child = new Deno.Command(spark, {
-			stderr: "null",
-			stdin: "piped",
-			stdout: "piped",
-		}).spawn();
-		const writer = child.stdin.getWriter();
-		await writer.write(new TextEncoder().encode(`${values.map((value) => value.toFixed(2)).join(" ")}\n`));
-		await writer.close();
-		const { code, stdout } = await child.output();
-		if (code !== 0) return undefined;
-		const output = new TextDecoder().decode(stdout).trim();
-		return output.length > 0 ? output : undefined;
-	} catch {
-		return undefined;
-	}
+	if (values.length === 0) return undefined;
+
+	const ticks = ["▁", "▂", "▃", "▄", "▅", "▆", "▇", "█"] as const;
+	const minimum = Math.min(...values);
+	const maximum = Math.max(...values);
+	if (minimum === maximum) return ticks.at(-1)!.repeat(values.length);
+
+	return values
+		.map((value) => {
+			const normalized = (value - minimum) / (maximum - minimum);
+			const index = Math.min(ticks.length - 1, Math.max(0, Math.round(normalized * (ticks.length - 1))));
+			return ticks[index] ?? ticks[0]!;
+		})
+		.join("");
 }
 
 async function ensureDependencyAsync(command: string): Promise<void> {
