@@ -1228,6 +1228,31 @@ function createQuickStat(label: string, value: string, sub: string, accent: Quic
 	]);
 }
 
+interface Point {
+	readonly index: number;
+	readonly value: number;
+	readonly x: number;
+	readonly y: number;
+}
+
+function evilTernary<TValue>(condition: boolean, trueValue: TValue, falseValue: TValue): TValue {
+	return condition ? trueValue : falseValue;
+}
+
+function mapSparklineLabels(labels: ReadonlyArray<string>, points: ReadonlyArray<Point>, height: number): string {
+	const heightY = (height - 0.5).toFixed(1);
+	return labels
+		.map((label, index) => {
+			const point = points[index];
+			if (!point) return "";
+			let anchor = "middle";
+			if (index === 0) anchor = "start";
+			else if (index === points.length - 1) anchor = "end";
+			return `<text x="${point.x.toFixed(1)}" y="${heightY}" text-anchor="${anchor}">${label}</text>`;
+		})
+		.join("");
+}
+
 function createSparklineSection(summary: BenchmarkSummary, sparkline: string): HtmlNode {
 	const values = summary.endpoints.map((endpoint) => endpoint.requestsPerSec);
 	const max = Math.max(...values);
@@ -1236,7 +1261,7 @@ function createSparklineSection(summary: BenchmarkSummary, sparkline: string): H
 	const height = 44;
 	const padding = 4;
 	const step = values.length > 1 ? (width - padding * 2) / (values.length - 1) : 0;
-	const points = values.map((value, index) => {
+	const points = values.map((value, index): Point => {
 		const x = padding + step * index;
 		const ratio = max === min ? 0.5 : (value - min) / (max - min);
 		const y = height - padding - ratio * (height - padding * 2);
@@ -1266,18 +1291,7 @@ function createSparklineSection(summary: BenchmarkSummary, sparkline: string): H
 			<path class="area" d="${areaPath}"/>
 			<path class="line" d="${linePath}"/>
 			${points.map((point) => `<circle cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="3.5"/>`).join("")}
-			${labels
-				.map((label, index) => {
-					const point = points[index];
-					if (!point) return "";
-					let anchor = "middle";
-					if (index === 0) anchor = "start";
-					else if (index === points.length - 1) anchor = "end";
-					return `<text x="${point.x.toFixed(1)}" y="${(height - 0.5).toFixed(
-						1,
-					)}" text-anchor="${anchor}">${label}</text>`;
-				})
-				.join("")}
+			${mapSparklineLabels(labels, points, height)}
 		</svg>`),
 	]);
 }
@@ -1338,6 +1352,10 @@ interface ChartLegendEntry {
 type QuickStatAccent = "indigo" | "cyan" | "violet" | "emerald" | "blue";
 type VerdictTone = "better" | "mixed" | "worse";
 
+function mapLegend(entry: ChartLegendEntry): HtmlNode {
+	return tag("span", { class: "legend-dot", "data-swatch": entry.swatch }, entry.label);
+}
+
 function createChartCard(options: {
 	readonly ariaLabel: string;
 	readonly canvasId: string;
@@ -1348,14 +1366,13 @@ function createChartCard(options: {
 	return tag("article", { class: "chart-card" }, [
 		tag("div", { class: "chart-card-head" }, [tag("div", [tag("h3", options.title), tag("p", options.subtitle)])]),
 		tag("div", { class: "chart-area" }, [tag("canvas", { "aria-label": options.ariaLabel, id: options.canvasId })]),
-		tag(
-			"div",
-			{ class: "chart-legend" },
-			options.legend.map((entry) =>
-				tag("span", { class: "legend-dot", "data-swatch": entry.swatch }, entry.label),
-			),
-		),
+		tag("div", { class: "chart-legend" }, options.legend.map(mapLegend)),
 	]);
+}
+
+function getEndpointReturned(endpoint: EndpointSummary): string {
+	const bytes = prettyBytes(endpoint.totalDataBytes);
+	return `${endpoint.errorCount} error${endpoint.errorCount === 1 ? "" : "s"} · ${bytes} returned`;
 }
 
 function createEndpointCard(endpoint: EndpointSummary, maxRequestsPerSecond: number): HtmlNode {
@@ -1391,13 +1408,7 @@ function createEndpointCard(endpoint: EndpointSummary, maxRequestsPerSecond: num
 				prettyMilliseconds(endpoint.p99Ms),
 				"99% of requests finished at or below this latency. The slow tail.",
 			),
-			createEndpointStat(
-				"Success",
-				formatPercent(endpoint.successRatePct),
-				`${endpoint.errorCount} error${endpoint.errorCount === 1 ? "" : "s"} · ${prettyBytes(
-					endpoint.totalDataBytes,
-				)} returned`,
-			),
+			createEndpointStat("Success", formatPercent(endpoint.successRatePct), getEndpointReturned(endpoint)),
 		]),
 	]);
 }
@@ -1439,9 +1450,11 @@ function createHtmlComparisonSection(hasBaseline: boolean): HtmlNode {
 					tag(
 						"p",
 						{ class: "muted", style: "margin: 0; font-size: 0.8rem;" },
-						hasBaseline
-							? "Snapshots are saved under benchmarks/results/<timestamp>-<label>/."
-							: "No saved baseline yet. Run another benchmark to populate this list.",
+						evilTernary(
+							hasBaseline,
+							"Snapshots are saved under benchmarks/results/<timestamp>-<label>/.",
+							"No saved baseline yet. Run another benchmark to populate this list.",
+						),
 					),
 				]),
 				tag("label", { class: "baseline-control" }, [
@@ -1452,9 +1465,11 @@ function createHtmlComparisonSection(hasBaseline: boolean): HtmlNode {
 			tag(
 				"p",
 				{ id: "baseline-details" },
-				hasBaseline
-					? "Select a baseline to update the delta chart above and the table below."
-					: "No saved baseline yet. Run another benchmark to compare.",
+				evilTernary(
+					hasBaseline,
+					"Select a baseline to update the delta chart above and the table below.",
+					"No saved baseline yet. Run another benchmark to compare.",
+				),
 			),
 			tag("div", { class: "cmp-table-wrap" }, [
 				tag("table", [
@@ -1475,47 +1490,73 @@ function createHtmlComparisonSection(hasBaseline: boolean): HtmlNode {
 	]);
 }
 
+const RPS_BODY = [
+	"How many HTTP requests the proxy finished per second on average across the run.",
+	"The proxy is stateless, so this is a clean measure of CPU + I/O capacity on your machine.",
+].join(" ");
+const LATENCY_BODY = [
+	"Response time for the request, including network, parsing, and upstream work.",
+	"P95/P99 are the worst case for most/all users.",
+	"Watch the P99, not the average.",
+].join(" ");
+const SUCCESS_BODY = [
+	"Share of requests that came back with a 2xx status.",
+	"The mock upstream always succeeds, so anything below 100% is the proxy refusing traffic, hitting a timeout, or erroring internally.",
+].join(" ");
+const CONCURRENCY_BODY = [
+	"How many connections oha keeps open in parallel.",
+	"Higher numbers stress the proxy's connection pool and event loop.",
+	"The numbers are not directly comparable across machines.",
+].join(" ");
+const WARMUP_BODY = [
+	"A handful of requests sent before the timer starts.",
+	"These are discarded so the run measures steady-state, not first-request JIT, cache fill, or DNS.",
+].join(" ");
+const VERDICT_BODY = [
+	"A simple score: of {throughput, avg latency, p95 latency}, count the wins (higher is better for the first, lower is better for the rest).",
+	"2+ ⇒ better, 0 ⇒ worse, otherwise mixed.",
+].join(" ");
+const DELTA_BODY = [
+	"Percent change between the current run and the snapshot you selected above.",
+	"The throughput and latency color cues tell you which side of zero is good.",
+].join(" ");
+
+const GLOSSARY_ENTRIES = [
+	{
+		body: RPS_BODY,
+		title: "Requests per second",
+	} as const,
+	{
+		body: LATENCY_BODY,
+		title: "Latency (Avg, P95, P99)",
+	} as const,
+	{
+		body: SUCCESS_BODY,
+		title: "Success rate",
+	} as const,
+	{
+		body: CONCURRENCY_BODY,
+		title: "Concurrency",
+	} as const,
+	{
+		body: WARMUP_BODY,
+		title: "Warmup",
+	} as const,
+	{
+		body: VERDICT_BODY,
+		title: "Verdict (better / mixed / worse)",
+	} as const,
+	{
+		body: DELTA_BODY,
+		title: "Delta vs baseline",
+	} as const,
+].map((entry) => tag("div", { class: "glossary-item" }, [tag("h4", entry.title), tag("p", entry.body)]));
+
 function createGlossarySection(): HtmlNode {
-	const entries: ReadonlyArray<{ title: string; body: string }> = [
-		{
-			body: "How many HTTP requests the proxy finished per second on average across the run. The proxy is stateless, so this is a clean measure of CPU + I/O capacity on your machine.",
-			title: "Requests per second",
-		},
-		{
-			body: "Response time for the request, including network, parsing, and upstream work. P95/P99 are the worst case for most/all users. Watch the P99, not the average.",
-			title: "Latency (Avg, P95, P99)",
-		},
-		{
-			body: "Share of requests that came back with a 2xx status. The mock upstream always succeeds, so anything below 100% is the proxy refusing traffic, hitting a timeout, or erroring internally.",
-			title: "Success rate",
-		},
-		{
-			body: "How many connections oha keeps open in parallel. Higher numbers stress the proxy's connection pool and event loop. The numbers are not directly comparable across machines.",
-			title: "Concurrency",
-		},
-		{
-			body: "A handful of requests sent before the timer starts. These are discarded so the run measures steady-state, not first-request JIT, cache fill, or DNS.",
-			title: "Warmup",
-		},
-		{
-			body: "A simple score: of {throughput, avg latency, p95 latency}, count the wins (higher is better for the first, lower is better for the rest). 2+ ⇒ better, 0 ⇒ worse, otherwise mixed.",
-			title: "Verdict (better / mixed / worse)",
-		},
-		{
-			body: "Percent change between the current run and the snapshot you selected above. The throughput and latency color cues tell you which side of zero is good.",
-			title: "Delta vs baseline",
-		},
-	];
 	return tag("section", { "aria-label": "Metric glossary", class: "glossary" }, [
 		tag("details", [
 			tag("summary", "What do these numbers actually mean?"),
-			tag(
-				"div",
-				{ class: "glossary-body" },
-				entries.map((entry) =>
-					tag("div", { class: "glossary-item" }, [tag("h4", entry.title), tag("p", entry.body)]),
-				),
-			),
+			tag("div", { class: "glossary-body" }, GLOSSARY_ENTRIES),
 		]),
 	]);
 }
@@ -2109,10 +2150,27 @@ function getOpenAiResponse(): unknown {
 	};
 }
 
+function getWidths(rows: ReadonlyArray<ReadonlyArray<string>>): ReadonlyArray<number> {
+	const widths: Array<number> = [];
+	let size = 0;
+	const columnCount = rows[0]?.length ?? 0;
+
+	for (let columnIndex = 0; columnIndex < columnCount; columnIndex += 1) {
+		let maxWidth = 0;
+
+		for (const row of rows) {
+			const width = visibleLength(row[columnIndex] ?? "");
+			if (width > maxWidth) maxWidth = width;
+		}
+
+		widths[size++] = maxWidth;
+	}
+
+	return widths;
+}
+
 function printAlignedTable(rows: ReadonlyArray<ReadonlyArray<string>>): void {
-	const widths = rows[0]!.map((_, columnIndex) =>
-		Math.max(...rows.map((row) => visibleLength(row[columnIndex] ?? ""))),
-	);
+	const widths = getWidths(rows);
 	const divider = widths.map((width) => "-".repeat(width)).join("-+-");
 	for (const [index, row] of rows.entries()) {
 		const line = row
@@ -2248,14 +2306,21 @@ function sanitizeLabel(value: string): string {
 	return sanitizedValue || "default";
 }
 
-function createTimestamp(date = new Date()): string {
-	return `${[
+function getFirstTimestamp(date: Date): string {
+	return [
 		date.getFullYear(),
 		String(date.getMonth() + 1).padStart(2, "0"),
 		String(date.getDate()).padStart(2, "0"),
-	].join("")}-${[
+	].join("");
+}
+function getSecondTimestamp(date: Date): string {
+	return [
 		String(date.getHours()).padStart(2, "0"),
 		String(date.getMinutes()).padStart(2, "0"),
 		String(date.getSeconds()).padStart(2, "0"),
-	].join("")}`;
+	].join("");
+}
+
+function createTimestamp(date = new Date()): string {
+	return `${getFirstTimestamp(date)}-${getSecondTimestamp(date)}`;
 }
