@@ -8,6 +8,8 @@ import { html as renderHtml, raw, tag } from "@sander/html";
 import { join } from "@std/path";
 import { type } from "arktype";
 import { Effect } from "effect";
+import prettyBytes from "pretty-bytes";
+import prettyMilliseconds from "pretty-ms";
 
 import type { HtmlNode } from "@sander/html";
 
@@ -301,9 +303,9 @@ function printCurrentRunTable(summary: BenchmarkSummary): void {
 		...summary.endpoints.map((endpoint) => [
 			endpoint.endpoint,
 			formatNumber(endpoint.requestsPerSec),
-			formatMilliseconds(endpoint.averageMs),
-			formatMilliseconds(endpoint.p95Ms),
-			formatMilliseconds(endpoint.p99Ms),
+			prettyMilliseconds(endpoint.averageMs),
+			prettyMilliseconds(endpoint.p95Ms),
+			prettyMilliseconds(endpoint.p99Ms),
 			String(endpoint.errorCount),
 			formatPercent(endpoint.successRatePct),
 			renderBar(endpoint.requestsPerSec, maxRps, 24),
@@ -663,7 +665,12 @@ a { color: inherit; }
 }
 .chart-card canvas {
 	width: 100% !important;
-	height: 260px !important;
+	height: 100% !important;
+	display: block;
+}
+.chart-area {
+	position: relative;
+	height: 260px;
 	margin-top: 12px;
 }
 .chart-legend {
@@ -1001,7 +1008,7 @@ footer a:hover { color: var(--text); }
 	main { padding: 24px 16px 48px; }
 	.verdict { grid-template-columns: auto 1fr; padding: 16px; }
 	.verdict-tag { grid-column: 1 / -1; justify-self: start; }
-	.chart-card canvas { height: 220px !important; }
+	.chart-area { height: 220px; }
 	.ep-rps { font-size: 2rem; }
 	.qs-value { font-size: 1.5rem; }
 	th, td { padding: 10px 12px; }
@@ -1187,13 +1194,13 @@ function createQuickStatsSection(summary: BenchmarkSummary): HtmlNode {
 		createQuickStat(
 			"Fastest endpoint",
 			fastest?.endpoint ?? "—",
-			`${formatNumber(fastest?.requestsPerSec ?? 0)} req/s · ${formatMilliseconds(fastest?.p95Ms ?? 0)} p95`,
+			`${formatNumber(fastest?.requestsPerSec ?? 0)} req/s · ${prettyMilliseconds(fastest?.p95Ms ?? 0)} p95`,
 			"cyan",
 		),
 		createQuickStat(
 			"Heaviest endpoint",
 			slowest?.endpoint ?? "—",
-			`${formatNumber(slowest?.requestsPerSec ?? 0)} req/s · ${formatMilliseconds(slowest?.p99Ms ?? 0)} p99`,
+			`${formatNumber(slowest?.requestsPerSec ?? 0)} req/s · ${prettyMilliseconds(slowest?.p99Ms ?? 0)} p99`,
 			"violet",
 		),
 		createQuickStat(
@@ -1202,7 +1209,7 @@ function createQuickStatsSection(summary: BenchmarkSummary): HtmlNode {
 			`avg across ${summary.endpoints.length} endpoints`,
 			"emerald",
 		),
-		createQuickStat("Data moved", formatBytes(totalData), "total response bytes observed", "blue"),
+		createQuickStat("Data moved", prettyBytes(totalData), "total response bytes observed", "blue"),
 	]);
 }
 
@@ -1214,23 +1221,11 @@ function createQuickStat(label: string, value: string, sub: string, accent: Quic
 		indigo: "linear-gradient(135deg, #6366f1 0%, #22d3ee 100%)",
 		violet: "linear-gradient(135deg, #c084fc 0%, #818cf8 100%)",
 	};
-	return tag("div", { class: "qs" }, [
+	return tag("div", { class: "qs", style: `--qs-accent:${accentColors[accent]}` }, [
 		tag("p", { class: "qs-label" }, label),
 		tag("p", { class: "qs-value" }, value),
 		tag("p", { class: "qs-sub" }, sub),
-		raw(`<style>.qs:nth-child(${accentToIndex(accent)})::after{background:${accentColors[accent]}}</style>`),
 	]);
-}
-
-function accentToIndex(accent: "indigo" | "cyan" | "violet" | "emerald" | "blue"): string {
-	const map: Record<"indigo" | "cyan" | "violet" | "emerald" | "blue", string> = {
-		blue: "5",
-		cyan: "2",
-		emerald: "4",
-		indigo: "1",
-		violet: "3",
-	};
-	return map[accent];
 }
 
 function createSparklineSection(summary: BenchmarkSummary, sparkline: string): HtmlNode {
@@ -1271,22 +1266,18 @@ function createSparklineSection(summary: BenchmarkSummary, sparkline: string): H
 			<path class="area" d="${areaPath}"/>
 			<path class="line" d="${linePath}"/>
 			${points.map((point) => `<circle cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="3.5"/>`).join("")}
-			${
-			labels
+			${labels
 				.map((label, index) => {
 					const point = points[index];
 					if (!point) return "";
 					let anchor = "middle";
 					if (index === 0) anchor = "start";
 					else if (index === points.length - 1) anchor = "end";
-					return `<text x="${point.x.toFixed(1)}" y="${
-						(height - 0.5).toFixed(
-							1,
-						)
-					}" text-anchor="${anchor}">${label}</text>`;
+					return `<text x="${point.x.toFixed(1)}" y="${(height - 0.5).toFixed(
+						1,
+					)}" text-anchor="${anchor}">${label}</text>`;
 				})
-				.join("")
-		}
+				.join("")}
 		</svg>`),
 	]);
 }
@@ -1356,12 +1347,12 @@ function createChartCard(options: {
 }): HtmlNode {
 	return tag("article", { class: "chart-card" }, [
 		tag("div", { class: "chart-card-head" }, [tag("div", [tag("h3", options.title), tag("p", options.subtitle)])]),
-		tag("canvas", { "aria-label": options.ariaLabel, id: options.canvasId }),
+		tag("div", { class: "chart-area" }, [tag("canvas", { "aria-label": options.ariaLabel, id: options.canvasId })]),
 		tag(
 			"div",
 			{ class: "chart-legend" },
 			options.legend.map((entry) =>
-				tag("span", { class: "legend-dot", "data-swatch": entry.swatch }, entry.label)
+				tag("span", { class: "legend-dot", "data-swatch": entry.swatch }, entry.label),
 			),
 		),
 	]);
@@ -1387,27 +1378,25 @@ function createEndpointCard(endpoint: EndpointSummary, maxRequestsPerSecond: num
 		tag("div", { class: "ep-stats" }, [
 			createEndpointStat(
 				"Avg",
-				formatMilliseconds(endpoint.averageMs),
+				prettyMilliseconds(endpoint.averageMs),
 				"Mean response time across all requests in this run.",
 			),
 			createEndpointStat(
 				"P95",
-				formatMilliseconds(endpoint.p95Ms),
+				prettyMilliseconds(endpoint.p95Ms),
 				"95% of requests finished at or below this latency. The realistic user experience.",
 			),
 			createEndpointStat(
 				"P99",
-				formatMilliseconds(endpoint.p99Ms),
+				prettyMilliseconds(endpoint.p99Ms),
 				"99% of requests finished at or below this latency. The slow tail.",
 			),
 			createEndpointStat(
 				"Success",
 				formatPercent(endpoint.successRatePct),
-				`${endpoint.errorCount} error${endpoint.errorCount === 1 ? "" : "s"} · ${
-					formatBytes(
-						endpoint.totalDataBytes,
-					)
-				} returned`,
+				`${endpoint.errorCount} error${endpoint.errorCount === 1 ? "" : "s"} · ${prettyBytes(
+					endpoint.totalDataBytes,
+				)} returned`,
 			),
 		]),
 	]);
@@ -1450,9 +1439,9 @@ function createHtmlComparisonSection(hasBaseline: boolean): HtmlNode {
 					tag(
 						"p",
 						{ class: "muted", style: "margin: 0; font-size: 0.8rem;" },
-						hasBaseline ?
-							"Snapshots are saved under benchmarks/results/<timestamp>-<label>/." :
-							"No saved baseline yet. Run another benchmark to populate this list.",
+						hasBaseline
+							? "Snapshots are saved under benchmarks/results/<timestamp>-<label>/."
+							: "No saved baseline yet. Run another benchmark to populate this list.",
 					),
 				]),
 				tag("label", { class: "baseline-control" }, [
@@ -1463,9 +1452,9 @@ function createHtmlComparisonSection(hasBaseline: boolean): HtmlNode {
 			tag(
 				"p",
 				{ id: "baseline-details" },
-				hasBaseline ?
-					"Select a baseline to update the delta chart above and the table below." :
-					"No saved baseline yet. Run another benchmark to compare.",
+				hasBaseline
+					? "Select a baseline to update the delta chart above and the table below."
+					: "No saved baseline yet. Run another benchmark to compare.",
 			),
 			tag("div", { class: "cmp-table-wrap" }, [
 				tag("table", [
@@ -1489,38 +1478,31 @@ function createHtmlComparisonSection(hasBaseline: boolean): HtmlNode {
 function createGlossarySection(): HtmlNode {
 	const entries: ReadonlyArray<{ title: string; body: string }> = [
 		{
-			body:
-				"How many HTTP requests the proxy finished per second on average across the run. The proxy is stateless, so this is a clean measure of CPU + I/O capacity on your machine.",
+			body: "How many HTTP requests the proxy finished per second on average across the run. The proxy is stateless, so this is a clean measure of CPU + I/O capacity on your machine.",
 			title: "Requests per second",
 		},
 		{
-			body:
-				"Response time for the request, including network, parsing, and upstream work. P95/P99 are the worst case for most/all users. Watch the P99, not the average.",
+			body: "Response time for the request, including network, parsing, and upstream work. P95/P99 are the worst case for most/all users. Watch the P99, not the average.",
 			title: "Latency (Avg, P95, P99)",
 		},
 		{
-			body:
-				"Share of requests that came back with a 2xx status. The mock upstream always succeeds, so anything below 100% is the proxy refusing traffic, hitting a timeout, or erroring internally.",
+			body: "Share of requests that came back with a 2xx status. The mock upstream always succeeds, so anything below 100% is the proxy refusing traffic, hitting a timeout, or erroring internally.",
 			title: "Success rate",
 		},
 		{
-			body:
-				"How many connections oha keeps open in parallel. Higher numbers stress the proxy's connection pool and event loop. The numbers are not directly comparable across machines.",
+			body: "How many connections oha keeps open in parallel. Higher numbers stress the proxy's connection pool and event loop. The numbers are not directly comparable across machines.",
 			title: "Concurrency",
 		},
 		{
-			body:
-				"A handful of requests sent before the timer starts. These are discarded so the run measures steady-state, not first-request JIT, cache fill, or DNS.",
+			body: "A handful of requests sent before the timer starts. These are discarded so the run measures steady-state, not first-request JIT, cache fill, or DNS.",
 			title: "Warmup",
 		},
 		{
-			body:
-				"A simple score: of {throughput, avg latency, p95 latency}, count the wins (higher is better for the first, lower is better for the rest). 2+ ⇒ better, 0 ⇒ worse, otherwise mixed.",
+			body: "A simple score: of {throughput, avg latency, p95 latency}, count the wins (higher is better for the first, lower is better for the rest). 2+ ⇒ better, 0 ⇒ worse, otherwise mixed.",
 			title: "Verdict (better / mixed / worse)",
 		},
 		{
-			body:
-				"Percent change between the current run and the snapshot you selected above. The throughput and latency color cues tell you which side of zero is good.",
+			body: "Percent change between the current run and the snapshot you selected above. The throughput and latency color cues tell you which side of zero is good.",
 			title: "Delta vs baseline",
 		},
 	];
@@ -1531,7 +1513,7 @@ function createGlossarySection(): HtmlNode {
 				"div",
 				{ class: "glossary-body" },
 				entries.map((entry) =>
-					tag("div", { class: "glossary-item" }, [tag("h4", entry.title), tag("p", entry.body)])
+					tag("div", { class: "glossary-item" }, [tag("h4", entry.title), tag("p", entry.body)]),
 				),
 			),
 		]),
@@ -1572,6 +1554,7 @@ const tooltipStyle = {
 	backgroundColor: "#0a0d18",
 	borderColor: "#3a4570",
 	borderWidth: 1,
+	clip: false,
 	cornerRadius: 10,
 	padding: 10,
 	titleColor: "#eef1ff",
@@ -1853,34 +1836,14 @@ const deltaChart = new Chart(document.getElementById("delta-chart"), {
 	type: "bar",
 });
 
-const deltaMirror = new Chart(document.getElementById("delta-chart-mirror"), {
-	data: {
-		datasets: deltaDatasets(selectedBaseline()),
-		labels: endpointLabels,
-	},
-	options: Object.assign({}, commonOptions, {
-		scales: divergingScale,
-		plugins: Object.assign({}, commonOptions.plugins, {
-			tooltip: Object.assign({}, tooltipStyle, {
-				callbacks: {
-					label: (context) => context.dataset.label + ": " + formatDelta(context.parsed.y),
-				},
-			}),
-		}),
-	}),
-	type: "bar",
-});
-
 function updateComparison() {
 	const baseline = selectedBaseline();
 	const throughputDatasetsResult = throughputDatasets(baseline);
 	const deltaDatasetsResult = deltaDatasets(baseline);
 	throughputChart.data.datasets = throughputDatasetsResult;
 	deltaChart.data.datasets = deltaDatasetsResult;
-	deltaMirror.data.datasets = deltaDatasetsResult;
 	throughputChart.update();
 	deltaChart.update();
-	deltaMirror.update();
 	renderComparisonTable(baseline);
 	updateBaselineDetails(baseline);
 }
@@ -2148,7 +2111,7 @@ function getOpenAiResponse(): unknown {
 
 function printAlignedTable(rows: ReadonlyArray<ReadonlyArray<string>>): void {
 	const widths = rows[0]!.map((_, columnIndex) =>
-		Math.max(...rows.map((row) => visibleLength(row[columnIndex] ?? "")))
+		Math.max(...rows.map((row) => visibleLength(row[columnIndex] ?? ""))),
 	);
 	const divider = widths.map((width) => "-".repeat(width)).join("-+-");
 	for (const [index, row] of rows.entries()) {
@@ -2197,26 +2160,8 @@ function formatNumber(value: number): string {
 	}).format(value);
 }
 
-function formatMilliseconds(value: number): string {
-	let decimals = 2;
-	if (value >= 100) decimals = 0;
-	else if (value >= 10) decimals = 1;
-	return `${value.toFixed(decimals)} ms`;
-}
-
 function formatPercent(value: number): string {
 	return `${value.toFixed(2)}%`;
-}
-
-function formatBytes(value: number): string {
-	if (!Number.isFinite(value) || value <= 0) return "0 B";
-	const units = ["B", "KB", "MB", "GB", "TB"] as const;
-	const exponent = Math.min(units.length - 1, Math.floor(Math.log10(value) / 3));
-	const scaled = value / 10 ** (exponent * 3);
-	let decimals = 2;
-	if (scaled >= 100) decimals = 0;
-	else if (scaled >= 10) decimals = 1;
-	return `${scaled.toFixed(decimals)} ${units[exponent]}`;
 }
 
 function formatReportDate(isoString: string): string {
@@ -2304,17 +2249,13 @@ function sanitizeLabel(value: string): string {
 }
 
 function createTimestamp(date = new Date()): string {
-	return `${
-		[
-			date.getFullYear(),
-			String(date.getMonth() + 1).padStart(2, "0"),
-			String(date.getDate()).padStart(2, "0"),
-		].join("")
-	}-${
-		[
-			String(date.getHours()).padStart(2, "0"),
-			String(date.getMinutes()).padStart(2, "0"),
-			String(date.getSeconds()).padStart(2, "0"),
-		].join("")
-	}`;
+	return `${[
+		date.getFullYear(),
+		String(date.getMonth() + 1).padStart(2, "0"),
+		String(date.getDate()).padStart(2, "0"),
+	].join("")}-${[
+		String(date.getHours()).padStart(2, "0"),
+		String(date.getMinutes()).padStart(2, "0"),
+		String(date.getSeconds()).padStart(2, "0"),
+	].join("")}`;
 }
