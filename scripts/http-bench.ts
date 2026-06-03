@@ -100,6 +100,11 @@ await new Command()
 			.option("--concurrency <connections:number>", "Concurrent oha connections.", { default: 50 })
 			.option("--warmup-requests <requests:number>", "Warmup POST requests before benchmarking.", { default: 5 })
 			.option("--label <label:string>", "Label for this snapshot.", { default: "default" })
+			.option(
+				"--compare-to <baseline:string>",
+				"Default baseline for terminal output and the HTML selector. Use latest, none, a snapshot id, a label, or a summary.json path.",
+				{ default: "latest" },
+			)
 			.option("--host <host:string>", "Bind host for the local servers.", { default: "127.0.0.1" })
 			.option("--port <port:number>", "Local port for the proxy under test. Use 0 to auto-pick a free port.", {
 				default: 0,
@@ -324,14 +329,12 @@ function printComparisonTable(current: BenchmarkSummary, previous: BenchmarkSumm
 function createHtmlReport(
 	current: BenchmarkSummary,
 	previous: BenchmarkSummary | undefined,
-	sparkline: string | undefined,
+	_sparkline: string | undefined,
 ): string {
 	const maxRequestsPerSecond = Math.max(...current.endpoints.map((endpoint) => endpoint.requestsPerSec));
 	const cards = current.endpoints.map((endpoint) => createEndpointCard(endpoint, maxRequestsPerSecond)).join("\n");
 	const comparison = previous ? createHtmlComparison(current, previous) : createNoComparisonHtml();
-	const sparklineHtml = sparkline
-		? `<div class="sparkline" aria-label="Throughput sparkline">${escapeHtml(sparkline)}</div>`
-		: "";
+	const chartData = serializeReportChartData(current, previous);
 
 	return `<!doctype html>
 <html lang="en">
@@ -372,6 +375,7 @@ function createHtmlReport(
 			padding: 6px 10px;
 		}
 		.grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+		.chart-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); margin: 18px 0; }
 		.card, .section {
 			background: linear-gradient(180deg, rgb(255 255 255 / 0.07), rgb(255 255 255 / 0.03));
 			border: 1px solid var(--line);
@@ -379,6 +383,8 @@ function createHtmlReport(
 			box-shadow: 0 18px 60px rgb(0 0 0 / 0.28);
 		}
 		.card { padding: 18px; }
+		.chart-card { padding: 18px 18px 12px; }
+		.chart-card canvas { height: 300px !important; width: 100% !important; }
 		.endpoint { color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
 		.rps { font-size: 2.25rem; font-weight: 800; letter-spacing: -0.04em; margin: 6px 0; }
 		.label { color: var(--muted); font-size: 0.78rem; letter-spacing: 0.09em; text-transform: uppercase; }
@@ -389,6 +395,7 @@ function createHtmlReport(
 		.stat strong { display: block; font-size: 1.08rem; }
 		.section { margin-top: 18px; overflow: hidden; }
 		.section h2 { margin: 0; padding: 18px 20px; }
+		.chart-card h2 { margin: 0 0 14px; }
 		table { border-collapse: collapse; width: 100%; }
 		th, td { border-top: 1px solid var(--line); padding: 12px 20px; text-align: right; }
 		th:first-child, td:first-child { text-align: left; }
@@ -396,14 +403,6 @@ function createHtmlReport(
 		.good { color: var(--green); }
 		.bad { color: var(--red); }
 		.mixed { color: var(--yellow); }
-		.sparkline {
-			background: var(--panel);
-			border: 1px solid var(--line);
-			border-radius: 20px;
-			font: 3rem/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-			letter-spacing: 0.08em;
-			padding: 20px;
-		}
 		.muted { color: var(--muted); }
 		footer { color: var(--muted); margin-top: 24px; }
 	</style>
@@ -420,13 +419,116 @@ function createHtmlReport(
 				<span class="pill">Warmup ${current.warmupRequests}</span>
 			</div>
 		</header>
-		${sparklineHtml}
+		<section class="chart-grid" aria-label="Charts">
+			<article class="card chart-card">
+				<h2>Throughput</h2>
+				<canvas id="throughput-chart" aria-label="Requests per second by endpoint"></canvas>
+			</article>
+			<article class="card chart-card">
+				<h2>Latency</h2>
+				<canvas id="latency-chart" aria-label="Latency percentiles by endpoint"></canvas>
+			</article>
+			<article class="card chart-card">
+				<h2>Success rate</h2>
+				<canvas id="success-chart" aria-label="Success rate by endpoint"></canvas>
+			</article>
+			<article class="card chart-card">
+				<h2>Delta vs previous</h2>
+				<canvas id="delta-chart" aria-label="Percent change versus previous run"></canvas>
+			</article>
+		</section>
 		<section class="grid" aria-label="Endpoint throughput cards">
 			${cards}
 		</section>
 		${comparison}
-		<footer>Raw oha JSON and summary JSON are saved next to this report.</footer>
+		<footer>Raw oha JSON and summary JSON are saved next to this report. Charts load via Chart.js CDN.</footer>
 	</main>
+	<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+	<script>
+		const reportData = ${chartData};
+		const chartTextColor = "#eef4ff";
+		const chartGridColor = "rgba(149, 163, 189, 0.18)";
+		const chartLabelColor = "#95a3bd";
+		Chart.defaults.color = chartTextColor;
+		Chart.defaults.borderColor = chartGridColor;
+		Chart.defaults.font.family = 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+
+		const commonScales = {
+			x: { ticks: { color: chartLabelColor }, grid: { color: chartGridColor } },
+			y: { ticks: { color: chartLabelColor }, grid: { color: chartGridColor } },
+		};
+
+		new Chart(document.getElementById("throughput-chart"), {
+			type: "bar",
+			data: {
+				labels: reportData.labels,
+				datasets: [{
+					label: "Req/s",
+					data: reportData.requestsPerSec,
+					backgroundColor: ["#22d3ee", "#60a5fa", "#a78bfa"],
+					borderRadius: 10,
+				}],
+			},
+			options: {
+				maintainAspectRatio: false,
+				plugins: { legend: { display: false } },
+				scales: commonScales,
+			},
+		});
+
+		new Chart(document.getElementById("latency-chart"), {
+			type: "bar",
+			data: {
+				labels: reportData.labels,
+				datasets: [
+					{ label: "Avg ms", data: reportData.averageMs, backgroundColor: "#22d3ee", borderRadius: 8 },
+					{ label: "P95 ms", data: reportData.p95Ms, backgroundColor: "#a78bfa", borderRadius: 8 },
+					{ label: "P99 ms", data: reportData.p99Ms, backgroundColor: "#f472b6", borderRadius: 8 },
+				],
+			},
+			options: {
+				maintainAspectRatio: false,
+				scales: commonScales,
+			},
+		});
+
+		new Chart(document.getElementById("success-chart"), {
+			type: "bar",
+			data: {
+				labels: reportData.labels,
+				datasets: [{
+					label: "Success %",
+					data: reportData.successRatePct,
+					backgroundColor: "#4ade80",
+					borderRadius: 10,
+				}],
+			},
+			options: {
+				maintainAspectRatio: false,
+				plugins: { legend: { display: false } },
+				scales: {
+					x: commonScales.x,
+					y: { ...commonScales.y, min: 0, max: 100 },
+				},
+			},
+		});
+
+		new Chart(document.getElementById("delta-chart"), {
+			type: "bar",
+			data: {
+				labels: reportData.labels,
+				datasets: [
+					{ label: "Req/s Δ %", data: reportData.requestsPerSecDeltaPct, backgroundColor: "#22d3ee", borderRadius: 8 },
+					{ label: "Avg Δ %", data: reportData.averageDeltaPct, backgroundColor: "#fb7185", borderRadius: 8 },
+					{ label: "P95 Δ %", data: reportData.p95DeltaPct, backgroundColor: "#facc15", borderRadius: 8 },
+				],
+			},
+			options: {
+				maintainAspectRatio: false,
+				scales: commonScales,
+			},
+		});
+	</script>
 </body>
 </html>
 `;
@@ -496,6 +598,34 @@ function createNoComparisonHtml(): string {
 function getDeltaClass(value: number, higherIsBetter: boolean): string {
 	const isGood = higherIsBetter ? value >= 0 : value <= 0;
 	return isGood ? "good" : "bad";
+}
+
+function serializeReportChartData(current: BenchmarkSummary, previous: BenchmarkSummary | undefined): string {
+	const labels = current.endpoints.map((endpoint) => endpoint.endpoint);
+	const requestsPerSecDeltaPct = current.endpoints.map((endpoint) => {
+		const baseline = previous?.endpoints.find((value) => value.endpoint === endpoint.endpoint);
+		return baseline ? getPercentChange(baseline.requestsPerSec, endpoint.requestsPerSec) : 0;
+	});
+	const averageDeltaPct = current.endpoints.map((endpoint) => {
+		const baseline = previous?.endpoints.find((value) => value.endpoint === endpoint.endpoint);
+		return baseline ? getPercentChange(baseline.averageMs, endpoint.averageMs) : 0;
+	});
+	const p95DeltaPct = current.endpoints.map((endpoint) => {
+		const baseline = previous?.endpoints.find((value) => value.endpoint === endpoint.endpoint);
+		return baseline ? getPercentChange(baseline.p95Ms, endpoint.p95Ms) : 0;
+	});
+
+	return JSON.stringify({
+		averageDeltaPct,
+		averageMs: current.endpoints.map((endpoint) => endpoint.averageMs),
+		labels,
+		p95DeltaPct,
+		p95Ms: current.endpoints.map((endpoint) => endpoint.p95Ms),
+		p99Ms: current.endpoints.map((endpoint) => endpoint.p99Ms),
+		requestsPerSec: current.endpoints.map((endpoint) => endpoint.requestsPerSec),
+		requestsPerSecDeltaPct,
+		successRatePct: current.endpoints.map((endpoint) => endpoint.successRatePct),
+	}).replaceAll("<", String.raw`\u003c`);
 }
 
 function escapeHtml(value: string): string {
