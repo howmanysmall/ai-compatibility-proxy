@@ -13,6 +13,68 @@ import prettyMilliseconds from "pretty-ms";
 
 import type { HtmlNode } from "@sander/html";
 
+const RPS_BODY = [
+	"How many HTTP requests the proxy finished per second on average across the run.",
+	"The proxy is stateless, so this is a clean measure of CPU + I/O capacity on your machine.",
+].join(" ");
+const LATENCY_BODY = [
+	"Response time for the request, including network, parsing, and upstream work.",
+	"P95/P99 are the worst case for most/all users.",
+	"Watch the P99, not the average.",
+].join(" ");
+const SUCCESS_BODY = [
+	"Share of requests that came back with a 2xx status.",
+	"The mock upstream always succeeds, so anything below 100% is the proxy refusing traffic, hitting a timeout, or erroring internally.",
+].join(" ");
+const CONCURRENCY_BODY = [
+	"How many connections oha keeps open in parallel.",
+	"Higher numbers stress the proxy's connection pool and event loop.",
+	"The numbers are not directly comparable across machines.",
+].join(" ");
+const WARMUP_BODY = [
+	"A handful of requests sent before the timer starts.",
+	"These are discarded so the run measures steady-state, not first-request JIT, cache fill, or DNS.",
+].join(" ");
+const VERDICT_BODY = [
+	"A simple score: of {throughput, avg latency, p95 latency}, count the wins (higher is better for the first, lower is better for the rest).",
+	"2+ ⇒ better, 0 ⇒ worse, otherwise mixed.",
+].join(" ");
+const DELTA_BODY = [
+	"Percent change between the current run and the snapshot you selected above.",
+	"The throughput and latency color cues tell you which side of zero is good.",
+].join(" ");
+
+const GLOSSARY_ENTRIES = [
+	{
+		body: RPS_BODY,
+		title: "Requests per second",
+	} as const,
+	{
+		body: LATENCY_BODY,
+		title: "Latency (Avg, P95, P99)",
+	} as const,
+	{
+		body: SUCCESS_BODY,
+		title: "Success rate",
+	} as const,
+	{
+		body: CONCURRENCY_BODY,
+		title: "Concurrency",
+	} as const,
+	{
+		body: WARMUP_BODY,
+		title: "Warmup",
+	} as const,
+	{
+		body: VERDICT_BODY,
+		title: "Verdict (better / mixed / worse)",
+	} as const,
+	{
+		body: DELTA_BODY,
+		title: "Delta vs baseline",
+	} as const,
+].map((entry) => tag("div", { class: "glossary-item" }, [tag("h4", entry.title), tag("p", entry.body)]));
+
 const isOhaSummary = type({
 	average: "number",
 	requestsPerSec: "number",
@@ -1489,68 +1551,6 @@ function createHtmlComparisonSection(hasBaseline: boolean): HtmlNode {
 		]),
 	]);
 }
-
-const RPS_BODY = [
-	"How many HTTP requests the proxy finished per second on average across the run.",
-	"The proxy is stateless, so this is a clean measure of CPU + I/O capacity on your machine.",
-].join(" ");
-const LATENCY_BODY = [
-	"Response time for the request, including network, parsing, and upstream work.",
-	"P95/P99 are the worst case for most/all users.",
-	"Watch the P99, not the average.",
-].join(" ");
-const SUCCESS_BODY = [
-	"Share of requests that came back with a 2xx status.",
-	"The mock upstream always succeeds, so anything below 100% is the proxy refusing traffic, hitting a timeout, or erroring internally.",
-].join(" ");
-const CONCURRENCY_BODY = [
-	"How many connections oha keeps open in parallel.",
-	"Higher numbers stress the proxy's connection pool and event loop.",
-	"The numbers are not directly comparable across machines.",
-].join(" ");
-const WARMUP_BODY = [
-	"A handful of requests sent before the timer starts.",
-	"These are discarded so the run measures steady-state, not first-request JIT, cache fill, or DNS.",
-].join(" ");
-const VERDICT_BODY = [
-	"A simple score: of {throughput, avg latency, p95 latency}, count the wins (higher is better for the first, lower is better for the rest).",
-	"2+ ⇒ better, 0 ⇒ worse, otherwise mixed.",
-].join(" ");
-const DELTA_BODY = [
-	"Percent change between the current run and the snapshot you selected above.",
-	"The throughput and latency color cues tell you which side of zero is good.",
-].join(" ");
-
-const GLOSSARY_ENTRIES = [
-	{
-		body: RPS_BODY,
-		title: "Requests per second",
-	} as const,
-	{
-		body: LATENCY_BODY,
-		title: "Latency (Avg, P95, P99)",
-	} as const,
-	{
-		body: SUCCESS_BODY,
-		title: "Success rate",
-	} as const,
-	{
-		body: CONCURRENCY_BODY,
-		title: "Concurrency",
-	} as const,
-	{
-		body: WARMUP_BODY,
-		title: "Warmup",
-	} as const,
-	{
-		body: VERDICT_BODY,
-		title: "Verdict (better / mixed / worse)",
-	} as const,
-	{
-		body: DELTA_BODY,
-		title: "Delta vs baseline",
-	} as const,
-].map((entry) => tag("div", { class: "glossary-item" }, [tag("h4", entry.title), tag("p", entry.body)]));
 
 function createGlossarySection(): HtmlNode {
 	return tag("section", { "aria-label": "Metric glossary", class: "glossary" }, [
