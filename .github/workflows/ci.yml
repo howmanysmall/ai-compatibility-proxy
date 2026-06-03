@@ -18,11 +18,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: jdx/mise-action@v2
         with:
           install: true
-
       - run: mise x -- deno check
 
   lint:
@@ -30,23 +28,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: jdx/mise-action@v2
         with:
           install: true
-
-      - run: mise x -- deno task lint
+      - run: mise x -- deno task oxlint --format github
+      - run: mise x -- deno task biome ci --reporter github
+      - run: mise x -- deno lint
 
   format:
     name: Format Check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: jdx/mise-action@v2
         with:
           install: true
-
       - run: mise x -- deno task format:check
 
   test:
@@ -54,9 +50,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: jdx/mise-action@v2
         with:
           install: true
-
       - run: mise x -- deno test

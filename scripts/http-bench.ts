@@ -335,97 +335,690 @@ function getReportStyles(): string {
 	return String.raw`
 :root {
 	color-scheme: dark;
-	--bg: #0b1020;
-	--panel: #111a2e;
-	--panel-strong: #17233d;
-	--text: #eef4ff;
-	--muted: #95a3bd;
-	--line: #263653;
-	--green: #4ade80;
-	--red: #fb7185;
-	--yellow: #facc15;
+	--bg: #08091a;
+	--bg-2: #0d1027;
+	--surface: #141a30;
+	--surface-2: #1a2238;
+	--surface-3: #232c48;
+	--line: #2a3354;
+	--line-strong: #3a4570;
+	--text: #eef1ff;
+	--text-dim: #a3accc;
+	--text-faint: #6b749a;
+	--accent: #818cf8;
+	--accent-2: #22d3ee;
+	--accent-glow: rgba(129, 140, 248, 0.35);
+	--good: #34d399;
+	--bad: #f87171;
+	--warn: #fbbf24;
+	--pink: #f472b6;
+	--violet: #c084fc;
+	--blue: #60a5fa;
 	--cyan: #22d3ee;
-	--violet: #a78bfa;
+	--emerald: #10b981;
+	--rose: #fb7185;
+	--amber: #f59e0b;
+	--grad-accent: linear-gradient(135deg, #6366f1 0%, #22d3ee 100%);
+	--grad-good: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+	--grad-bad: linear-gradient(135deg, #f43f5e 0%, #f87171 100%);
+	--grad-warn: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+	--grad-text: linear-gradient(180deg, #ffffff 0%, #a3accc 100%);
+	--grid-line: rgba(58, 69, 112, 0.45);
+	--grid-line-strong: rgba(58, 69, 112, 0.8);
+	--shadow-1: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 30px 80px -20px rgba(0, 0, 0, 0.5);
+	--radius-sm: 10px;
+	--radius: 16px;
+	--radius-lg: 22px;
+	--ease: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 * { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
 body {
-	margin: 0;
-	background: radial-gradient(circle at top left, #19335f 0, transparent 32rem), var(--bg);
+	min-height: 100vh;
+	background:
+		radial-gradient(1200px 600px at 0% -10%, rgba(99, 102, 241, 0.18), transparent 60%),
+		radial-gradient(900px 500px at 100% 0%, rgba(34, 211, 238, 0.12), transparent 60%),
+		radial-gradient(800px 600px at 50% 100%, rgba(192, 132, 252, 0.08), transparent 60%),
+		var(--bg);
 	color: var(--text);
-	font: 15px/1.5 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+	font: 15px/1.55 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+	font-feature-settings: "ss01", "cv11", "tnum";
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
 }
-main { margin: 0 auto; max-width: 1120px; padding: 40px 24px 56px; }
-header { display: grid; gap: 16px; margin-bottom: 28px; }
-h1 { font-size: clamp(2rem, 5vw, 4rem); line-height: 1; margin: 0; letter-spacing: -0.05em; }
-.meta { color: var(--muted); display: flex; flex-wrap: wrap; gap: 10px; }
-.pill {
-	background: rgb(255 255 255 / 0.07);
+main { margin: 0 auto; max-width: 1180px; padding: 32px 24px 64px; }
+a { color: inherit; }
+
+/* ---------- Header ---------- */
+.hero {
+	display: grid;
+	gap: 18px;
+	margin-bottom: 28px;
+}
+.brand {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	color: var(--text-dim);
+	font-size: 0.72rem;
+	letter-spacing: 0.18em;
+	text-transform: uppercase;
+}
+.brand-mark {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 22px;
+	height: 22px;
+	border-radius: 6px;
+	background: var(--grad-accent);
+	box-shadow: 0 0 24px var(--accent-glow);
+	position: relative;
+}
+.brand-mark svg { width: 12px; height: 12px; color: #fff; }
+.hero-title {
+	font-size: clamp(2.4rem, 6vw, 4.4rem);
+	line-height: 0.95;
+	margin: 0;
+	letter-spacing: -0.045em;
+	font-weight: 800;
+	background: var(--grad-text);
+	-webkit-background-clip: text;
+	background-clip: text;
+	color: transparent;
+}
+.hero-title .tag {
+	display: inline-block;
+	font-size: 0.32em;
+	font-weight: 600;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--text-dim);
+	background: var(--surface);
 	border: 1px solid var(--line);
 	border-radius: 999px;
 	padding: 6px 10px;
+	margin-left: 12px;
+	vertical-align: middle;
+	-webkit-text-fill-color: var(--text-dim);
 }
-.comparison-header {
-	align-items: center;
+.hero-sub {
+	color: var(--text-dim);
+	font-size: 0.95rem;
+	max-width: 60ch;
+	margin: 0;
+}
+.pill-row {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 12px;
-	justify-content: space-between;
-	padding: 18px 20px 8px;
-}
-.comparison-header h2 { margin: 0; padding: 0; }
-.baseline-control {
-	align-items: center;
-	color: var(--muted);
-	display: flex;
 	gap: 8px;
 }
-select {
-	background: var(--panel-strong);
+.pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	background: var(--surface);
 	border: 1px solid var(--line);
-	border-radius: 12px;
+	border-radius: 999px;
+	color: var(--text-dim);
+	font-size: 0.78rem;
+	letter-spacing: 0.04em;
+	padding: 6px 12px;
+}
+.pill strong { color: var(--text); font-weight: 600; }
+
+/* ---------- Verdict banner ---------- */
+.verdict {
+	display: grid;
+	grid-template-columns: auto 1fr auto;
+	gap: 18px;
+	align-items: center;
+	padding: 20px 22px;
+	border: 1px solid var(--line);
+	border-radius: var(--radius-lg);
+	background:
+		linear-gradient(135deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01)),
+		var(--surface);
+	box-shadow: var(--shadow-1);
+	margin-bottom: 24px;
+	position: relative;
+	overflow: hidden;
+}
+.verdict::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background: var(--verdict-strip, transparent);
+	opacity: 0.18;
+	pointer-events: none;
+}
+.verdict[data-state="better"] { --verdict-strip: var(--grad-good); border-color: rgba(52, 211, 153, 0.35); }
+.verdict[data-state="mixed"]  { --verdict-strip: var(--grad-warn); border-color: rgba(251, 191, 36, 0.35); }
+.verdict[data-state="worse"]  { --verdict-strip: var(--grad-bad);  border-color: rgba(248, 113, 113, 0.35); }
+.verdict[data-state="solo"]   { --verdict-strip: var(--grad-accent); }
+.verdict-icon {
+	width: 52px;
+	height: 52px;
+	border-radius: 14px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 1.6rem;
+	font-weight: 700;
+	color: #fff;
+	background: var(--verdict-strip, var(--grad-accent));
+	box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+	z-index: 1;
+}
+.verdict[data-state="better"] .verdict-icon { box-shadow: 0 8px 28px rgba(16, 185, 129, 0.4); }
+.verdict[data-state="worse"]  .verdict-icon { box-shadow: 0 8px 28px rgba(244, 63, 94, 0.4); }
+.verdict[data-state="mixed"]  .verdict-icon { box-shadow: 0 8px 28px rgba(245, 158, 11, 0.4); }
+.verdict-body { z-index: 1; }
+.verdict-title {
+	font-size: 1.15rem;
+	font-weight: 700;
+	letter-spacing: -0.01em;
+	margin: 0 0 4px;
+}
+.verdict-detail {
+	font-size: 0.88rem;
+	color: var(--text-dim);
+	margin: 0;
+}
+.verdict-tag {
+	font-size: 0.7rem;
+	font-weight: 700;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	padding: 4px 10px;
+	border-radius: 999px;
+	background: rgba(0, 0, 0, 0.3);
+	border: 1px solid var(--line-strong);
+	color: var(--text);
+	z-index: 1;
+}
+
+/* ---------- Quick stats grid ---------- */
+.quick-stats {
+	display: grid;
+	gap: 14px;
+	grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+	margin-bottom: 28px;
+}
+.qs {
+	position: relative;
+	padding: 18px;
+	background: var(--surface);
+	border: 1px solid var(--line);
+	border-radius: var(--radius);
+	overflow: hidden;
+}
+.qs::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background: var(--qs-accent, transparent);
+	opacity: 0.06;
+	pointer-events: none;
+}
+.qs-label {
+	font-size: 0.7rem;
+	font-weight: 600;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: var(--text-faint);
+	margin: 0 0 8px;
+}
+.qs-value {
+	font-size: 1.85rem;
+	font-weight: 800;
+	letter-spacing: -0.035em;
+	font-variant-numeric: tabular-nums;
+	margin: 0;
+	line-height: 1.1;
+}
+.qs-sub {
+	font-size: 0.78rem;
+	color: var(--text-dim);
+	margin: 6px 0 0;
+}
+
+/* ---------- Section wrapper ---------- */
+.section {
+	margin-top: 36px;
+}
+.section-head {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 12px;
+	margin-bottom: 14px;
+}
+.section-title {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	font-size: 0.78rem;
+	font-weight: 700;
+	letter-spacing: 0.16em;
+	text-transform: uppercase;
+	color: var(--text-dim);
+	margin: 0;
+}
+.section-title::before {
+	content: attr(data-num);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 22px;
+	height: 22px;
+	padding: 0 6px;
+	font-size: 0.66rem;
+	letter-spacing: 0.06em;
+	color: var(--text);
+	background: var(--surface-2);
+	border: 1px solid var(--line);
+	border-radius: 6px;
+}
+.section-sub {
+	font-size: 0.8rem;
+	color: var(--text-faint);
+	max-width: 60ch;
+	margin: 0;
+}
+
+/* ---------- Chart grid ---------- */
+.chart-grid {
+	display: grid;
+	gap: 16px;
+	grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+.chart-card {
+	background: var(--surface);
+	border: 1px solid var(--line);
+	border-radius: var(--radius-lg);
+	padding: 20px 20px 14px;
+	box-shadow: var(--shadow-1);
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+.chart-card-head {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	gap: 12px;
+}
+.chart-card h3 {
+	margin: 0;
+	font-size: 1rem;
+	font-weight: 600;
+	letter-spacing: -0.01em;
+}
+.chart-card p {
+	margin: 2px 0 0;
+	font-size: 0.8rem;
+	color: var(--text-dim);
+	line-height: 1.45;
+}
+.chart-card canvas {
+	width: 100% !important;
+	height: 260px !important;
+	margin-top: 12px;
+}
+.chart-legend {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px 12px;
+	margin-top: 8px;
+}
+.legend-dot {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 0.74rem;
+	color: var(--text-dim);
+	letter-spacing: 0.02em;
+}
+.legend-dot::before {
+	content: "";
+	display: inline-block;
+	width: 8px;
+	height: 8px;
+	border-radius: 2px;
+	background: var(--swatch, var(--accent));
+}
+.legend-dot[data-swatch="cyan"]    { --swatch: #22d3ee; }
+.legend-dot[data-swatch="violet"]  { --swatch: #c084fc; }
+.legend-dot[data-swatch="pink"]    { --swatch: #f472b6; }
+.legend-dot[data-swatch="emerald"] { --swatch: #34d399; }
+.legend-dot[data-swatch="amber"]   { --swatch: #fbbf24; }
+.legend-dot[data-swatch="rose"]    { --swatch: #f87171; }
+.legend-dot[data-swatch="blue"]    { --swatch: #60a5fa; }
+.legend-dot[data-swatch="slate"]   { --swatch: #64748b; }
+.legend-dot[data-swatch="indigo"]  { --swatch: #818cf8; }
+
+/* ---------- Comparison section ---------- */
+.compare {
+	background: var(--surface);
+	border: 1px solid var(--line);
+	border-radius: var(--radius-lg);
+	box-shadow: var(--shadow-1);
+	overflow: hidden;
+}
+.compare-head {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 16px;
+	justify-content: space-between;
+	align-items: center;
+	padding: 20px 22px;
+	border-bottom: 1px solid var(--line);
+	background:
+		linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent);
+}
+.compare-head h3 { margin: 0; font-size: 1rem; font-weight: 600; }
+.compare-meta { display: flex; flex-direction: column; gap: 4px; }
+.compare-meta .label-line {
+	font-size: 0.7rem;
+	color: var(--text-faint);
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+}
+.baseline-control { display: flex; align-items: center; gap: 10px; color: var(--text-dim); font-size: 0.85rem; }
+select {
+	background: var(--surface-2);
+	border: 1px solid var(--line-strong);
+	border-radius: 10px;
 	color: var(--text);
 	font: inherit;
-	min-width: min(28rem, 80vw);
-	padding: 8px 10px;
+	font-size: 0.85rem;
+	min-width: min(28rem, 75vw);
+	padding: 8px 12px;
 }
-#baseline-details { margin: 0; padding: 0 20px 18px; }
-.grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
-.chart-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); margin: 18px 0; }
-.card, .section {
-	background: linear-gradient(180deg, rgb(255 255 255 / 0.07), rgb(255 255 255 / 0.03));
-	border: 1px solid var(--line);
-	border-radius: 20px;
-	box-shadow: 0 18px 60px rgb(0 0 0 / 0.28);
+select:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
+#baseline-details {
+	margin: 0;
+	padding: 14px 22px 4px;
+	font-size: 0.85rem;
+	color: var(--text-dim);
 }
-.card { padding: 18px; }
-.chart-card { padding: 18px 18px 12px; }
-.chart-card canvas { height: 300px !important; width: 100% !important; }
-.endpoint { color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-.rps { font-size: 2.25rem; font-weight: 800; letter-spacing: -0.04em; margin: 6px 0; }
-.label { color: var(--muted); font-size: 0.78rem; letter-spacing: 0.09em; text-transform: uppercase; }
-.bar { background: #0a1020; border-radius: 999px; height: 12px; margin: 14px 0; overflow: hidden; }
-.fill { background: linear-gradient(90deg, var(--cyan), var(--violet)); border-radius: inherit; height: 100%; }
-.stats { display: grid; gap: 8px; grid-template-columns: repeat(2, 1fr); margin-top: 14px; }
-.stat { background: rgb(0 0 0 / 0.18); border-radius: 14px; padding: 10px; }
-.stat strong { display: block; font-size: 1.08rem; }
-.section { margin-top: 18px; overflow: hidden; }
-.chart-card h2 { margin: 0 0 14px; }
+.compare-chart-wrap { padding: 8px 22px 22px; }
+
+/* ---------- Comparison table ---------- */
+.cmp-table-wrap { overflow-x: auto; }
 table { border-collapse: collapse; width: 100%; }
-th, td { border-top: 1px solid var(--line); padding: 12px 20px; text-align: right; }
+th, td {
+	border-top: 1px solid var(--line);
+	padding: 12px 22px;
+	text-align: right;
+	font-variant-numeric: tabular-nums;
+}
 th:first-child, td:first-child { text-align: left; }
-th { color: var(--muted); font-size: 0.78rem; letter-spacing: 0.09em; text-transform: uppercase; }
-.good, .better { color: var(--green); }
-.bad, .worse { color: var(--red); }
-.mixed { color: var(--yellow); }
-.muted { color: var(--muted); }
-footer { color: var(--muted); margin-top: 24px; }
+th {
+	color: var(--text-faint);
+	font-size: 0.72rem;
+	font-weight: 600;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+}
+tbody tr:hover { background: rgba(255, 255, 255, 0.02); }
+.good, .better { color: var(--good); }
+.bad, .worse { color: var(--bad); }
+.mixed { color: var(--warn); }
+.muted { color: var(--text-faint); }
+.mono { font-family: ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo, Consolas, monospace; }
+
+/* ---------- Endpoint cards ---------- */
+.endpoint-grid {
+	display: grid;
+	gap: 16px;
+	grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+.ep {
+	background: var(--surface);
+	border: 1px solid var(--line);
+	border-radius: var(--radius-lg);
+	padding: 22px;
+	box-shadow: var(--shadow-1);
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+}
+.ep-head {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	gap: 12px;
+}
+.ep-path {
+	font-family: ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo, Consolas, monospace;
+	font-size: 0.92rem;
+	color: var(--text);
+	word-break: break-all;
+}
+.ep-tag {
+	font-size: 0.66rem;
+	font-weight: 700;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	padding: 3px 8px;
+	border-radius: 999px;
+	background: var(--surface-2);
+	border: 1px solid var(--line);
+	color: var(--text-dim);
+	white-space: nowrap;
+}
+.ep-rps {
+	font-size: 2.4rem;
+	font-weight: 800;
+	letter-spacing: -0.045em;
+	font-variant-numeric: tabular-nums;
+	line-height: 1;
+}
+.ep-rps-sub {
+	font-size: 0.74rem;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	color: var(--text-faint);
+	margin-top: 2px;
+}
+.bar { background: var(--bg-2); border-radius: 999px; height: 10px; overflow: hidden; }
+.bar > .fill {
+	height: 100%;
+	background: var(--grad-accent);
+	border-radius: inherit;
+	box-shadow: 0 0 12px rgba(99, 102, 241, 0.4);
+}
+.ep-stats {
+	display: grid;
+	gap: 10px;
+	grid-template-columns: repeat(2, 1fr);
+}
+.ep-stat {
+	background: var(--bg-2);
+	border: 1px solid var(--line);
+	border-radius: 12px;
+	padding: 10px 12px;
+}
+.ep-stat .lbl {
+	font-size: 0.68rem;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	color: var(--text-faint);
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+.ep-stat .val {
+	font-size: 1.08rem;
+	font-weight: 700;
+	font-variant-numeric: tabular-nums;
+	letter-spacing: -0.01em;
+	display: block;
+	margin-top: 2px;
+}
+
+/* ---------- Tooltip ---------- */
+.tip {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 14px;
+	height: 14px;
+	border-radius: 999px;
+	background: var(--surface-3);
+	color: var(--text-dim);
+	font-size: 0.6rem;
+	font-weight: 700;
+	cursor: help;
+}
+.tip::after {
+	content: attr(data-tip);
+	position: absolute;
+	bottom: calc(100% + 8px);
+	left: 50%;
+	transform: translateX(-50%) translateY(4px);
+	background: #0a0d18;
+	color: var(--text);
+	border: 1px solid var(--line-strong);
+	border-radius: 8px;
+	padding: 8px 10px;
+	font-size: 0.72rem;
+	font-weight: 500;
+	letter-spacing: 0.01em;
+	line-height: 1.4;
+	width: max-content;
+	max-width: 220px;
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 0.15s var(--ease), transform 0.15s var(--ease);
+	z-index: 20;
+	box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+.tip:hover::after, .tip:focus::after {
+	opacity: 1;
+	transform: translateX(-50%) translateY(0);
+}
+
+/* ---------- Glossary ---------- */
+.glossary {
+	margin-top: 40px;
+	background: var(--surface);
+	border: 1px solid var(--line);
+	border-radius: var(--radius-lg);
+	box-shadow: var(--shadow-1);
+	overflow: hidden;
+}
+.glossary summary {
+	list-style: none;
+	cursor: pointer;
+	padding: 18px 22px;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	font-size: 0.95rem;
+	font-weight: 600;
+}
+.glossary summary::-webkit-details-marker { display: none; }
+.glossary summary::after {
+	content: "+";
+	font-size: 1.4rem;
+	font-weight: 400;
+	color: var(--text-dim);
+	transition: transform 0.2s var(--ease);
+}
+.glossary[open] summary::after { content: "−"; }
+.glossary-body {
+	padding: 4px 22px 22px;
+	display: grid;
+	gap: 14px;
+	grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+.glossary-item h4 {
+	font-size: 0.78rem;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	color: var(--text);
+	margin: 0 0 6px;
+	font-weight: 700;
+}
+.glossary-item p {
+	margin: 0;
+	font-size: 0.85rem;
+	color: var(--text-dim);
+	line-height: 1.5;
+}
+
+/* ---------- Sparkline ---------- */
+.spark {
+	margin: 18px 0 4px;
+	padding: 16px 20px;
+	background: var(--surface);
+	border: 1px solid var(--line);
+	border-radius: var(--radius);
+	display: flex;
+	align-items: center;
+	gap: 18px;
+}
+.spark-label {
+	font-size: 0.7rem;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: var(--text-faint);
+	font-weight: 600;
+	white-space: nowrap;
+}
+.spark svg { flex: 1; height: 44px; min-width: 0; }
+.spark svg path.line { fill: none; stroke: url(#sparkline-gradient); stroke-width: 2; stroke-linecap: round; }
+.spark svg path.area { fill: url(#sparkline-area); stroke: none; }
+.spark svg circle { fill: #22d3ee; stroke: var(--bg); stroke-width: 2; }
+.spark svg text {
+	fill: var(--text-dim);
+	font-size: 10px;
+	font-family: ui-monospace, SFMono-Regular, monospace;
+}
+
+/* ---------- Footer ---------- */
+footer {
+	color: var(--text-faint);
+	font-size: 0.82rem;
+	margin-top: 40px;
+	padding-top: 20px;
+	border-top: 1px dashed var(--line);
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px 24px;
+	justify-content: space-between;
+}
+footer a { color: var(--text-dim); text-decoration: none; border-bottom: 1px dashed var(--line-strong); }
+footer a:hover { color: var(--text); }
+
+/* ---------- Mobile ---------- */
+@media (max-width: 720px) {
+	main { padding: 24px 16px 48px; }
+	.verdict { grid-template-columns: auto 1fr; padding: 16px; }
+	.verdict-tag { grid-column: 1 / -1; justify-self: start; }
+	.chart-card canvas { height: 220px !important; }
+	.ep-rps { font-size: 2rem; }
+	.qs-value { font-size: 1.5rem; }
+	th, td { padding: 10px 12px; }
+	.compare-head { padding: 16px; }
+	#baseline-details { padding: 12px 16px 4px; }
+	.compare-chart-wrap { padding: 4px 16px 16px; }
+	select { min-width: 0; width: 100%; }
+	.baseline-control { flex-direction: column; align-items: stretch; width: 100%; }
+	.ep-stats { grid-template-columns: 1fr 1fr; }
+}
 `;
 }
 
 function createHtmlReport(
 	current: BenchmarkSummary,
 	comparisonSnapshots: ReadonlyArray<BenchmarkSnapshot>,
-	_sparkline: string | undefined,
+	sparkline: string | undefined,
 ): string {
 	const maxRequestsPerSecond = Math.max(...current.endpoints.map((endpoint) => endpoint.requestsPerSec));
 	const chartData = serializeReportChartData(current, comparisonSnapshots);
@@ -440,17 +1033,34 @@ function createHtmlReport(
 			tag("body", [
 				tag("main", [
 					createReportHeader(current),
-					createChartsSection(),
+					createVerdictSection(current, comparisonSnapshots),
+					createQuickStatsSection(current),
+					sparkline ? createSparklineSection(current, sparkline) : raw(""),
+					createSection(
+						"Performance breakdown",
+						"01",
+						"Throughput, latency tail behavior, and reliability per endpoint. The delta chart updates with the selected baseline.",
+						createChartsSection(),
+					),
+					createSection(
+						"Endpoint deep dive",
+						"02",
+						"Per-endpoint metrics with relative throughput. Bars compare each endpoint to the fastest one in this run.",
+						tag(
+							"div",
+							{ class: "endpoint-grid" },
+							current.endpoints.map((endpoint) => createEndpointCard(endpoint, maxRequestsPerSecond)),
+						),
+					),
 					createHtmlComparisonSection(comparisonSnapshots.length > 0),
-					tag(
-						"section",
-						{ "aria-label": "Endpoint throughput cards", class: "grid" },
-						current.endpoints.map((endpoint) => createEndpointCard(endpoint, maxRequestsPerSecond)),
-					),
-					tag(
-						"footer",
-						"Raw oha JSON and summary JSON are saved next to this report. Charts load via Chart.js CDN.",
-					),
+					createGlossarySection(),
+					tag("footer", [
+						tag("div", [
+							tag("strong", { class: "mono" }, "Artifacts"),
+							" — raw oha JSON and a machine-readable summary.json are saved next to this report. Charts load via the Chart.js CDN.",
+						]),
+						tag("div", "Built with oha + Deno · threshold: ±0% for tie"),
+					]),
 				]),
 				tag("script", { src: "https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" }),
 				tag("script", raw(createReportScript(chartData))),
@@ -460,87 +1070,470 @@ function createHtmlReport(
 	);
 }
 
+function createSection(title: string, number: string, subtitle: string, children: HtmlNode): HtmlNode {
+	return tag("section", { class: "section" }, [
+		tag("div", { class: "section-head" }, [
+			tag("h2", { class: "section-title", "data-num": number }, title),
+			tag("p", { class: "section-sub" }, subtitle),
+		]),
+		children,
+	]);
+}
+
 function createReportHeader(summary: BenchmarkSummary): HtmlNode {
-	return tag("header", [
-		tag("div", { class: "label" }, "HTTP benchmark"),
-		tag("h1", summary.label),
-		tag("div", { class: "meta" }, [
-			tag("span", { class: "pill" }, `Generated ${summary.generatedAt}`),
-			tag("span", { class: "pill" }, `Duration ${summary.duration}`),
-			tag("span", { class: "pill" }, `Concurrency ${summary.concurrency}`),
-			tag("span", { class: "pill" }, `Warmup ${summary.warmupRequests}`),
+	return tag("header", { class: "hero" }, [
+		tag("div", { class: "brand" }, [
+			tag("span", { "aria-hidden": "true", class: "brand-mark" }, [
+				raw(
+					`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg>`,
+				),
+			]),
+			tag("span", "HTTP benchmark · proxy throughput report"),
+		]),
+		tag("h1", { class: "hero-title" }, [summary.label, tag("span", { class: "tag" }, "snapshot")]),
+		tag("p", { class: "hero-sub" }, [
+			`Real load against three production endpoints of the proxy using `,
+			tag("strong", "oha"),
+			`. Warmup traffic is discarded so the numbers reflect steady-state behavior.`,
+		]),
+		tag("div", { class: "pill-row" }, [
+			tag("span", { class: "pill" }, ["Generated ", tag("strong", formatReportDate(summary.generatedAt))]),
+			tag("span", { class: "pill" }, ["Duration ", tag("strong", summary.duration)]),
+			tag("span", { class: "pill" }, ["Concurrency ", tag("strong", String(summary.concurrency))]),
+			tag("span", { class: "pill" }, ["Warmup ", tag("strong", `${summary.warmupRequests} req`)]),
+			tag("span", { class: "pill" }, ["Endpoints ", tag("strong", String(summary.endpoints.length))]),
 		]),
 	]);
 }
 
-function createChartsSection(): HtmlNode {
-	return tag("section", { "aria-label": "Charts", class: "chart-grid" }, [
-		createChartCard("Throughput", "throughput-chart", "Requests per second by endpoint"),
-		createChartCard("Latency", "latency-chart", "Latency percentiles by endpoint"),
-		createChartCard("Success rate", "success-chart", "Success rate by endpoint"),
-		createChartCard("Delta vs selected baseline", "delta-chart", "Percent change versus selected baseline"),
+function createVerdictSection(
+	current: BenchmarkSummary,
+	comparisonSnapshots: ReadonlyArray<BenchmarkSnapshot>,
+): HtmlNode {
+	const baseline = comparisonSnapshots[0]?.summary;
+	if (!baseline) {
+		return tag("section", { "aria-label": "Verdict", class: "verdict", "data-state": "solo" }, [
+			tag("div", { "aria-hidden": "true", class: "verdict-icon" }, "✦"),
+			tag("div", { class: "verdict-body" }, [
+				tag("h2", { class: "verdict-title" }, "Baseline snapshot"),
+				tag(
+					"p",
+					{ class: "verdict-detail" },
+					"This is the first run, so there is no prior baseline to compare against. Run the benchmark again and this card will summarize the deltas.",
+				),
+			]),
+			tag("div", { class: "verdict-tag" }, "Solo"),
+		]);
+	}
+
+	const verdicts = current.endpoints.map((endpoint) => {
+		const baselineEndpoint = baseline.endpoints.find((value) => value.endpoint === endpoint.endpoint);
+		if (!baselineEndpoint) return "worse" as const;
+		return computeVerdict(baselineEndpoint, endpoint);
+	});
+	const tally = { better: 0, mixed: 0, worse: 0 };
+	for (const verdict of verdicts) tally[verdict]++;
+	let overall: VerdictTone;
+	if (tally.better >= 2) overall = "better";
+	else if (tally.worse >= 2) overall = "worse";
+	else overall = "mixed";
+	const titles: Record<VerdictTone, string> = {
+		better: "Throughput improved overall",
+		mixed: "Mixed results — see breakdown",
+		worse: "Throughput regressed overall",
+	};
+	const details: Record<VerdictTone, string> = {
+		better: `${tally.better} of ${verdicts.length} endpoints got faster or held steady on the metrics that matter.`,
+		mixed: `${tally.better} better, ${tally.mixed} mixed, ${tally.worse} worse. Inspect the table below.`,
+		worse: `${tally.worse} of ${verdicts.length} endpoints regressed. Re-run after a code change to validate.`,
+	};
+	let overallIcon = "■";
+	if (overall === "better") overallIcon = "▲";
+	else if (overall === "worse") overallIcon = "▼";
+	return tag("section", { "aria-label": "Verdict", class: "verdict", "data-state": overall }, [
+		tag("div", { "aria-hidden": "true", class: "verdict-icon" }, overallIcon),
+		tag("div", { class: "verdict-body" }, [
+			tag("h2", { class: "verdict-title" }, titles[overall]),
+			tag("p", { class: "verdict-detail" }, details[overall]),
+		]),
+		tag("div", { class: "verdict-tag" }, overall),
 	]);
 }
 
-function createChartCard(title: string, canvasId: string, ariaLabel: string): HtmlNode {
-	return tag("article", { class: "card chart-card" }, [
-		tag("h2", title),
-		tag("canvas", { "aria-label": ariaLabel, id: canvasId }),
+function createQuickStatsSection(summary: BenchmarkSummary): HtmlNode {
+	let totalRps = 0;
+	let successTotal = 0;
+	let totalData = 0;
+	const [firstEndpoint] = summary.endpoints;
+	let fastest: EndpointSummary | undefined = firstEndpoint;
+	let slowest: EndpointSummary | undefined = firstEndpoint;
+	for (const endpoint of summary.endpoints) {
+		totalRps += endpoint.requestsPerSec;
+		successTotal += endpoint.successRatePct;
+		totalData += endpoint.totalDataBytes;
+		if (fastest && endpoint.requestsPerSec > fastest.requestsPerSec) fastest = endpoint;
+		if (slowest && endpoint.requestsPerSec < slowest.requestsPerSec) slowest = endpoint;
+	}
+	const successAvg = summary.endpoints.length > 0 ? successTotal / summary.endpoints.length : 0;
+	const totalRequests = Math.round(totalRps * parseDurationToSeconds(summary.duration));
+
+	return tag("section", { "aria-label": "Summary at a glance", class: "quick-stats" }, [
+		createQuickStat(
+			"Total throughput",
+			`${formatNumber(totalRps)} req/s`,
+			`~${formatNumber(totalRequests)} requests in ${summary.duration}`,
+			"indigo",
+		),
+		createQuickStat(
+			"Fastest endpoint",
+			fastest?.endpoint ?? "—",
+			`${formatNumber(fastest?.requestsPerSec ?? 0)} req/s · ${formatMilliseconds(fastest?.p95Ms ?? 0)} p95`,
+			"cyan",
+		),
+		createQuickStat(
+			"Heaviest endpoint",
+			slowest?.endpoint ?? "—",
+			`${formatNumber(slowest?.requestsPerSec ?? 0)} req/s · ${formatMilliseconds(slowest?.p99Ms ?? 0)} p99`,
+			"violet",
+		),
+		createQuickStat(
+			"Reliability",
+			`${formatPercent(successAvg)}`,
+			`avg across ${summary.endpoints.length} endpoints`,
+			"emerald",
+		),
+		createQuickStat("Data moved", formatBytes(totalData), "total response bytes observed", "blue"),
+	]);
+}
+
+function createQuickStat(label: string, value: string, sub: string, accent: QuickStatAccent): HtmlNode {
+	const accentColors: Record<QuickStatAccent, string> = {
+		blue: "linear-gradient(135deg, #60a5fa 0%, #818cf8 100%)",
+		cyan: "linear-gradient(135deg, #22d3ee 0%, #34d399 100%)",
+		emerald: "linear-gradient(135deg, #10b981 0%, #34d399 100%)",
+		indigo: "linear-gradient(135deg, #6366f1 0%, #22d3ee 100%)",
+		violet: "linear-gradient(135deg, #c084fc 0%, #818cf8 100%)",
+	};
+	return tag("div", { class: "qs" }, [
+		tag("p", { class: "qs-label" }, label),
+		tag("p", { class: "qs-value" }, value),
+		tag("p", { class: "qs-sub" }, sub),
+		raw(`<style>.qs:nth-child(${accentToIndex(accent)})::after{background:${accentColors[accent]}}</style>`),
+	]);
+}
+
+function accentToIndex(accent: "indigo" | "cyan" | "violet" | "emerald" | "blue"): string {
+	const map: Record<"indigo" | "cyan" | "violet" | "emerald" | "blue", string> = {
+		blue: "5",
+		cyan: "2",
+		emerald: "4",
+		indigo: "1",
+		violet: "3",
+	};
+	return map[accent];
+}
+
+function createSparklineSection(summary: BenchmarkSummary, sparkline: string): HtmlNode {
+	const values = summary.endpoints.map((endpoint) => endpoint.requestsPerSec);
+	const max = Math.max(...values);
+	const min = Math.min(...values);
+	const width = 600;
+	const height = 44;
+	const padding = 4;
+	const step = values.length > 1 ? (width - padding * 2) / (values.length - 1) : 0;
+	const points = values.map((value, index) => {
+		const x = padding + step * index;
+		const ratio = max === min ? 0.5 : (value - min) / (max - min);
+		const y = height - padding - ratio * (height - padding * 2);
+		return { index, value, x, y };
+	});
+	const linePath = points
+		.map((point, index) => `${index === 0 ? "M" : "L"}${point.x.toFixed(1)},${point.y.toFixed(1)}`)
+		.join(" ");
+	const areaPath = `M${points[0]?.x.toFixed(1) ?? 0},${height} L${linePath.slice(1)} L${
+		points.at(-1)?.x.toFixed(1) ?? 0
+	},${height} Z`;
+	const labels = summary.endpoints.map((endpoint) => endpoint.endpoint);
+
+	return tag("section", { "aria-label": "Throughput sparkline", class: "spark" }, [
+		tag("div", { class: "spark-label" }, ["Throughput shape ", tag("span", { class: "mono" }, sparkline)]),
+		raw(`<svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" role="img">
+			<defs>
+				<linearGradient id="sparkline-gradient" x1="0" y1="0" x2="1" y2="0">
+					<stop offset="0%" stop-color="#22d3ee"/>
+					<stop offset="100%" stop-color="#818cf8"/>
+				</linearGradient>
+				<linearGradient id="sparkline-area" x1="0" y1="0" x2="0" y2="1">
+					<stop offset="0%" stop-color="#22d3ee" stop-opacity="0.35"/>
+					<stop offset="100%" stop-color="#22d3ee" stop-opacity="0"/>
+				</linearGradient>
+			</defs>
+			<path class="area" d="${areaPath}"/>
+			<path class="line" d="${linePath}"/>
+			${points.map((point) => `<circle cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="3.5"/>`).join("")}
+			${
+			labels
+				.map((label, index) => {
+					const point = points[index];
+					if (!point) return "";
+					let anchor = "middle";
+					if (index === 0) anchor = "start";
+					else if (index === points.length - 1) anchor = "end";
+					return `<text x="${point.x.toFixed(1)}" y="${
+						(height - 0.5).toFixed(
+							1,
+						)
+					}" text-anchor="${anchor}">${label}</text>`;
+				})
+				.join("")
+		}
+		</svg>`),
+	]);
+}
+
+function createChartsSection(): HtmlNode {
+	return tag("div", { class: "chart-grid" }, [
+		createChartCard({
+			ariaLabel: "Throughput by endpoint",
+			canvasId: "throughput-chart",
+			legend: [
+				{ label: "Current req/s", swatch: "indigo" },
+				{ label: "Baseline req/s", swatch: "slate" },
+			],
+			subtitle:
+				"Requests per second. Higher is better. The bar height shows the absolute rate for the current run; when a baseline is selected, the muted bars are the previous run for comparison.",
+			title: "Throughput",
+		}),
+		createChartCard({
+			ariaLabel: "Latency percentiles by endpoint",
+			canvasId: "latency-chart",
+			legend: [
+				{ label: "Avg", swatch: "cyan" },
+				{ label: "P95", swatch: "violet" },
+				{ label: "P99", swatch: "pink" },
+			],
+			subtitle:
+				"Average, 95th, and 99th percentile response time per endpoint. P95 means 95% of requests finished at or below this number. Use the tail (P95/P99) to spot the worst case real users see.",
+			title: "Latency distribution",
+		}),
+		createChartCard({
+			ariaLabel: "Success rate by endpoint",
+			canvasId: "success-chart",
+			legend: [{ label: "Success %", swatch: "emerald" }],
+			subtitle:
+				"Share of requests that returned a 2xx response. Anything below 100% means some traffic hit rate limits, network errors, or upstream failures.",
+			title: "Success rate",
+		}),
+		createChartCard({
+			ariaLabel: "Delta versus selected baseline",
+			canvasId: "delta-chart",
+			legend: [
+				{ label: "Req/s Δ", swatch: "cyan" },
+				{ label: "Avg Δ", swatch: "amber" },
+				{ label: "P95 Δ", swatch: "rose" },
+			],
+			subtitle:
+				"Percent change for throughput, average latency, and P95 latency. Positive is good for throughput, negative is good for latency. The bar color reflects the direction.",
+			title: "Delta vs selected baseline",
+		}),
+	]);
+}
+
+interface ChartLegendEntry {
+	readonly label: string;
+	readonly swatch: "cyan" | "violet" | "pink" | "emerald" | "amber" | "rose" | "blue" | "slate" | "indigo";
+}
+
+type QuickStatAccent = "indigo" | "cyan" | "violet" | "emerald" | "blue";
+type VerdictTone = "better" | "mixed" | "worse";
+
+function createChartCard(options: {
+	readonly ariaLabel: string;
+	readonly canvasId: string;
+	readonly legend: ReadonlyArray<ChartLegendEntry>;
+	readonly subtitle: string;
+	readonly title: string;
+}): HtmlNode {
+	return tag("article", { class: "chart-card" }, [
+		tag("div", { class: "chart-card-head" }, [tag("div", [tag("h3", options.title), tag("p", options.subtitle)])]),
+		tag("canvas", { "aria-label": options.ariaLabel, id: options.canvasId }),
+		tag(
+			"div",
+			{ class: "chart-legend" },
+			options.legend.map((entry) =>
+				tag("span", { class: "legend-dot", "data-swatch": entry.swatch }, entry.label)
+			),
+		),
 	]);
 }
 
 function createEndpointCard(endpoint: EndpointSummary, maxRequestsPerSecond: number): HtmlNode {
 	const width = maxRequestsPerSecond > 0 ? Math.max(1, (endpoint.requestsPerSec / maxRequestsPerSecond) * 100) : 0;
-	return tag("article", { class: "card" }, [
-		tag("div", { class: "endpoint" }, endpoint.endpoint),
-		tag("div", { class: "rps" }, formatNumber(endpoint.requestsPerSec)),
-		tag("div", { class: "label" }, "requests/sec"),
-		tag(
-			"div",
-			{ "aria-label": "Relative throughput", class: "bar" },
-			tag("div", { class: "fill", style: `width: ${width.toFixed(2)}%` }),
-		),
-		tag("div", { class: "stats" }, [
-			createEndpointStat("Avg", formatMilliseconds(endpoint.averageMs)),
-			createEndpointStat("P95", formatMilliseconds(endpoint.p95Ms)),
-			createEndpointStat("P99", formatMilliseconds(endpoint.p99Ms)),
-			createEndpointStat("Success", formatPercent(endpoint.successRatePct)),
+	let endpointTag = "Health";
+	if (endpoint.endpoint.startsWith("/v1/chat")) endpointTag = "Chat";
+	else if (endpoint.endpoint.startsWith("/v1/models")) endpointTag = "Listing";
+	return tag("article", { class: "ep" }, [
+		tag("div", { class: "ep-head" }, [
+			tag("div", { class: "ep-path" }, endpoint.endpoint),
+			tag("span", { class: "ep-tag" }, endpointTag),
+		]),
+		tag("div", [
+			tag("p", { class: "ep-rps" }, formatNumber(endpoint.requestsPerSec)),
+			tag("p", { class: "ep-rps-sub" }, "requests / sec"),
+		]),
+		tag("div", { "aria-label": "Relative throughput", class: "bar" }, [
+			raw(`<div class="fill" style="width: ${width.toFixed(2)}%"></div>`),
+		]),
+		tag("div", { class: "ep-stats" }, [
+			createEndpointStat(
+				"Avg",
+				formatMilliseconds(endpoint.averageMs),
+				"Mean response time across all requests in this run.",
+			),
+			createEndpointStat(
+				"P95",
+				formatMilliseconds(endpoint.p95Ms),
+				"95% of requests finished at or below this latency. The realistic user experience.",
+			),
+			createEndpointStat(
+				"P99",
+				formatMilliseconds(endpoint.p99Ms),
+				"99% of requests finished at or below this latency. The slow tail.",
+			),
+			createEndpointStat(
+				"Success",
+				formatPercent(endpoint.successRatePct),
+				`${endpoint.errorCount} error${endpoint.errorCount === 1 ? "" : "s"} · ${
+					formatBytes(
+						endpoint.totalDataBytes,
+					)
+				} returned`,
+			),
 		]),
 	]);
 }
 
-function createEndpointStat(label: string, value: string): HtmlNode {
-	return tag("div", { class: "stat" }, [tag("span", { class: "label" }, label), tag("strong", value)]);
+function createEndpointStat(label: string, value: string, tip: string): HtmlNode {
+	return tag("div", { class: "ep-stat" }, [
+		tag("p", { class: "lbl" }, [
+			label,
+			tag(
+				"span",
+				{
+					"aria-label": tip,
+					class: "tip",
+					"data-tip": tip,
+					role: "button",
+					tabindex: "0",
+				},
+				"i",
+			),
+		]),
+		tag("span", { class: "val" }, value),
+	]);
 }
 
 function createHtmlComparisonSection(hasBaseline: boolean): HtmlNode {
-	return tag("section", { "aria-label": "Comparison with selected baseline", class: "section" }, [
-		tag("div", { class: "comparison-header" }, [
-			tag("h2", "Comparison"),
-			tag("label", { class: "baseline-control" }, [
-				"Baseline",
-				tag("select", { disabled: !hasBaseline, id: "baseline-select" }),
+	return tag("section", { class: "section" }, [
+		tag("div", { class: "section-head" }, [
+			tag("h2", { class: "section-title", "data-num": "03" }, "Baseline comparison"),
+			tag(
+				"p",
+				{ class: "section-sub" },
+				"Pick a saved snapshot to recompute the delta chart and table. The verdict is a heuristic: 2 of {throughput, avg, p95} wins ⇒ better.",
+			),
+		]),
+		tag("div", { class: "compare" }, [
+			tag("div", { class: "compare-head" }, [
+				tag("div", { class: "compare-meta" }, [
+					tag("h3", "Choose a baseline"),
+					tag(
+						"p",
+						{ class: "muted", style: "margin: 0; font-size: 0.8rem;" },
+						hasBaseline ?
+							"Snapshots are saved under benchmarks/results/<timestamp>-<label>/." :
+							"No saved baseline yet. Run another benchmark to populate this list.",
+					),
+				]),
+				tag("label", { class: "baseline-control" }, [
+					"Baseline",
+					tag("select", { disabled: !hasBaseline, id: "baseline-select" }),
+				]),
+			]),
+			tag(
+				"p",
+				{ id: "baseline-details" },
+				hasBaseline ?
+					"Select a baseline to update the delta chart above and the table below." :
+					"No saved baseline yet. Run another benchmark to compare.",
+			),
+			tag("div", { class: "cmp-table-wrap" }, [
+				tag("table", [
+					tag(
+						"thead",
+						tag("tr", [
+							tag("th", "Endpoint"),
+							tag("th", "Req/s Δ"),
+							tag("th", "Avg Δ"),
+							tag("th", "P95 Δ"),
+							tag("th", "Verdict"),
+						]),
+					),
+					tag("tbody", { id: "comparison-body" }),
+				]),
 			]),
 		]),
-		tag(
-			"p",
-			{ class: "muted", id: "baseline-details" },
-			hasBaseline
-				? "Select a baseline to update the charts and table."
-				: "No saved baseline yet. Run another benchmark to compare.",
-		),
-		tag("table", [
+	]);
+}
+
+function createGlossarySection(): HtmlNode {
+	const entries: ReadonlyArray<{ title: string; body: string }> = [
+		{
+			body:
+				"How many HTTP requests the proxy finished per second on average across the run. The proxy is stateless, so this is a clean measure of CPU + I/O capacity on your machine.",
+			title: "Requests per second",
+		},
+		{
+			body:
+				"Response time for the request, including network, parsing, and upstream work. P95/P99 are the worst case for most/all users. Watch the P99, not the average.",
+			title: "Latency (Avg, P95, P99)",
+		},
+		{
+			body:
+				"Share of requests that came back with a 2xx status. The mock upstream always succeeds, so anything below 100% is the proxy refusing traffic, hitting a timeout, or erroring internally.",
+			title: "Success rate",
+		},
+		{
+			body:
+				"How many connections oha keeps open in parallel. Higher numbers stress the proxy's connection pool and event loop. The numbers are not directly comparable across machines.",
+			title: "Concurrency",
+		},
+		{
+			body:
+				"A handful of requests sent before the timer starts. These are discarded so the run measures steady-state, not first-request JIT, cache fill, or DNS.",
+			title: "Warmup",
+		},
+		{
+			body:
+				"A simple score: of {throughput, avg latency, p95 latency}, count the wins (higher is better for the first, lower is better for the rest). 2+ ⇒ better, 0 ⇒ worse, otherwise mixed.",
+			title: "Verdict (better / mixed / worse)",
+		},
+		{
+			body:
+				"Percent change between the current run and the snapshot you selected above. The throughput and latency color cues tell you which side of zero is good.",
+			title: "Delta vs baseline",
+		},
+	];
+	return tag("section", { "aria-label": "Metric glossary", class: "glossary" }, [
+		tag("details", [
+			tag("summary", "What do these numbers actually mean?"),
 			tag(
-				"thead",
-				tag("tr", [
-					tag("th", "Endpoint"),
-					tag("th", "Req/s Δ"),
-					tag("th", "Avg Δ"),
-					tag("th", "P95 Δ"),
-					tag("th", "Verdict"),
-				]),
+				"div",
+				{ class: "glossary-body" },
+				entries.map((entry) =>
+					tag("div", { class: "glossary-item" }, [tag("h4", entry.title), tag("p", entry.body)])
+				),
 			),
-			tag("tbody", { id: "comparison-body" }),
 		]),
 	]);
 }
@@ -558,9 +1551,12 @@ function serializeReportChartData(
 function createReportScript(chartData: string): string {
 	return String.raw`
 const reportData = ${chartData};
-const chartTextColor = "#eef4ff";
-const chartGridColor = "rgba(149, 163, 189, 0.18)";
-const chartLabelColor = "#95a3bd";
+const chartTextColor = "#eef1ff";
+const chartGridColor = "rgba(58, 69, 112, 0.45)";
+const chartLabelColor = "#a3accc";
+const goodColor = "#34d399";
+const badColor = "#f87171";
+const neutralColor = "#6b749a";
 const currentSummary = reportData.current;
 const baselineSelect = document.getElementById("baseline-select");
 const baselineDetails = document.getElementById("baseline-details");
@@ -569,13 +1565,41 @@ const endpointLabels = currentSummary.endpoints.map((endpoint) => endpoint.endpo
 
 Chart.defaults.color = chartTextColor;
 Chart.defaults.borderColor = chartGridColor;
-Chart.defaults.font.family = 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+Chart.defaults.font.family = 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif';
+Chart.defaults.font.size = 11;
 
-const commonScales = {
-	x: { ticks: { color: chartLabelColor }, grid: { color: chartGridColor } },
-	y: { ticks: { color: chartLabelColor }, grid: { color: chartGridColor } },
+const tooltipStyle = {
+	backgroundColor: "#0a0d18",
+	borderColor: "#3a4570",
+	borderWidth: 1,
+	cornerRadius: 10,
+	padding: 10,
+	titleColor: "#eef1ff",
+	titleFont: { size: 12, weight: "600" },
+	bodyColor: "#a3accc",
+	bodyFont: { size: 12 },
+	caretSize: 6,
+	displayColors: true,
+	boxPadding: 4,
 };
-const currentThroughputColors = ["#22d3ee", "#60a5fa", "#a78bfa"];
+const commonScales = {
+	x: {
+		grid: { color: "transparent", drawTicks: false },
+		ticks: { color: chartLabelColor, padding: 6, font: { size: 11 } },
+		border: { color: "rgba(58, 69, 112, 0.6)" },
+	},
+	y: {
+		beginAtZero: true,
+		grid: { color: chartGridColor, drawTicks: false },
+		ticks: { color: chartLabelColor, padding: 8, font: { size: 11 } },
+		border: { display: false },
+	},
+};
+const divergingScale = {
+	x: commonScales.x,
+	y: { ...commonScales.y, beginAtZero: false, grid: { color: chartGridColor, drawTicks: false } },
+};
+const currentThroughputColors = ["#818cf8", "#22d3ee", "#c084fc"];
 
 function endpointValue(summary, endpointName, key) {
 	return summary.endpoints.find((endpoint) => endpoint.endpoint === endpointName)?.[key] ?? 0;
@@ -598,12 +1622,18 @@ function deltaClass(value, higherIsBetter) {
 	return isGood ? "good" : "bad";
 }
 
+function signColor(value, higherIsBetter) {
+	if (value === 0) return neutralColor;
+	const isGood = higherIsBetter ? value > 0 : value < 0;
+	return isGood ? goodColor : badColor;
+}
+
 function selectedBaseline() {
 	return reportData.baselines.find((baseline) => baseline.id === baselineSelect.value);
 }
 
 function baselineLabel(baseline) {
-	return baseline.summary.label + " • " + new Date(baseline.summary.generatedAt).toLocaleString() + " • " + baseline.id;
+	return baseline.summary.label + " · " + new Date(baseline.summary.generatedAt).toLocaleString() + " · " + baseline.id;
 }
 
 function populateBaselineSelect() {
@@ -625,52 +1655,72 @@ function populateBaselineSelect() {
 function throughputDatasets(baseline) {
 	const datasets = [{
 		backgroundColor: currentThroughputColors,
-		borderRadius: 10,
+		borderRadius: 8,
+		borderSkipped: false,
 		data: valuesFor(currentSummary, "requestsPerSec"),
 		label: "Current req/s",
+		maxBarThickness: 64,
 	}];
 	if (baseline) {
 		datasets.push({
-			backgroundColor: "rgba(149, 163, 189, 0.45)",
-			borderRadius: 10,
+			backgroundColor: "rgba(163, 172, 204, 0.25)",
+			borderColor: "rgba(163, 172, 204, 0.5)",
+			borderWidth: 1,
+			borderRadius: 8,
+			borderSkipped: false,
 			data: valuesFor(baseline.summary, "requestsPerSec"),
 			label: "Baseline req/s",
+			maxBarThickness: 64,
 		});
 	}
 	return datasets;
 }
 
+function deltaValues(baseline, key) {
+	return endpointLabels.map((endpointName) => percentChange(
+		endpointValue(baseline.summary, endpointName, key),
+		endpointValue(currentSummary, endpointName, key),
+	));
+}
+
 function deltaDatasets(baseline) {
 	if (!baseline) return [];
+	const higherIsBetter = [true, false, false];
+	const colors = ["#22d3ee", "#fbbf24", "#f87171"];
 	return [
 		{
-			backgroundColor: "#22d3ee",
-			borderRadius: 8,
-			data: endpointLabels.map((endpointName) => percentChange(
-				endpointValue(baseline.summary, endpointName, "requestsPerSec"),
-				endpointValue(currentSummary, endpointName, "requestsPerSec"),
-			)),
+			backgroundColor: colors.map((color) => color + "cc"),
+			borderRadius: 6,
+			borderSkipped: false,
+			data: deltaValues(baseline, "requestsPerSec"),
 			label: "Req/s Δ %",
+			higherIsBetter: true,
+			maxBarThickness: 36,
 		},
 		{
-			backgroundColor: "#fb7185",
-			borderRadius: 8,
-			data: endpointLabels.map((endpointName) => percentChange(
-				endpointValue(baseline.summary, endpointName, "averageMs"),
-				endpointValue(currentSummary, endpointName, "averageMs"),
-			)),
+			backgroundColor: colors.map((color) => color + "cc"),
+			borderRadius: 6,
+			borderSkipped: false,
+			data: deltaValues(baseline, "averageMs"),
 			label: "Avg Δ %",
+			higherIsBetter: false,
+			maxBarThickness: 36,
 		},
 		{
-			backgroundColor: "#facc15",
-			borderRadius: 8,
-			data: endpointLabels.map((endpointName) => percentChange(
-				endpointValue(baseline.summary, endpointName, "p95Ms"),
-				endpointValue(currentSummary, endpointName, "p95Ms"),
-			)),
+			backgroundColor: colors.map((color) => color + "cc"),
+			borderRadius: 6,
+			borderSkipped: false,
+			data: deltaValues(baseline, "p95Ms"),
 			label: "P95 Δ %",
+			higherIsBetter: false,
+			maxBarThickness: 36,
 		},
-	];
+	].map((dataset) => {
+		const hib = dataset.higherIsBetter;
+		return Object.assign({}, dataset, {
+			backgroundColor: dataset.data.map((value) => signColor(value, hib)),
+		});
+	});
 }
 
 function verdictFor(baselineEndpoint, currentEndpoint) {
@@ -731,6 +1781,15 @@ function updateBaselineDetails(baseline) {
 		+ ", warmup " + baseline.summary.warmupRequests + ").";
 }
 
+const commonOptions = {
+	animation: { duration: 350, easing: "easeOutCubic" },
+	maintainAspectRatio: false,
+	plugins: {
+		legend: { display: false },
+		tooltip: tooltipStyle,
+	},
+};
+
 populateBaselineSelect();
 
 const throughputChart = new Chart(document.getElementById("throughput-chart"), {
@@ -738,47 +1797,41 @@ const throughputChart = new Chart(document.getElementById("throughput-chart"), {
 		datasets: throughputDatasets(selectedBaseline()),
 		labels: endpointLabels,
 	},
-	options: {
-		maintainAspectRatio: false,
-		scales: commonScales,
-	},
+	options: Object.assign({}, commonOptions, { scales: commonScales }),
 	type: "bar",
 });
 
 new Chart(document.getElementById("latency-chart"), {
 	data: {
 		datasets: [
-			{ backgroundColor: "#22d3ee", borderRadius: 8, data: valuesFor(currentSummary, "averageMs"), label: "Avg ms" },
-			{ backgroundColor: "#a78bfa", borderRadius: 8, data: valuesFor(currentSummary, "p95Ms"), label: "P95 ms" },
-			{ backgroundColor: "#f472b6", borderRadius: 8, data: valuesFor(currentSummary, "p99Ms"), label: "P99 ms" },
+			{ backgroundColor: "#22d3ee", borderRadius: 6, borderSkipped: false, data: valuesFor(currentSummary, "averageMs"), label: "Avg ms", maxBarThickness: 24 },
+			{ backgroundColor: "#c084fc", borderRadius: 6, borderSkipped: false, data: valuesFor(currentSummary, "p95Ms"), label: "P95 ms", maxBarThickness: 24 },
+			{ backgroundColor: "#f472b6", borderRadius: 6, borderSkipped: false, data: valuesFor(currentSummary, "p99Ms"), label: "P99 ms", maxBarThickness: 24 },
 		],
 		labels: endpointLabels,
 	},
-	options: {
-		maintainAspectRatio: false,
-		scales: commonScales,
-	},
+	options: Object.assign({}, commonOptions, { scales: commonScales }),
 	type: "bar",
 });
 
 new Chart(document.getElementById("success-chart"), {
 	data: {
 		datasets: [{
-			backgroundColor: "#4ade80",
-			borderRadius: 10,
+			backgroundColor: valuesFor(currentSummary, "successRatePct").map((value) => value >= 99.9 ? "#34d399" : value >= 95 ? "#fbbf24" : "#f87171"),
+			borderRadius: 8,
+			borderSkipped: false,
 			data: valuesFor(currentSummary, "successRatePct"),
 			label: "Success %",
+			maxBarThickness: 48,
 		}],
 		labels: endpointLabels,
 	},
-	options: {
-		maintainAspectRatio: false,
-		plugins: { legend: { display: false } },
+	options: Object.assign({}, commonOptions, {
 		scales: {
 			x: commonScales.x,
 			y: { ...commonScales.y, max: 100, min: 0 },
 		},
-	},
+	}),
 	type: "bar",
 });
 
@@ -787,19 +1840,47 @@ const deltaChart = new Chart(document.getElementById("delta-chart"), {
 		datasets: deltaDatasets(selectedBaseline()),
 		labels: endpointLabels,
 	},
-	options: {
-		maintainAspectRatio: false,
-		scales: commonScales,
+	options: Object.assign({}, commonOptions, {
+		scales: divergingScale,
+		plugins: Object.assign({}, commonOptions.plugins, {
+			tooltip: Object.assign({}, tooltipStyle, {
+				callbacks: {
+					label: (context) => context.dataset.label + ": " + formatDelta(context.parsed.y),
+				},
+			}),
+		}),
+	}),
+	type: "bar",
+});
+
+const deltaMirror = new Chart(document.getElementById("delta-chart-mirror"), {
+	data: {
+		datasets: deltaDatasets(selectedBaseline()),
+		labels: endpointLabels,
 	},
+	options: Object.assign({}, commonOptions, {
+		scales: divergingScale,
+		plugins: Object.assign({}, commonOptions.plugins, {
+			tooltip: Object.assign({}, tooltipStyle, {
+				callbacks: {
+					label: (context) => context.dataset.label + ": " + formatDelta(context.parsed.y),
+				},
+			}),
+		}),
+	}),
 	type: "bar",
 });
 
 function updateComparison() {
 	const baseline = selectedBaseline();
-	throughputChart.data.datasets = throughputDatasets(baseline);
-	deltaChart.data.datasets = deltaDatasets(baseline);
+	const throughputDatasetsResult = throughputDatasets(baseline);
+	const deltaDatasetsResult = deltaDatasets(baseline);
+	throughputChart.data.datasets = throughputDatasetsResult;
+	deltaChart.data.datasets = deltaDatasetsResult;
+	deltaMirror.data.datasets = deltaDatasetsResult;
 	throughputChart.update();
 	deltaChart.update();
+	deltaMirror.update();
 	renderComparisonTable(baseline);
 	updateBaselineDetails(baseline);
 }
@@ -1067,7 +2148,7 @@ function getOpenAiResponse(): unknown {
 
 function printAlignedTable(rows: ReadonlyArray<ReadonlyArray<string>>): void {
 	const widths = rows[0]!.map((_, columnIndex) =>
-		Math.max(...rows.map((row) => visibleLength(row[columnIndex] ?? ""))),
+		Math.max(...rows.map((row) => visibleLength(row[columnIndex] ?? "")))
 	);
 	const divider = widths.map((width) => "-".repeat(width)).join("-+-");
 	for (const [index, row] of rows.entries()) {
@@ -1127,6 +2208,50 @@ function formatPercent(value: number): string {
 	return `${value.toFixed(2)}%`;
 }
 
+function formatBytes(value: number): string {
+	if (!Number.isFinite(value) || value <= 0) return "0 B";
+	const units = ["B", "KB", "MB", "GB", "TB"] as const;
+	const exponent = Math.min(units.length - 1, Math.floor(Math.log10(value) / 3));
+	const scaled = value / 10 ** (exponent * 3);
+	let decimals = 2;
+	if (scaled >= 100) decimals = 0;
+	else if (scaled >= 10) decimals = 1;
+	return `${scaled.toFixed(decimals)} ${units[exponent]}`;
+}
+
+function formatReportDate(isoString: string): string {
+	const date = new Date(isoString);
+	if (Number.isNaN(date.valueOf())) return isoString;
+	const datePart = date.toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" });
+	const timePart = date.toLocaleTimeString("en-US", {
+		hour: "2-digit",
+		hour12: false,
+		minute: "2-digit",
+		second: "2-digit",
+	});
+	return `${datePart} · ${timePart}`;
+}
+
+function parseDurationToSeconds(duration: string): number {
+	const match = /^(\d+(?:\.\d+)?)([smh])?$/u.exec(duration.trim());
+	if (!match) return 0;
+	const value = Number(match[1]);
+	const unit = match[2] ?? "s";
+	if (unit === "m") return value * 60;
+	if (unit === "h") return value * 3600;
+	return value;
+}
+
+function computeVerdict(previous: EndpointSummary, current: EndpointSummary): "better" | "mixed" | "worse" {
+	const rpsWon = getPercentChange(previous.requestsPerSec, current.requestsPerSec) > 0;
+	const avgWon = getPercentChange(previous.averageMs, current.averageMs) < 0;
+	const p95Won = getPercentChange(previous.p95Ms, current.p95Ms) < 0;
+	const score = Number(rpsWon) + Number(avgWon) + Number(p95Won);
+	if (score >= 2) return "better";
+	if (score === 1) return "mixed";
+	return "worse";
+}
+
 function formatDelta(value: number): string {
 	const sign = value > 0 ? "+" : "";
 	return `${sign}${value.toFixed(1)}%`;
@@ -1179,13 +2304,17 @@ function sanitizeLabel(value: string): string {
 }
 
 function createTimestamp(date = new Date()): string {
-	return `${[
-		date.getFullYear(),
-		String(date.getMonth() + 1).padStart(2, "0"),
-		String(date.getDate()).padStart(2, "0"),
-	].join("")}-${[
-		String(date.getHours()).padStart(2, "0"),
-		String(date.getMinutes()).padStart(2, "0"),
-		String(date.getSeconds()).padStart(2, "0"),
-	].join("")}`;
+	return `${
+		[
+			date.getFullYear(),
+			String(date.getMonth() + 1).padStart(2, "0"),
+			String(date.getDate()).padStart(2, "0"),
+		].join("")
+	}-${
+		[
+			String(date.getHours()).padStart(2, "0"),
+			String(date.getMinutes()).padStart(2, "0"),
+			String(date.getSeconds()).padStart(2, "0"),
+		].join("")
+	}`;
 }
