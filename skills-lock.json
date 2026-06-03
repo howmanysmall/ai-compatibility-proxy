@@ -85,6 +85,12 @@
       "skillPath": "skills/engineering/improve-codebase-architecture/SKILL.md",
       "computedHash": "ef32aea0a8fab9b365ff9e08a95f8d353e20ca21ea46ec2e73587c86dd341351"
     },
+    "mise-tasks": {
+      "source": "terrylica/cc-skills",
+      "sourceType": "github",
+      "skillPath": "plugins/itp/skills/mise-tasks/SKILL.md",
+      "computedHash": "50fb390a3b4a6a4286fcc57d4f25216ce8dcc410a94ec15909d6291f01a59dcf"
+    },
     "tdd": {
       "source": "pproenca/dot-skills",
       "sourceType": "github",

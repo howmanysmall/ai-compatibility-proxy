@@ -15,14 +15,14 @@ A self-hosted Deno proxy that exposes an OpenAI-compatible API (`/v1/chat/comple
 All commands run through `mise`:
 
 ```sh
-mise x -- deno test                              # run all tests
-mise x -- deno test tests/proxy/proxy.test.ts    # run a single test file
-mise x -- deno check                              # type-check
-mise x -- deno task lint                          # lint (oxlint + biome + deno lint)
-mise x -- deno task lint src/proxy/app.ts         # lint specific files
-mise x -- deno task format:check                  # check formatting (biome + oxfmt + deno fmt)
-mise x -- deno task format                        # auto-fix formatting
-mise x -- deno run --allow-net --allow-env src/index.ts  # run the server locally
+mise x -- nr test                             # run all tests
+mise x -- nr test tests/proxy/proxy.test.ts   # run a single test file
+mise x -- nr typecheck                        # type-check
+mise x -- nr lint                             # lint (oxlint + biome + deno lint)
+mise x -- nr lint src/proxy/app.ts            # lint specific files
+mise x -- nr format:check                     # check formatting (biome + oxfmt + deno fmt)
+mise x -- nr format                           # auto-fix formatting
+mise x -- nr dev                              # run the server locally
 ```
 
 Tests use `Deno.test()` with manual assertions (no test framework). Tests live in `tests/` mirroring `src/` structure.
@@ -63,7 +63,7 @@ A Deno workspace member containing Oxlint custom rules under `plugins/oxc/small-
 
 ## Conventions
 
-- **Runtime**: Deno 2.x (pinned in `mise.toml`). TypeScript with strict mode and `verbatimModuleSyntax`.
+- **Runtime**: Deno 2.8.x (pinned in `mise.toml`). TypeScript with strict mode and `verbatimModuleSyntax`.
 - **Formatting**: tabs (width 4), 120 char line width, double quotes, trailing commas only in multiline. Enforced by biome + `oxfmt` + `deno fmt`.
 - **Linting**: `oxlint` (primary) + `biome` (supplementary: a11y, security, performance rules) + `deno lint`. No ESLint in the main project.
 - **Validation**: `arktype` for runtime schema validation, `arkenv` for environment parsing.

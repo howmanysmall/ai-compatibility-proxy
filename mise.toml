@@ -7,26 +7,20 @@ HK_MISE = 1
 "github:howmanysmall/npm-registry-mcp" = "latest"
 "github:howmanysmall/pullhook" = "latest"
 deno = "2.8.1"
+gum = "latest"
 hk = "latest"
 ni = "latest"
 pkl = "latest"
 rumdl = "latest"
 shfmt = "latest"
 tombi = "latest"
+jq = "latest"
 
 [settings]
 auto_install = false
 lockfile = true
 
-[tasks.lockfile]
-description = "Regenerate lockfile checksums for all tools, then install"
-run = ["mise lock", "mise install"]
-
-[tasks.lockfile-tool]
-description = "Regenerate lockfile checksums for a specific tool, then install"
-usage = 'arg "<tool>" help="Tool to refresh in the lockfile"'
-run = ["mise lock ${usage_tool?}", "mise install"]
-
+[tasks]
 [tasks.ignore-skills]
 description = "Ignores skills from the lockfile."
 run = """
@@ -65,3 +59,51 @@ fi
 [tasks.live-smoke]
 description = "Run repeatable live smoke tests for OpenCode Go and Cerebras proxy paths"
 run = "mise x -- deno run --allow-net --allow-env --allow-read --allow-run scripts/live-proxy-smoke.ts"
+
+[tasks.bench-http]
+alias = "bench"
+description = "Run real localhost HTTP benchmarks and print a compare-ready report that is easy to read at a glance. Saves snapshots under benchmarks/results/."
+dir = "."
+env = { BENCH_LABEL = "default", CONCURRENCY = "50", DURATION = "10s", WARMUP_REQUESTS = "5" }
+raw = true
+run = "deno run --allow-env --allow-net --allow-read --allow-run --allow-write --allow-sys scripts/http-bench.ts run --label $BENCH_LABEL --duration $DURATION --concurrency $CONCURRENCY --warmup-requests $WARMUP_REQUESTS"
+
+[tasks.bench-http-quick]
+alias = "bench-quick"
+description = "Run a short benchmark pass with a readable report for quick local comparisons."
+dir = "."
+raw = true
+run = "deno run --allow-env --allow-net --allow-read --allow-run --allow-write --allow-sys scripts/http-bench.ts run --label quick --duration 2s --concurrency 10 --warmup-requests 2"
+
+[tasks.bench-http-stress]
+alias = "bench-stress"
+description = "Run a longer benchmark pass with a readable report for higher-load comparisons."
+dir = "."
+raw = true
+run = "deno run --allow-env --allow-net --allow-read --allow-run --allow-write --allow-sys scripts/http-bench.ts run --label stress --duration 15s --concurrency 50 --warmup-requests 10"
+
+[tasks.open-latest-bench]
+description = "Open the latest benchmark results in your browser."
+run = """
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+if [[ ! -f benchmarks/results/latest-report.html ]]; then
+	echo "error: no benchmark results found" >&2
+	exit 1
+fi
+
+# check operating system
+
+if [[ "$(uname)" == "Darwin" ]]; then
+	open benchmarks/results/latest-report.html
+elif command -v xdg-open &>/dev/null; then
+	xdg-open benchmarks/results/latest-report.html
+else
+	echo "Please manually open benchmarks/results/latest-report.html"
+fi
+"""
+run_windows = """
+cmd /c start "" benchmarks\\results\\latest-report.html
+"""

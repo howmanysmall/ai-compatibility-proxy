@@ -3,12 +3,12 @@
 A self-hosted Deno proxy that exposes a small OpenAI-compatible API and translates or normalizes requests for upstream
 providers that are not quite OpenAI-compatible.
 
-The first supported path is OpenCode Go MiniMax M3:
+The first supported path is OpenCode Go:
 
 - Client: Warp or any OpenAI-compatible client
 - Proxy endpoint: `POST /v1/chat/completions`
-- Upstream protocol: Anthropic Messages
-- Upstream URL: `https://opencode.ai/zen/go/v1/messages`
+- Upstream protocols: Anthropic Messages or OpenAI-compatible chat completions
+- Upstream URL: `https://opencode.ai/zen/go/v1`
 - Default model: `minimax-m3`
 
 ## Endpoints
@@ -53,6 +53,10 @@ curl http://localhost:8000/v1/chat/completions \
 Streaming is supported for Anthropic-compatible upstreams by translating Anthropic SSE events into OpenAI
 `chat.completion.chunk` events.
 
+OpenCode Go routing is metadata-driven. The proxy fetches `models.dev` metadata to decide whether a model should go to
+`/messages` or `/chat/completions`. If metadata is unavailable or a model is unknown, the proxy degrades gracefully by
+probing `/chat/completions` and falling back to `/messages` only for client-side incompatibility errors.
+
 ## Warp Setup
 
 Configure Warp's custom OpenAI-compatible provider with:
@@ -71,12 +75,15 @@ For a hosted deployment, use your HTTPS origin instead of localhost, for example
 | `UPSTREAM_PROTOCOL`                  | `anthropic_messages`            | `anthropic_messages` or `cerebras_openai`.                       |
 | `UPSTREAM_BASE_URL`                  | `https://opencode.ai/zen/go/v1` | Upstream API base URL without a trailing slash.                  |
 | `UPSTREAM_AUTH_MODE`                 | `client_bearer`                 | `client_bearer` or `server_key`.                                 |
-| `UPSTREAM_AUTH_HEADER`               | `Authorization`                 | Header used for upstream authentication.                         |
+| `UPSTREAM_AUTH_HEADER`               | `x-api-key`                     | Header used for upstream authentication.                         |
 | `UPSTREAM_API_KEY`                   | empty                           | Server-side upstream key for `server_key` mode.                  |
 | `PROXY_API_KEY`                      | empty                           | Client-facing proxy key for `server_key` mode.                   |
 | `DEFAULT_MODEL`                      | `minimax-m3`                    | Model used when the client omits `model`.                        |
 | `DEFAULT_MAX_TOKENS`                 | `4096`                          | Anthropic `max_tokens` fallback.                                 |
 | `REQUEST_TIMEOUT_MS`                 | `60000`                         | Upstream request timeout.                                        |
+| `OPENCODE_MODELS_URL`                | `https://models.dev/api.json`   | Canonical metadata source for OpenCode model routing.            |
+| `OPENCODE_MODELS_CACHE_TTL_MS`       | `300000`                        | In-memory metadata cache TTL in milliseconds.                    |
+| `OPENCODE_MODELS_FETCH_TIMEOUT_MS`   | `2000`                          | Timeout for metadata fetches in milliseconds.                    |
 | `CEREBRAS_STRICT_REQUEST_VALIDATION` | `true`                          | Reject unknown or risky Cerebras request fields.                 |
 | `CEREBRAS_DROP_UNSUPPORTED_FIELDS`   | `true`                          | Drop unsupported fields only when strict validation is disabled. |
 
@@ -91,7 +98,8 @@ limits; anyone with access can spend the server owner's upstream API credits.
 
 ## Translation Behavior
 
-Anthropic mode maps OpenAI Chat Completions to Anthropic Messages:
+Anthropic mode maps OpenAI Chat Completions to Anthropic Messages when the selected OpenCode model is marked as
+Anthropic-backed in metadata:
 
 - `model` passes through, defaulting to `DEFAULT_MODEL`.
 - `system` and `developer` messages become Anthropic top-level `system` text.
@@ -102,6 +110,10 @@ Anthropic mode maps OpenAI Chat Completions to Anthropic Messages:
 
 Anthropic text blocks are concatenated into `choices[0].message.content`. Usage includes cache token fields when the
 upstream returns them. Finish reasons map to OpenAI-compatible values where possible.
+
+OpenCode models whose metadata resolves to OpenAI-compatible providers are forwarded directly to
+`/chat/completions` without Anthropic translation. New model releases do not require proxy redeploys as long as the
+metadata source is updated.
 
 ## Cerebras Mode
 

@@ -1,11 +1,7 @@
 {
 	"allowScripts": false,
 	"bench": {
-		"exclude": [],
 		"include": ["benchmarks/**"]
-	},
-	"compile": {
-		"permissions": {}
 	},
 	"compilerOptions": {
 		"allowUnreachableCode": false,
@@ -26,18 +22,9 @@
 		"noUnusedLocals": false,
 		"noUnusedParameters": false,
 		"paths": {
-			"@apis/*": ["./src/apis/*"],
-			"@classes/*": ["./src/classes/*"],
-			"@commands/*": ["./src/commands/*"],
 			"@constants/*": ["./src/constants/*"],
-			"@environment": ["./src/environment.ts"],
-			"@errors/*": ["./src/classes/errors/*"],
-			"@functions/*": ["./src/functions/*"],
 			"@logging/*": ["./src/logging/*"],
-			"@meta/*": ["./src/meta/*"],
-			"@packages/*": ["./src/packages/*"],
 			"@polyfills/*": ["./src/polyfills/*"],
-			"@prompts/*": ["./src/prompts/*"],
 			"@providers/*": ["./src/providers/*"],
 			"@proxy/*": ["./src/proxy/*"],
 			"@ts-types/*": ["./src/types/*"],
@@ -89,26 +76,18 @@
 		"useTabs": true
 	},
 	"imports": {
-		"@apis/": "./src/apis/",
 		"@biomejs/biome": "npm:@biomejs/biome@^2.4.15",
-		"@classes/": "./src/classes/",
 		"@commitlint/config-conventional": "npm:@commitlint/config-conventional@^21.0.1",
 		"@commitlint/types": "npm:@commitlint/types@^21.0.1",
 		"@constants/": "./src/constants/",
-		"@environment": "./src/environment.ts",
-		"@errors/": "./src/classes/errors/",
 		"@faker-js/faker": "npm:@faker-js/faker@^10.4.0",
-		"@functions/": "./src/functions/",
-		"@hono/hono": "jsr:@hono/hono@^4.12.23",
 		"@logging/": "./src/logging/",
-		"@meta/": "./src/meta/",
 		"@oxc-project/types": "npm:@oxc-project/types@^0.133.0",
 		"@oxlint/plugins": "npm:@oxlint/plugins@^1.66.0",
-		"@packages/": "./src/packages/",
 		"@polyfills/": "./src/polyfills/",
-		"@prompts/": "./src/prompts/",
 		"@providers/": "./src/providers/",
 		"@proxy/": "./src/proxy/",
+		"@sander/html": "jsr:@sander/html@0.1.12",
 		"@std/crypto": "jsr:@std/crypto@^1.1.0",
 		"@std/dotenv": "jsr:@std/dotenv@^0.225.6",
 		"@std/fmt": "jsr:@std/fmt@^1.0.10",
@@ -139,7 +118,7 @@
 		"tsdown": "npm:tsdown@^0.22.0",
 		"type-fest": "npm:type-fest@^5.6.0"
 	},
-	"license": "UNLICENSED",
+	"license": "MIT",
 	"lint": {
 		"exclude": [".repos", "**/*.js"],
 		"report": "pretty",
@@ -201,16 +180,15 @@
 	},
 	"name": "api-conversion",
 	"nodeModulesDir": "auto",
-	"permissions": {},
 	"publish": {
 		"exclude": ["**"]
 	},
-	"scopes": {},
 	"tasks": {
 		"biome": "biome",
 		"build:oxc": "deno run --allow-env --allow-ffi --allow-read --allow-write --allow-run ./scripts/build-small-rules.ts",
 		"commitlint": "commitlint",
 		"context7": "deno run -A npm:ctx7",
+		"dev": "deno run --allow-net --allow-env --allow-sys --allow-write --allow-read src/index.ts",
 		"format": "bash -c 'a=$(bash scripts/get-defaults.sh \"$@\"); deno task biome check --fix $a && deno task oxfmt $a && deno fmt $a' _",
 		"format:check": "bash -c 'a=$(bash scripts/get-defaults.sh \"$@\"); deno task biome check --no-errors-on-unmatched $a && deno task oxfmt --no-error-on-unmatched-pattern --check $a && deno fmt --permit-no-files --check $a' _",
 		"format:safe": "bash -c 'a=$(bash scripts/get-defaults.sh \"$@\"); deno task biome check --no-errors-on-unmatched --fix $a && deno task oxfmt --no-error-on-unmatched-pattern $a && deno fmt --permit-no-files $a' _",
@@ -220,13 +198,16 @@
 		"lint:safe": "bash -c 'a=$(bash scripts/get-defaults.sh \"$@\"); deno task oxlint --no-error-on-unmatched-pattern $a && deno task biome check --no-errors-on-unmatched $a && deno lint --permit-no-files $a' _",
 		"oxfmt": "oxfmt",
 		"oxlint": "oxlint",
-		"skills": "skills"
+		"skills": "skills",
+		"test": "deno test --coverage --trace-leaks --fail-fast --clean --parallel",
+		"type-check": "deno check"
 	},
 	"test": {
-		"include": ["tests/**/*.test.ts"]
+		"include": ["tests/**/*.test.ts"],
+		"sanitizeOps": true,
+		"sanitizeResources": true
 	},
-	"unstable": [],
 	"vendor": false,
-	"version": "0.0.0",
+	"version": "0.1.0",
 	"workspace": ["./plugins/", "./scripts/", "./benchmarks/"]
 }

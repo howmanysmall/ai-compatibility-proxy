@@ -11,6 +11,7 @@ export async function getModelsAsync(
 	fetcher: Fetcher,
 	headers: Headers,
 	proxyConfiguration: ProxyConfiguration,
+	ownedBy: string,
 ): Promise<OpenAiModelListResponse> {
 	const response = await fetchUpstreamGetAsync(
 		fetcher,
@@ -22,7 +23,7 @@ export async function getModelsAsync(
 
 	if (Predicate.isRecord(body) && Array.isArray(body.data)) {
 		return {
-			data: body.data.flatMap((model) => normalizeModel(model, proxyConfiguration)),
+			data: body.data.flatMap((model) => normalizeModel(model, ownedBy)),
 			object: "list",
 		};
 	}
@@ -33,21 +34,21 @@ export async function getModelsAsync(
 				created: 0,
 				id: proxyConfiguration.defaultModel,
 				object: "model",
-				owned_by: getOwnedBy(proxyConfiguration),
+				owned_by: ownedBy,
 			},
 		],
 		object: "list",
 	};
 }
 
-function normalizeModel(value: unknown, proxyConfiguration: ProxyConfiguration): Array<OpenAiModel> {
+function normalizeModel(value: unknown, ownedBy: string): Array<OpenAiModel> {
 	if (typeof value === "string") {
 		return [
 			{
 				created: 0,
 				id: value,
 				object: "model",
-				owned_by: getOwnedBy(proxyConfiguration),
+				owned_by: ownedBy,
 			},
 		];
 	}
@@ -62,11 +63,7 @@ function normalizeModel(value: unknown, proxyConfiguration: ProxyConfiguration):
 			created: getNumber(value.created),
 			id,
 			object: "model",
-			owned_by: typeof value.owned_by === "string" ? value.owned_by : getOwnedBy(proxyConfiguration),
+			owned_by: typeof value.owned_by === "string" ? value.owned_by : ownedBy,
 		},
 	];
-}
-
-function getOwnedBy(proxyConfiguration: ProxyConfiguration): string {
-	return proxyConfiguration.upstreamProtocol === "cerebras_openai" ? "cerebras" : "anthropic-compatible-upstream";
 }

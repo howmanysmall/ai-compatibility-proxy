@@ -14,7 +14,7 @@
     "jsr:@david/path@~0.3.2": "0.3.2",
     "jsr:@david/shell@0.5": "0.5.0",
     "jsr:@david/which@0.7": "0.7.0",
-    "jsr:@hono/hono@^4.12.23": "4.12.23",
+    "jsr:@sander/html@0.1.12": "0.1.12",
     "jsr:@std/assert@^1.0.19": "1.0.19",
     "jsr:@std/bytes@^1.0.6": "1.0.6",
     "jsr:@std/crypto@1.1.0": "1.1.0",
@@ -43,6 +43,7 @@
     "npm:@typescript/native-preview@^7.0.0-dev.20260522.1": "7.0.0-dev.20260527.2",
     "npm:arkenv@0.11": "0.11.0_arktype@2.2.0",
     "npm:arktype@^2.2.0": "2.2.0",
+    "npm:chrome-devtools-mcp@latest": "1.1.1",
     "npm:commitlint@^21.0.1": "21.0.2_@types+node@25.9.1_typescript@5.9.3",
     "npm:consola@^3.4.2": "3.4.2",
     "npm:ctx7@*": "0.4.4_@types+node@25.9.1",
@@ -63,6 +64,7 @@
     "npm:pretty-ms@^9.3.0": "9.3.0",
     "npm:rotating-file-stream@^3.2.9": "3.2.9",
     "npm:skills@^1.5.7": "1.5.9",
+    "npm:string-width@*": "8.2.1",
     "npm:sury@^11.0.0-alpha.7": "11.0.0-alpha.7",
     "npm:tsdown@0.22": "0.22.1_typescript@5.9.3_@typescript+native-preview@7.0.0-dev.20260527.2_oxc-resolver@11.20.0",
     "npm:type-fest@^5.6.0": "5.6.0",
@@ -152,8 +154,8 @@
     "@david/which@0.7.0": {
       "integrity": "2e7517b28ecd2c99afe70284f2660f2c11548e5b684fa751889f105e0e4f8fe5"
     },
-    "@hono/hono@4.12.23": {
-      "integrity": "9d9f3da498f69c311b5f92d973eb3b8ebc973b5fd2b4972781b556e07818a745"
+    "@sander/html@0.1.12": {
+      "integrity": "52cdd7fed3683b32cf93254ceec67e03ec433487649bfa5ed8319d933ce7b50b"
     },
     "@std/assert@1.0.19": {
       "integrity": "eaada96ee120cb980bc47e040f82814d786fe8162ecc53c91d8df60b8755991e"
@@ -1449,6 +1451,10 @@
     "chardet@2.1.1": {
       "integrity": "sha512-PsezH1rqdV9VvyNhxxOW32/d75r01NY7TQCmOqomRo15ZSOKbpTFVsfjghxo6JloQUCGnH4k1LGu0R4yCLlWQQ=="
     },
+    "chrome-devtools-mcp@1.1.1": {
+      "integrity": "sha512-Fs/ASXAkQqvYCbJjHIx/pnShjyIoZoPxdg4J3wjaA9FLkRb2ngGnisu2AGcBIXdw5qrPkOuV/cOlGOonpsE1qw==",
+      "bin": true
+    },
     "cli-cursor@5.0.0": {
       "integrity": "sha512-aCj4O5wKyszjMmDT4tZj93kxyydN/K5zPWSCe6/0AV/AA1pqe5ZBIw0a2ZfPQV7lL5/yb5HsUreJ6UFAF1tEQw==",
       "dependencies": [
@@ -2580,7 +2586,7 @@
   },
   "workspace": {
     "dependencies": [
-      "jsr:@hono/hono@^4.12.23",
+      "jsr:@sander/html@0.1.12",
       "jsr:@std/crypto@^1.1.0",
       "jsr:@std/dotenv@~0.225.6",
       "jsr:@std/fmt@^1.0.10",

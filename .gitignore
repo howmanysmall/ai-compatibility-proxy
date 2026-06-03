@@ -44,6 +44,7 @@ opensrc/
 
 # hk — local developer overrides (do not commit)
 hk.local.pkl
+/benchmarks/results/
 
 .agents/skills/clean-code/
 .agents/skills/code-simplifier/
@@ -80,3 +81,4 @@ hk.local.pkl
 .agents/skills/effect-ts/
 .agents/skills/improve-codebase-architecture/
 .agents/skills/hk/
+.agents/skills/mise-tasks/

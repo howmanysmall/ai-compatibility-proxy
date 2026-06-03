@@ -1,0 +1,9 @@
+{
+	"messages": [
+		{
+			"content": "Reply with pong.",
+			"role": "user"
+		}
+	],
+	"model": "minimax-m3"
+}

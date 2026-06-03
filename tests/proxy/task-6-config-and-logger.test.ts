@@ -9,6 +9,9 @@ Deno.test("Arkenv config parses all env vars and preserves ProxyConfig field nam
 		DEFAULT_MAX_TOKENS: "2048",
 		DEFAULT_MODEL: "custom-model",
 		LOG_LEVEL: "debug",
+		OPENCODE_MODELS_CACHE_TTL_MS: "12345",
+		OPENCODE_MODELS_FETCH_TIMEOUT_MS: "3456",
+		OPENCODE_MODELS_URL: "https://models.dev/api.json/",
 		PATH: "/usr/bin",
 		PORT: "9000",
 		PROXY_API_KEY: "proxy-key",
@@ -25,6 +28,9 @@ Deno.test("Arkenv config parses all env vars and preserves ProxyConfig field nam
 	assertEquals(config.defaultMaxTokens, 2048, "Expected DEFAULT_MAX_TOKENS mapping.");
 	assertEquals(config.defaultModel, "custom-model", "Expected DEFAULT_MODEL mapping.");
 	assertEquals(config.logLevel, "debug", "Expected LOG_LEVEL mapping.");
+	assertEquals(config.opencodeModelsCacheTtlMs, 12_345, "Expected OPENCODE_MODELS_CACHE_TTL_MS mapping.");
+	assertEquals(config.opencodeModelsFetchTimeoutMs, 3456, "Expected OPENCODE_MODELS_FETCH_TIMEOUT_MS mapping.");
+	assertEquals(config.opencodeModelsUrl, "https://models.dev/api.json", "Expected OPENCODE_MODELS_URL trimming.");
 	assertEquals(config.port, 9000, "Expected PORT mapping.");
 	assertEquals(config.proxyApiKey, "proxy-key", "Expected PROXY_API_KEY mapping.");
 	assertEquals(config.requestTimeoutMs, 1500, "Expected REQUEST_TIMEOUT_MS mapping.");
@@ -43,6 +49,9 @@ Deno.test("Arkenv config applies defaults for all optional env vars", () => {
 	assertEquals(config.defaultMaxTokens, 4096, "Expected token default.");
 	assertEquals(config.defaultModel, "minimax-m3", "Expected model default.");
 	assertEquals(config.logLevel, "info", "Expected log level default.");
+	assertEquals(config.opencodeModelsCacheTtlMs, 300_000, "Expected metadata cache TTL default.");
+	assertEquals(config.opencodeModelsFetchTimeoutMs, 2000, "Expected metadata fetch timeout default.");
+	assertEquals(config.opencodeModelsUrl, "https://models.dev/api.json", "Expected metadata URL default.");
 	assertEquals(config.port, 8000, "Expected port default.");
 	assertEquals(config.proxyApiKey, undefined, "Expected proxy key optional default.");
 	assertEquals(config.requestTimeoutMs, 60_000, "Expected timeout default.");

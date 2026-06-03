@@ -1,3 +1,4 @@
+import { getProviderTargetDefaults } from "@providers/registry.ts";
 import arkenv, { type } from "arkenv";
 
 export type UpstreamProtocol = "anthropic_messages" | "cerebras_openai";
@@ -5,6 +6,9 @@ export type UpstreamAuthMode = "client_bearer" | "server_key";
 
 export interface ProxyConfiguration {
 	readonly port: number;
+	readonly opencodeModelsCacheTtlMs: number;
+	readonly opencodeModelsFetchTimeoutMs: number;
+	readonly opencodeModelsUrl: string;
 	readonly upstreamProtocol: UpstreamProtocol;
 	readonly upstreamBaseUrl: string;
 	readonly upstreamAuthMode: UpstreamAuthMode;
@@ -25,6 +29,9 @@ const isProxyEnvironment = type({
 	DEFAULT_MAX_TOKENS: "number.integer > 0 = 4096",
 	DEFAULT_MODEL: "string = 'minimax-m3'",
 	LOG_LEVEL: "string = 'info'",
+	OPENCODE_MODELS_CACHE_TTL_MS: "number.integer > 0 = 300000",
+	OPENCODE_MODELS_FETCH_TIMEOUT_MS: "number.integer > 0 = 2000",
+	OPENCODE_MODELS_URL: "string = 'https://models.dev/api.json'",
 	PORT: "number.integer > 0 = 8000",
 	"PROXY_API_KEY?": "string",
 	REQUEST_TIMEOUT_MS: "number.integer > 0 = 60000",
@@ -44,6 +51,9 @@ export function loadConfiguration(
 		CEREBRAS_STRICT_REQUEST_VALIDATION,
 		DEFAULT_MAX_TOKENS,
 		LOG_LEVEL,
+		OPENCODE_MODELS_CACHE_TTL_MS,
+		OPENCODE_MODELS_FETCH_TIMEOUT_MS,
+		OPENCODE_MODELS_URL,
 		PORT,
 		PROXY_API_KEY,
 		REQUEST_TIMEOUT_MS,
@@ -65,6 +75,9 @@ export function loadConfiguration(
 		defaultMaxTokens: DEFAULT_MAX_TOKENS,
 		defaultModel,
 		logLevel: LOG_LEVEL,
+		opencodeModelsCacheTtlMs: OPENCODE_MODELS_CACHE_TTL_MS,
+		opencodeModelsFetchTimeoutMs: OPENCODE_MODELS_FETCH_TIMEOUT_MS,
+		opencodeModelsUrl: stripTrailingSlash(OPENCODE_MODELS_URL),
 		port: PORT,
 		proxyApiKey: PROXY_API_KEY,
 		requestTimeoutMs: REQUEST_TIMEOUT_MS,
@@ -77,15 +90,15 @@ export function loadConfiguration(
 }
 
 function getDefaultBaseUrl(upstreamProtocol: UpstreamProtocol): string {
-	return upstreamProtocol === "anthropic_messages" ? "https://opencode.ai/zen/go/v1" : "https://api.cerebras.ai/v1";
+	return getProviderTargetDefaults(upstreamProtocol).baseUrl;
 }
 
 function getDefaultAuthHeader(upstreamProtocol: UpstreamProtocol): string {
-	return upstreamProtocol === "anthropic_messages" ? "x-api-key" : "Authorization";
+	return getProviderTargetDefaults(upstreamProtocol).authHeader;
 }
 
 function getDefaultModel(upstreamProtocol: UpstreamProtocol): string {
-	return upstreamProtocol === "anthropic_messages" ? "minimax-m3" : "gpt-oss-120b";
+	return getProviderTargetDefaults(upstreamProtocol).model;
 }
 
 function removeEmptyValues(environment: Record<string, string | undefined>): Record<string, string | undefined> {
