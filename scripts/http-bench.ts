@@ -224,7 +224,7 @@ async function runBenchmarkAsync(options: BenchmarkOptions): Promise<BenchmarkRu
 	});
 	const proxyServer = Deno.serve(
 		{ hostname: options.host, port: options.port },
-		createApp({ proxyConfiguration: configuration }),
+		createApp({ proxyConfiguration: configuration }).fetch,
 	);
 	const proxyPort = getListeningPort(proxyServer.addr, "proxy");
 

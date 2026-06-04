@@ -11,7 +11,7 @@ if (import.meta.main) {
 		{
 			port: config.port,
 		},
-		createApp({ proxyConfiguration: config }),
+		createApp({ proxyConfiguration: config }).fetch,
 	);
 }
 
