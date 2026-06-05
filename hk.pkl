@@ -34,6 +34,12 @@ hooks {
         exclude = binary_excludes
       }
       ["check-merge-conflict"] = (Builtins.check_merge_conflict) {}
+      ["check-case-conflict"] = (Builtins.check_case_conflict) {}
+      ["check-symlinks"] = (Builtins.check_symlinks) {}
+      ["mixed-line-ending"] = (Builtins.mixed_line_ending) {}
+      ["detect-private-key"] = (Builtins.detect_private_key) {
+        exclude = binary_excludes
+      }
 
       // JS/TS pipeline — oxlint + biome + oxfmt
       ["oxlint"] = (Builtins.ox_lint) {
@@ -140,6 +146,12 @@ hooks {
         exclude = binary_excludes
       }
       ["check-merge-conflict"] = (Builtins.check_merge_conflict) {}
+      ["check-case-conflict"] = (Builtins.check_case_conflict) {}
+      ["check-symlinks"] = (Builtins.check_symlinks) {}
+      ["mixed-line-ending"] = (Builtins.mixed_line_ending) {}
+      ["detect-private-key"] = (Builtins.detect_private_key) {
+        exclude = binary_excludes
+      }
       ["oxlint"] = (Builtins.ox_lint) {
         glob = List("*.js", "*.jsx", "*.ts", "*.tsx", "*.mjs", "*.cjs", "*.mts", "*.cts")
         check = "nr oxlint --no-error-on-unmatched-pattern {{files}}"
@@ -194,6 +206,12 @@ hooks {
         exclude = binary_excludes
       }
       ["newlines"] = (Builtins.newlines) {
+        exclude = binary_excludes
+      }
+      ["check-case-conflict"] = (Builtins.check_case_conflict) {}
+      ["check-symlinks"] = (Builtins.check_symlinks) {}
+      ["mixed-line-ending"] = (Builtins.mixed_line_ending) {}
+      ["detect-private-key"] = (Builtins.detect_private_key) {
         exclude = binary_excludes
       }
       ["oxlint"] = (Builtins.ox_lint) {
