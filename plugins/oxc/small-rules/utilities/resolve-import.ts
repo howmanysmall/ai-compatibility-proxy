@@ -4,9 +4,9 @@ import { ResolverFactory } from "oxc-resolver";
 type ResolveResult =
 	| { readonly found: false }
 	| {
-		readonly found: true;
-		readonly path: string;
-	};
+			readonly found: true;
+			readonly path: string;
+	  };
 
 const resolver = new ResolverFactory({
 	extensions: [".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".json", ".node"],

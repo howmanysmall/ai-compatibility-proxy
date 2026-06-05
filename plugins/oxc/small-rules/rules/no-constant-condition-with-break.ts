@@ -176,7 +176,7 @@ function expressionContainsConfiguredLoopExit(
 		case "TaggedTemplateExpression": {
 			if (expressionContainsConfiguredLoopExit(unwrapped.tag, loopExitCalls)) return true;
 			return unwrapped.quasi.expressions.some((part) =>
-				expressionContainsConfiguredLoopExit(part, loopExitCalls)
+				expressionContainsConfiguredLoopExit(part, loopExitCalls),
 			);
 		}
 
@@ -335,13 +335,7 @@ type LoopNode =
 	| ESTree.ForStatement
 	| ESTree.WhileStatement;
 
-const LOOP_TYPES = new Set([
-	"DoWhileStatement",
-	"ForInStatement",
-	"ForOfStatement",
-	"ForStatement",
-	"WhileStatement",
-]);
+const LOOP_TYPES = new Set(["DoWhileStatement", "ForInStatement", "ForOfStatement", "ForStatement", "WhileStatement"]);
 function isLoopNode(node: ESTree.Node): node is LoopNode {
 	return LOOP_TYPES.has(node.type);
 }
@@ -389,7 +383,7 @@ function forStatementInitContainsConfiguredLoopExit(
 
 	if (initialization.type === "VariableDeclaration") {
 		return initialization.declarations.some((declaration) =>
-			declaration.init ? expressionContainsConfiguredLoopExit(declaration.init, loopExitCalls) : false
+			declaration.init ? expressionContainsConfiguredLoopExit(declaration.init, loopExitCalls) : false,
 		);
 	}
 
@@ -426,7 +420,7 @@ function statementContainsLoopExit(
 	switch (statement.type) {
 		case "BlockStatement": {
 			return statement.body.some((bodyStatement) =>
-				statementContainsLoopExit(bodyStatement, loopNode, loopExitCalls)
+				statementContainsLoopExit(bodyStatement, loopNode, loopExitCalls),
 			);
 		}
 
@@ -457,9 +451,9 @@ function statementContainsLoopExit(
 
 		case "IfStatement": {
 			if (statementContainsLoopExit(statement.consequent, loopNode, loopExitCalls)) return true;
-			return statement.alternate ?
-				statementContainsLoopExit(statement.alternate, loopNode, loopExitCalls) :
-				false;
+			return statement.alternate
+				? statementContainsLoopExit(statement.alternate, loopNode, loopExitCalls)
+				: false;
 		}
 
 		case "LabeledStatement":
@@ -471,8 +465,8 @@ function statementContainsLoopExit(
 		case "SwitchStatement": {
 			return statement.cases.some((switchCase) =>
 				switchCase.consequent.some((consequent) =>
-					statementContainsLoopExit(consequent, loopNode, loopExitCalls)
-				)
+					statementContainsLoopExit(consequent, loopNode, loopExitCalls),
+				),
 			);
 		}
 
@@ -489,7 +483,7 @@ function statementContainsLoopExit(
 
 		case "VariableDeclaration": {
 			return statement.declarations.some((declaration) =>
-				declaration.init ? expressionContainsConfiguredLoopExit(declaration.init, loopExitCalls) : false
+				declaration.init ? expressionContainsConfiguredLoopExit(declaration.init, loopExitCalls) : false,
 			);
 		}
 
@@ -518,9 +512,9 @@ const noConstantConditionWithBreak = defineRule({
 	create(context): Visitor {
 		const rawOptions = context.options?.[0];
 		const loopExitCalls = normalizeLoopExitCalls(
-			typeof rawOptions === "object" && rawOptions !== null ?
-				(rawOptions as NoConstantConditionWithBreakOptions) :
-				undefined,
+			typeof rawOptions === "object" && rawOptions !== null
+				? (rawOptions as NoConstantConditionWithBreakOptions)
+				: undefined,
 		);
 
 		function reportConstantCondition(testExpression: ESTree.Expression): void {

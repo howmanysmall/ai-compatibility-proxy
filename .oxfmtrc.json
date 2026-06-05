@@ -13,7 +13,6 @@
 		"**/do-not-sync-ever/**",
 		".vscode/mcp.json",
 		"opencode.jsonc",
-		"plugins/oxc/small-rules/**/*.ts",
 		"plugins/oxc/**/*.js",
 		"docker-compose.yml",
 		"src/logging/sanitizer.ts",

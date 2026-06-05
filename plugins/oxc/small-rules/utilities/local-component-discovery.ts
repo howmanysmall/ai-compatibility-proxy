@@ -15,11 +15,11 @@ interface LocalComponentInspection {
 type LocalComponentDiscovery =
 	| { readonly found: false }
 	| {
-		readonly found: true;
-		readonly importSource: string;
-		readonly importStyle: "default" | "named" | undefined;
-		readonly path: string;
-	};
+			readonly found: true;
+			readonly importSource: string;
+			readonly importStyle: "default" | "named" | undefined;
+			readonly path: string;
+	  };
 
 const COMPONENT_EXTENSIONS = new Set([".js", ".jsx", ".ts", ".tsx"]);
 const IGNORED_DIRECTORIES = new Set([
@@ -68,13 +68,14 @@ function getFileText(filePath: string): string {
 
 function getImportStyle(text: string, componentName: string): "default" | "named" | undefined {
 	const escapedName = escapeRegExp(componentName);
-	const hasNamedExport = new RegExp(`\\bexport\\s+(?:const|function|class)\\s+${escapedName}\\b`, "v").test(text) ||
+	const hasNamedExport =
+		new RegExp(`\\bexport\\s+(?:const|function|class)\\s+${escapedName}\\b`, "v").test(text) ||
 		new RegExp(`\\bexport\\s*\\{[^}]*\\b${escapedName}\\b[^}]*\\}`, "v").test(text);
 	if (hasNamedExport) return "named";
 
-	return DEFAULT_EXPORT_PATTERN.test(text) && new RegExp(`\\b${escapedName}\\b`, "v").test(text) ?
-		"default" :
-		undefined;
+	return DEFAULT_EXPORT_PATTERN.test(text) && new RegExp(`\\b${escapedName}\\b`, "v").test(text)
+		? "default"
+		: undefined;
 }
 
 function hasExpectedMarkers(text: string, markers: ReadonlyArray<string>): boolean {

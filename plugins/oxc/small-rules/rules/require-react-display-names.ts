@@ -168,9 +168,8 @@ const requireReactDisplayNames = defineRule({
 
 					context.report({
 						data: { variableName },
-						messageId: trackedVariable.kind === "context" ?
-							"missingContextDisplayName" :
-							"missingMemoDisplayName",
+						messageId:
+							trackedVariable.kind === "context" ? "missingContextDisplayName" : "missingMemoDisplayName",
 						node: trackedVariable.node,
 					});
 				}

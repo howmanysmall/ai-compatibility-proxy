@@ -62,9 +62,10 @@ function isStaticGlobalFactories(value: unknown): value is ReadonlyArray<string>
 }
 
 function normalizeOptions(raw: unknown): NormalizedOptions {
-	const factories = isRecord(raw) && isStaticGlobalFactories(raw.staticGlobalFactories) ?
-		raw.staticGlobalFactories :
-		DEFAULT_STATIC_GLOBAL_FACTORIES;
+	const factories =
+		isRecord(raw) && isStaticGlobalFactories(raw.staticGlobalFactories)
+			? raw.staticGlobalFactories
+			: DEFAULT_STATIC_GLOBAL_FACTORIES;
 
 	return {
 		dependencyMode: getDependencyMode(raw),
@@ -247,8 +248,7 @@ function checkStaticBinaryOrLogical(
 	options: NormalizedOptions,
 ): boolean {
 	if (!isExpression(left) || !isExpression(right)) return false;
-	return isStaticExpression(sourceCode, left, seen, options) &&
-		isStaticExpression(sourceCode, right, seen, options);
+	return isStaticExpression(sourceCode, left, seen, options) && isStaticExpression(sourceCode, right, seen, options);
 }
 
 function isStaticExpressionInner(

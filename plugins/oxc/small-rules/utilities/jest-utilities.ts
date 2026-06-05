@@ -74,7 +74,8 @@ function getExpectContext(currentParent: ESTree.Node, root: ESTree.Node): Expect
 
 	const ownContext: ExpectContext = {
 		hasCallback: isFunctionNode(currentParent),
-		hasIndeterminate: isFunctionNode(currentParent) ||
+		hasIndeterminate:
+			isFunctionNode(currentParent) ||
 			isIndeterminateLoopNode(currentParent) ||
 			currentParent.type === "ConditionalExpression" ||
 			currentParent.type === "IfStatement" ||

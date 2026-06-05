@@ -235,10 +235,7 @@ function containsLaterPushCall(
 	return false;
 }
 
-function buildArrayLiteralFromArguments(
-	argumentsList: ReadonlyArray<ESTree.Argument>,
-	sourceCode: SourceCode,
-): string {
+function buildArrayLiteralFromArguments(argumentsList: ReadonlyArray<ESTree.Argument>, sourceCode: SourceCode): string {
 	const parts = new Array<string>();
 	let size = 0;
 
@@ -289,9 +286,9 @@ const noArrayConstructorElements = defineRule({
 	create(context): Visitor {
 		const rawOptions = context.options?.[0];
 		const options: Required<NoArrayConstructorElementsOptions> =
-			typeof rawOptions === "object" && rawOptions !== null ?
-				{ ...DEFAULT_OPTIONS, ...(rawOptions as Partial<NoArrayConstructorElementsOptions>) } :
-				{ ...DEFAULT_OPTIONS };
+			typeof rawOptions === "object" && rawOptions !== null
+				? { ...DEFAULT_OPTIONS, ...(rawOptions as Partial<NoArrayConstructorElementsOptions>) }
+				: { ...DEFAULT_OPTIONS };
 		const { sourceCode } = context;
 
 		function inspectPushCollapse(statements: ReadonlyArray<ProgramStatement>): void {
@@ -341,7 +338,8 @@ const noArrayConstructorElements = defineRule({
 
 				const literalText = `[${collapsedArgumentParts.join(", ")}]`;
 
-				const hasUnsafeArgument = hasSpreadArgument ||
+				const hasUnsafeArgument =
+					hasSpreadArgument ||
 					pushStatements.some((pushStatement) => {
 						const callExpression = getPushCallForIdentifier(pushStatement.expression, arrayIdentifierName);
 						if (callExpression === undefined) return true;
@@ -392,7 +390,8 @@ const noArrayConstructorElements = defineRule({
 				if (node.arguments.length === 0) {
 					if (!options.requireExplicitGenericOnNewArray) return;
 
-					const hasTypeArguments = node.typeArguments !== undefined &&
+					const hasTypeArguments =
+						node.typeArguments !== undefined &&
 						node.typeArguments !== null &&
 						node.typeArguments.params.length > 0;
 					if (hasTypeArguments || hasContextualArrayAnnotation(node, sourceCode)) return;
@@ -471,7 +470,8 @@ const noArrayConstructorElements = defineRule({
 				if (!isDefinitelyNonNumericExpression(firstArgument)) {
 					if (options.environment === "roblox-ts") return;
 
-					const hasExplicitGeneric = node.typeArguments !== undefined &&
+					const hasExplicitGeneric =
+						node.typeArguments !== undefined &&
 						node.typeArguments !== null &&
 						node.typeArguments.params.length > 0;
 					if (hasExplicitGeneric) return;

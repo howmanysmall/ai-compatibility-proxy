@@ -102,9 +102,9 @@ function normalizeOptions(raw: NoUselessUseEffectOptions | undefined): Normalize
 		environment: isEnvironment(raw.environment) ? raw.environment : "standard",
 		hooks: new Set(isStringArray(raw.hooks) ? raw.hooks : DEFAULT_HOOKS),
 		propertyCallbackPrefixes: new Set(
-			isStringArray(raw.propertyCallbackPrefixes) ?
-				raw.propertyCallbackPrefixes :
-				DEFAULT_PROPERTY_CALLBACK_PREFIXES,
+			isStringArray(raw.propertyCallbackPrefixes)
+				? raw.propertyCallbackPrefixes
+				: DEFAULT_PROPERTY_CALLBACK_PREFIXES,
 		),
 		refHooks: new Set(isStringArray(raw.refHooks) ? raw.refHooks : DEFAULT_REF_HOOKS),
 		reportAdjustState: raw.reportAdjustState ?? true,
@@ -501,7 +501,7 @@ function countSetterCalls(
 		}
 
 		const hasDerivedArgument = callExpression.arguments.some((argument) =>
-			argument.type === "SpreadElement" ? false : expressionContainsIdentifier(argument)
+			argument.type === "SpreadElement" ? false : expressionContainsIdentifier(argument),
 		);
 
 		if (!hasDerivedArgument) return undefined;
@@ -937,9 +937,8 @@ function hasConditionalSetterBasedOnProperty(
 			}
 
 			if (statement.alternate !== null) {
-				const alternateStatements = statement.alternate.type === "BlockStatement" ?
-					statement.alternate.body :
-					[statement.alternate];
+				const alternateStatements =
+					statement.alternate.type === "BlockStatement" ? statement.alternate.body : [statement.alternate];
 				if (
 					hasConditionalSetterBasedOnProperty(
 						alternateStatements,
@@ -1014,9 +1013,8 @@ function hasEventSpecificLogic(
 			}
 
 			if (statement.alternate !== null) {
-				const alternateStatements = statement.alternate.type === "BlockStatement" ?
-					statement.alternate.body :
-					[statement.alternate];
+				const alternateStatements =
+					statement.alternate.type === "BlockStatement" ? statement.alternate.body : [statement.alternate];
 
 				if (hasEventSpecificLogic(alternateStatements, stateSetterIdentifiers, stateValueIdentifiers)) {
 					return true;

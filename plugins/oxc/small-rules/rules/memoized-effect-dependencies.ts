@@ -73,17 +73,17 @@ const memoizedEffectDependencies = defineRule({
 		const [rawOptions] = context.options;
 		const options = isRecord(rawOptions) ? rawOptions : {};
 		const mode: Mode = "mode" in options && isMode(options.mode) ? options.mode : "definite";
-		const environment = "environment" in options && isEnvironment(options.environment) ?
-			options.environment :
-			"roblox-ts";
+		const environment =
+			"environment" in options && isEnvironment(options.environment) ? options.environment : "roblox-ts";
 
 		const effectHookNameToIndex = new Map(DEFAULT_EFFECT_HOOKS);
 		if ("hooks" in options && Array.isArray(options.hooks)) {
 			for (const hook of options.hooks) {
 				if (!isRecord(hook) || !("name" in hook) || typeof hook.name !== "string") continue;
-				const dependenciesIndex = "dependenciesIndex" in hook && typeof hook.dependenciesIndex === "number" ?
-					hook.dependenciesIndex :
-					1;
+				const dependenciesIndex =
+					"dependenciesIndex" in hook && typeof hook.dependenciesIndex === "number"
+						? hook.dependenciesIndex
+						: 1;
 				effectHookNameToIndex.set(hook.name, dependenciesIndex);
 			}
 		}

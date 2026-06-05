@@ -18,9 +18,9 @@ export function isSetterIdentifier(name: string): boolean {
 
 export function getEffectCallback(callExpression: ESTree.CallExpression): CallbackFunction | undefined {
 	const [callback] = callExpression.arguments;
-	return callback?.type === "ArrowFunctionExpression" || callback?.type === "FunctionExpression" ?
-		callback :
-		undefined;
+	return callback?.type === "ArrowFunctionExpression" || callback?.type === "FunctionExpression"
+		? callback
+		: undefined;
 }
 
 export function walkAst(node: ESTree.Node, callback: (child: ESTree.Node) => void): void {

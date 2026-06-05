@@ -24,9 +24,9 @@ export function unwrapExpression(expression: ESTree.Expression): ESTree.Expressi
 
 export function getMemberPropertyName(node: ESTree.MemberExpression): string | undefined {
 	if (node.computed) {
-		return node.property.type === "Literal" && typeof node.property.value === "string" ?
-			node.property.value :
-			undefined;
+		return node.property.type === "Literal" && typeof node.property.value === "string"
+			? node.property.value
+			: undefined;
 	}
 
 	return node.property.type === "Identifier" ? node.property.name : undefined;

@@ -39,12 +39,7 @@ import {
 } from "@oxlint-utilities/prevent-abbreviations/scope";
 import { defineRule } from "oxlint-plugin-utilities";
 
-import type {
-	IsSafe,
-	MessageIds,
-	PreparedOptions,
-	VariableLike,
-} from "@oxlint-utilities/prevent-abbreviations/types";
+import type { IsSafe, MessageIds, PreparedOptions, VariableLike } from "@oxlint-utilities/prevent-abbreviations/types";
 import type { Definition, Diagnostic, ESTree, Fix, Fixer, Scope, Variable, Visitor } from "oxlint-plugin-utilities";
 
 const PREVENT_ABBREVIATIONS_SCHEMA = [
@@ -217,9 +212,10 @@ function createIsSafeNameForVariable(
 	variable: VariableLike,
 	isSafeGeneratedName: IsSafe,
 ): IsSafe {
-	const avoidArgumentsReplacement = definition.type === "Variable" && isVariableDeclarator(definition.node) &&
-		definition.node.init === null;
-	const avoidArgumentsInArrowParameter = definition.type === "Parameter" &&
+	const avoidArgumentsReplacement =
+		definition.type === "Variable" && isVariableDeclarator(definition.node) && definition.node.init === null;
+	const avoidArgumentsInArrowParameter =
+		definition.type === "Parameter" &&
 		variable.scope.type === "function" &&
 		variable.scope.block.type === "ArrowFunctionExpression";
 	const shouldAvoidArguments = avoidArgumentsReplacement || avoidArgumentsInArrowParameter;
@@ -273,9 +269,10 @@ function checkVariable(
 	const isSafeNameForVariable = createIsSafeNameForVariable(definition, variable, isSafeGeneratedName);
 
 	const specialCaseReplacement = getSpecialCaseReplacement(variable);
-	const variableReplacements = specialCaseReplacement === undefined ?
-		getNameReplacements(variable.name, options) :
-		{ samples: [specialCaseReplacement], total: 1 };
+	const variableReplacements =
+		specialCaseReplacement === undefined
+			? getNameReplacements(variable.name, options)
+			: { samples: [specialCaseReplacement], total: 1 };
 	if (variableReplacements.total === 0 || !variableReplacements.samples) return;
 
 	const { references } = variable;
@@ -289,14 +286,16 @@ function checkVariable(
 	);
 
 	const baseSamples = safeSamples.length > 0 ? safeSamples : variableReplacements.samples;
-	const hasCompleteSamples = typeof variableReplacements.samples.length === "number" &&
+	const hasCompleteSamples =
+		typeof variableReplacements.samples.length === "number" &&
 		variableReplacements.samples.length === variableReplacements.total;
-	const effectiveTotal = hasCompleteSamples ?
-		Math.max(0, variableReplacements.total - droppedDiscouraged) :
-		variableReplacements.total;
-	const messageSamples = variable.name === "fn" && effectiveTotal > 1 ?
-		baseSamples.map((name) => (name === "function_" ? "function" : name)) :
-		baseSamples;
+	const effectiveTotal = hasCompleteSamples
+		? Math.max(0, variableReplacements.total - droppedDiscouraged)
+		: variableReplacements.total;
+	const messageSamples =
+		variable.name === "fn" && effectiveTotal > 1
+			? baseSamples.map((name) => (name === "function_" ? "function" : name))
+			: baseSamples;
 
 	const message = getMessage(definitionName.name, { samples: messageSamples, total: effectiveTotal }, "variable");
 
@@ -311,10 +310,7 @@ function checkVariable(
 	report({ ...message, node: definitionName });
 }
 
-function checkPossiblyWeirdClassVariable(
-	variable: Variable,
-	variableChecker: (variable: VariableLike) => void,
-): void {
+function checkPossiblyWeirdClassVariable(variable: Variable, variableChecker: (variable: VariableLike) => void): void {
 	if (!isClassVariable(variable)) {
 		variableChecker(variable);
 		return;
@@ -449,10 +445,8 @@ const preventAbbreviations = defineRule({
 		},
 		fixable: "code",
 		messages: {
-			[MESSAGE_ID_REPLACE]:
-				`The {{nameTypeText}} \`{{discouragedName}}\` should be named \`{{replacement}}\`. ${ANOTHER_NAME_MESSAGE}`,
-			[MESSAGE_ID_SUGGESTION]:
-				`Please rename the {{nameTypeText}} \`{{discouragedName}}\`. Suggested names are: {{replacementsText}}. ${ANOTHER_NAME_MESSAGE}`,
+			[MESSAGE_ID_REPLACE]: `The {{nameTypeText}} \`{{discouragedName}}\` should be named \`{{replacement}}\`. ${ANOTHER_NAME_MESSAGE}`,
+			[MESSAGE_ID_SUGGESTION]: `Please rename the {{nameTypeText}} \`{{discouragedName}}\`. Suggested names are: {{replacementsText}}. ${ANOTHER_NAME_MESSAGE}`,
 		},
 		schema: PREVENT_ABBREVIATIONS_SCHEMA,
 		type: "suggestion",

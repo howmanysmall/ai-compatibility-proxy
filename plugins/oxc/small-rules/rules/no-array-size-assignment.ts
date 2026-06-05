@@ -126,8 +126,8 @@ const noArraySizeAssignment = defineRule({
 				}
 
 				const expressionStatement = node.parent.type === "ExpressionStatement" ? node.parent : undefined;
-				const shouldAutofix = allowAutofix && expressionStatement !== undefined &&
-					isSafeFixTarget(node.left.object);
+				const shouldAutofix =
+					allowAutofix && expressionStatement !== undefined && isSafeFixTarget(node.left.object);
 
 				if (!shouldAutofix) {
 					context.report({

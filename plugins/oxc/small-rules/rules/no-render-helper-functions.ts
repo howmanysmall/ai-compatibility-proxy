@@ -108,8 +108,8 @@ const noRenderHelperFunctions = defineRule({
 			if (variableName === undefined || isUppercaseName(variableName) || isHookName(variableName)) return;
 
 			const typeAnnotation = getTypeAnnotationFromBinding(parent.id);
-			const hasReactNodeAnnotation = typeAnnotation !== undefined &&
-				isReactNodeTypeAnnotation(typeAnnotation.typeAnnotation);
+			const hasReactNodeAnnotation =
+				typeAnnotation !== undefined && isReactNodeTypeAnnotation(typeAnnotation.typeAnnotation);
 
 			const returnTypeAnnotation = getReturnTypeAnnotation(node);
 			const hasReturnType = isReactNodeTypeAnnotation(returnTypeAnnotation);

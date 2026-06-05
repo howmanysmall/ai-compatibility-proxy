@@ -41,9 +41,9 @@ function parseOptions(rawOptions: unknown): RuleOptions {
 	}
 
 	return {
-		additionalExpectCallNames: Array.isArray(rawOptions.additionalExpectCallNames) ?
-			rawOptions.additionalExpectCallNames.filter((name: unknown): name is string => typeof name === "string") :
-			[],
+		additionalExpectCallNames: Array.isArray(rawOptions.additionalExpectCallNames)
+			? rawOptions.additionalExpectCallNames.filter((name: unknown): name is string => typeof name === "string")
+			: [],
 		onlyFunctionsWithAsyncKeyword: rawOptions.onlyFunctionsWithAsyncKeyword === true,
 		onlyFunctionsWithExpectInCallback: rawOptions.onlyFunctionsWithExpectInCallback === true,
 		onlyFunctionsWithExpectInLoop: rawOptions.onlyFunctionsWithExpectInLoop === true,

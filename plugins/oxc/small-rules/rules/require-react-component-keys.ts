@@ -453,9 +453,10 @@ const requireReactComponentKeys = defineRule({
 
 		function checkElement(node: ESTree.JSXElement | ESTree.JSXFragment): void {
 			const functionLike = getEnclosingFunctionLike(node);
-			const callbackUsage = functionLike === undefined ?
-				EMPTY_CALLBACK_USAGE :
-				getFunctionCallbackUsage(context.sourceCode, functionLike, iterationMethods, memoizationHooks);
+			const callbackUsage =
+				functionLike === undefined
+					? EMPTY_CALLBACK_USAGE
+					: getFunctionCallbackUsage(context.sourceCode, functionLike, iterationMethods, memoizationHooks);
 			const isCallback = callbackUsage.iteration || callbackUsage.memoization;
 			const isRoot = isTopLevelReturn(node);
 

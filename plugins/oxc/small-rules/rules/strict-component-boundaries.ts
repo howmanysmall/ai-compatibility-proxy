@@ -34,9 +34,10 @@ function isValidFixtureImport(pathParts: ReadonlyArray<string>): boolean {
 const strictComponentBoundaries = defineRule({
 	create(context): Visitor {
 		const rawOptions = context.options?.[0];
-		const { allow = [], maxDepth = 1 } = typeof rawOptions === "object" && rawOptions !== null ?
-			(rawOptions as Options) :
-			{ allow: [], maxDepth: 1 };
+		const { allow = [], maxDepth = 1 } =
+			typeof rawOptions === "object" && rawOptions !== null
+				? (rawOptions as Options)
+				: { allow: [], maxDepth: 1 };
 
 		const allowPatterns = allow.map((pattern) => new RegExp(pattern, "v"));
 

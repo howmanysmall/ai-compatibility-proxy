@@ -194,19 +194,23 @@ function getComplementMatch(
 	const secondComparison = getStrictComparison(secondCondition);
 	if (!firstComparison || !secondComparison) return undefined;
 
-	const operatorsComplement = (firstComparison.operator === "===" && secondComparison.operator === "!==") ||
+	const operatorsComplement =
+		(firstComparison.operator === "===" && secondComparison.operator === "!==") ||
 		(firstComparison.operator === "!==" && secondComparison.operator === "===");
 	if (!operatorsComplement) return undefined;
 
-	const directMatch = areEquivalentOperand(firstComparison.left, secondComparison.left, sourceCode) &&
+	const directMatch =
+		areEquivalentOperand(firstComparison.left, secondComparison.left, sourceCode) &&
 		areEquivalentOperand(firstComparison.right, secondComparison.right, sourceCode);
-	const swappedMatch = areEquivalentOperand(firstComparison.left, secondComparison.right, sourceCode) &&
+	const swappedMatch =
+		areEquivalentOperand(firstComparison.left, secondComparison.right, sourceCode) &&
 		areEquivalentOperand(firstComparison.right, secondComparison.left, sourceCode);
 
 	if (!directMatch && !swappedMatch) return undefined;
 
 	return {
-		isFixSafe: isSafeOperand(firstComparison.left) &&
+		isFixSafe:
+			isSafeOperand(firstComparison.left) &&
 			isSafeOperand(firstComparison.right) &&
 			isSafeOperand(secondComparison.left) &&
 			isSafeOperand(secondComparison.right),

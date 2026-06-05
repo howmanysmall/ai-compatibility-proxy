@@ -5,11 +5,7 @@ import { defineRule } from "oxlint-plugin-utilities";
 import type { CallbackFunction } from "@oxlint-types/missing-types";
 import type { Context, ESTree, Fix, Scope, SourceCode, Visitor } from "oxlint-plugin-utilities";
 
-const FUNCTION_DECLARATIONS = new Set<string>([
-	"ArrowFunctionExpression",
-	"FunctionDeclaration",
-	"FunctionExpression",
-]);
+const FUNCTION_DECLARATIONS = new Set<string>(["ArrowFunctionExpression", "FunctionDeclaration", "FunctionExpression"]);
 
 const UNSTABLE_VALUES = new Set<string>([
 	"ArrayExpression",
@@ -595,9 +591,9 @@ function isUnstableValue(node: ESTree.Node | undefined): boolean {
 }
 
 function isSelfReferenceCapture(capture: CaptureInfo, { parent }: ESTree.CallExpression): boolean {
-	return parent.type === "VariableDeclarator" ?
-		(capture.variable?.defs.some((definition) => definition.node === parent) ?? false) :
-		false;
+	return parent.type === "VariableDeclarator"
+		? (capture.variable?.defs.some((definition) => definition.node === parent) ?? false)
+		: false;
 }
 
 function isNumericArray(array: ReadonlyArray<unknown>): array is Array<number> {
@@ -803,7 +799,8 @@ const useExhaustiveDependencies = defineRule({
 						);
 					});
 
-					const isStableDep = matchingCaptures.length > 0 &&
+					const isStableDep =
+						matchingCaptures.length > 0 &&
 						matchingCaptures.every(
 							(capture) =>
 								!capture.forceDependency && isStableValue(capture.variable, capture.name, stableHooks),
