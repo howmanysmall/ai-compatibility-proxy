@@ -35,7 +35,7 @@ Deno.test("server_key mode rejects same-length wrong token", async () => {
 		proxyConfiguration: createConfiguration(),
 	});
 
-	const response = await app(
+	const response = await app.request(
 		new Request("http://localhost/v1/models", {
 			headers: { authorization: "Bearer wrong-key" },
 		}),
@@ -50,7 +50,7 @@ Deno.test("server_key mode rejects different-length wrong token", async () => {
 		proxyConfiguration: createConfiguration(),
 	});
 
-	const response = await app(
+	const response = await app.request(
 		new Request("http://localhost/v1/models", {
 			headers: { authorization: "Bearer wrong-key-longer" },
 		}),
@@ -68,7 +68,7 @@ Deno.test("server_key mode accepts correct token", async () => {
 		proxyConfiguration: createConfiguration(),
 	});
 
-	const response = await app(
+	const response = await app.request(
 		new Request("http://localhost/v1/models", {
 			headers: { authorization: "Bearer proxy-key" },
 		}),

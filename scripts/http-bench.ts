@@ -2,7 +2,7 @@ import { setTimeout as delayAsync } from "node:timers/promises";
 import { Command } from "@cliffy/command";
 import $ from "@david/dax";
 import { logger, parseLevel } from "@logging/logger.ts";
-import { createApp } from "@proxy/app.ts";
+import { createFetchHandler } from "@proxy/app.ts";
 import { loadConfiguration } from "@proxy/config.ts";
 import { html as renderHtml, raw, tag } from "@sander/html";
 import { join } from "@std/path";
@@ -224,7 +224,7 @@ async function runBenchmarkAsync(options: BenchmarkOptions): Promise<BenchmarkRu
 	});
 	const proxyServer = Deno.serve(
 		{ hostname: options.host, port: options.port },
-		createApp({ proxyConfiguration: configuration }),
+		createFetchHandler({ proxyConfiguration: configuration }),
 	);
 	const proxyPort = getListeningPort(proxyServer.addr, "proxy");
 
@@ -1967,6 +1967,7 @@ async function runOhaAsync(options: {
 	const { code, stderr, stdout } = await new Deno.Command("oha", {
 		// oxlint-disable-next-line small-rules/prevent-abbreviations
 		args: parameters,
+		env: { NO_COLOR: "false" },
 		stderr: "piped",
 		stdout: "piped",
 	}).output();

@@ -108,6 +108,7 @@
 		"eslint-plugin-regexp": "npm:eslint-plugin-regexp@^3.1.0",
 		"eslint-plugin-sonarjs": "npm:eslint-plugin-sonarjs@^4.0.3",
 		"eslint-plugin-unused-imports": "npm:eslint-plugin-unused-imports@^4.4.1",
+		"hono": "jsr:@hono/hono@4.12.23",
 		"oxfmt": "npm:oxfmt@^0.52.0",
 		"oxlint": "npm:oxlint@^1.66.0",
 		"oxlint-tsgolint": "npm:oxlint-tsgolint@^0.23.0",

@@ -1,6 +1,6 @@
 import { logger, parseLevel } from "@logging/logger.ts";
 
-import { createApp } from "./proxy/app.ts";
+import { createFetchHandler } from "./proxy/app.ts";
 import { loadConfiguration } from "./proxy/config.ts";
 
 if (import.meta.main) {
@@ -11,9 +11,9 @@ if (import.meta.main) {
 		{
 			port: config.port,
 		},
-		createApp({ proxyConfiguration: config }),
+		createFetchHandler({ proxyConfiguration: config }),
 	);
 }
 
-export { createApp } from "./proxy/app.ts";
+export { createApp, createFetchHandler } from "./proxy/app.ts";
 export { loadConfiguration as loadConfig } from "./proxy/config.ts";

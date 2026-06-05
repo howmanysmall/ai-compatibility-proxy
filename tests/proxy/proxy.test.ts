@@ -195,12 +195,65 @@ Deno.test("rejects missing client bearer auth", async () => {
 		proxyConfiguration: createConfiguration(),
 	});
 
-	const response = await app(new Request("http://localhost/v1/models"));
+	const response = await app.request(new Request("http://localhost/v1/models"));
 	const body = await readRecordAsync(response);
 	const error = getRecord(body, "error");
 
 	assert(response.status === 401, "Expected missing auth to fail.");
 	assert(error.type === "authentication_error", "Expected OpenAI-compatible authentication error.");
+});
+
+Deno.test("returns health status through Hono route", async () => {
+	const app = createApp({
+		fetcher: () => Promise.reject(new Error("fetch should not be called")),
+		proxyConfiguration: createConfiguration(),
+	});
+
+	const response = await app.request(new Request("http://localhost/health"));
+	const body = await readRecordAsync(response);
+
+	assert(response.status === 200, "Expected health route to succeed.");
+	assert(body.status === "ok", "Expected health status.");
+	assert(body.upstream_protocol === "anthropic_messages", "Expected configured upstream protocol.");
+});
+
+Deno.test("returns OpenAI-compatible not found errors", async () => {
+	const app = createApp({
+		fetcher: () => Promise.reject(new Error("fetch should not be called")),
+		proxyConfiguration: createConfiguration(),
+	});
+
+	const response = await app.request(new Request("http://localhost/not-found"));
+	const body = await readRecordAsync(response);
+	const error = getRecord(body, "error");
+
+	assert(response.status === 404, "Expected missing route to fail with 404.");
+	assert(error.message === "Route not found.", "Expected route not found message.");
+	assert(error.type === "invalid_request_error", "Expected OpenAI-compatible error type.");
+});
+
+Deno.test("rejects chat requests without JSON content type", async () => {
+	const app = createApp({
+		fetcher: () => Promise.reject(new Error("fetch should not be called")),
+		proxyConfiguration: createConfiguration(),
+	});
+
+	const response = await app.request(
+		new Request("http://localhost/v1/chat/completions", {
+			body: JSON.stringify({ messages: [{ content: "Hello", role: "user" }] }),
+			headers: {
+				authorization: "Bearer test-token",
+				"content-type": "text/plain",
+			},
+			method: "POST",
+		}),
+	);
+	const body = await readRecordAsync(response);
+	const error = getRecord(body, "error");
+
+	assert(response.status === 415, "Expected non-JSON request to fail.");
+	assert(error.message === "Content-Type must be application/json.", "Expected content type error.");
+	assert(error.param === "content-type", "Expected content-type param.");
 });
 
 Deno.test("proxies model list from OpenCode Go model endpoint", async () => {
@@ -220,7 +273,7 @@ Deno.test("proxies model list from OpenCode Go model endpoint", async () => {
 		proxyConfiguration: createConfiguration(),
 	});
 
-	const response = await app(
+	const response = await app.request(
 		new Request("http://localhost/v1/models", {
 			headers: { authorization: "Bearer upstream-key" },
 		}),
@@ -280,7 +333,7 @@ Deno.test("probes OpenCode Go passthrough dynamically without hardcoded model id
 		proxyConfiguration: createConfiguration(),
 	});
 
-	const response = await app(
+	const response = await app.request(
 		createJsonRequest("/v1/chat/completions", {
 			messages: [{ content: "Reply pong.", role: "user" }],
 			model: "future-openai-model",
@@ -342,7 +395,7 @@ Deno.test("falls back to Anthropic translation when passthrough returns a client
 		proxyConfiguration: createConfiguration(),
 	});
 
-	const response = await app(
+	const response = await app.request(
 		createJsonRequest("/v1/chat/completions", {
 			messages: [{ content: "Reply pong.", role: "user" }],
 			model: "fallback-model",
@@ -377,7 +430,7 @@ Deno.test("maps upstream 400 errors to OpenAI-compatible errors", async () => {
 		proxyConfiguration: createConfiguration(),
 	});
 
-	const response = await app(
+	const response = await app.request(
 		createJsonRequest("/v1/chat/completions", {
 			messages: [{ content: "Hello", role: "user" }],
 		}),
@@ -388,6 +441,38 @@ Deno.test("maps upstream 400 errors to OpenAI-compatible errors", async () => {
 	assert(response.status === 400, "Expected upstream status to be preserved.");
 	assert(error.message === "bad upstream request", "Expected upstream message.");
 	assert(error.type === "invalid_request_error", "Expected client error type.");
+});
+
+Deno.test("passes OpenAI-compatible streaming responses through without buffering", async () => {
+	const streamText = 'data: {"choices":[{"delta":{"content":"Hi"},"index":0}]}\n\n';
+	const app = createApp({
+		fetcher: () =>
+			Promise.resolve(
+				new Response(streamText, {
+					headers: {
+						"content-type": "text/event-stream",
+						"x-upstream-stream": "raw",
+					},
+				}),
+			),
+		proxyConfiguration: createConfiguration({
+			defaultModel: "gpt-oss-120b",
+			upstreamBaseUrl: "https://api.cerebras.ai/v1",
+			upstreamProtocol: "cerebras_openai",
+		}),
+	});
+
+	const response = await app.request(
+		createJsonRequest("/v1/chat/completions", {
+			messages: [{ content: "Hello", role: "user" }],
+			stream: true,
+		}),
+	);
+
+	assert(response.status === 200, "Expected streaming response to succeed.");
+	assert(response.headers.get("content-type") === "text/event-stream", "Expected upstream content type.");
+	assert(response.headers.get("x-upstream-stream") === "raw", "Expected upstream headers to pass through.");
+	assert((await response.text()) === streamText, "Expected raw stream body to pass through.");
 });
 
 Deno.test("normalizes Cerebras max_tokens and rejects unsupported fields", () => {
@@ -442,14 +527,14 @@ Deno.test("server_key mode requires proxy token and uses upstream key", async ()
 		}),
 	});
 
-	const invalidResponse = await app(
+	const invalidResponse = await app.request(
 		new Request("http://localhost/v1/models", {
 			headers: { authorization: "Bearer wrong-key" },
 		}),
 	);
 	assert(invalidResponse.status === 401, "Expected invalid proxy token to fail.");
 
-	const validResponse = await app(
+	const validResponse = await app.request(
 		new Request("http://localhost/v1/models", {
 			headers: { authorization: "Bearer proxy-key" },
 		}),

@@ -1,13 +1,11 @@
-import { logger } from "@logging/logger.ts";
+import { logger, parseLevel } from "@logging/logger.ts";
 import { getProviderTarget } from "@providers/registry.ts";
-import { type } from "arktype";
+import { Hono } from "hono";
 
-import { createAuthContext } from "./auth.ts";
 import { createErrorResponse, ProxyError } from "./errors.ts";
-import { isOpenAiChatCompletionRequest } from "./openai-types.ts";
+import { registerRoutes } from "./routes.ts";
 
 import type { ProxyConfiguration } from "./config.ts";
-import type { OpenAiChatCompletionRequest } from "./openai-types.ts";
 import type { Fetcher } from "./upstream.ts";
 
 export interface AppOptions {
@@ -15,13 +13,35 @@ export interface AppOptions {
 	readonly proxyConfiguration: ProxyConfiguration;
 }
 
-export function createApp({
-	proxyConfiguration: config,
-	fetcher = fetch,
-}: AppOptions): (request: Request) => Promise<Response> {
+export function createApp({ proxyConfiguration: config, fetcher = fetch }: AppOptions): Hono {
 	const providerTarget = getProviderTarget(config.upstreamProtocol);
+	const app = new Hono();
 
-	return async (request: Request): Promise<Response> => {
+	registerRoutes(app, {
+		fetcher,
+		providerTarget,
+		proxyConfiguration: config,
+	});
+
+	app.notFound(() => createErrorResponse(createRouteNotFoundError()));
+	app.onError((error) => createErrorResponse(error));
+
+	return app;
+}
+
+export function createFetchHandler(options: AppOptions): (request: Request) => Promise<Response> {
+	const app = createApp(options);
+	if (isFatalLogLevel(options.proxyConfiguration.logLevel)) {
+		return async (request) => {
+			try {
+				return await app.fetch(request);
+			} catch (error) {
+				return createErrorResponse(error);
+			}
+		};
+	}
+
+	return async (request) => {
 		const requestUrl = new URL(request.url);
 		const requestLogger = logger.withContext({
 			method: request.method,
@@ -32,7 +52,7 @@ export function createApp({
 		requestLogger.info("incoming request");
 
 		try {
-			const response = await handleRequestAsync(request, config, fetcher, providerTarget);
+			const response = await app.fetch(request);
 			requestLogger.info("request completed", {
 				latencyMs: Math.round(performance.now() - startedAt),
 				status: response.status,
@@ -50,75 +70,12 @@ export function createApp({
 	};
 }
 
-async function handleRequestAsync(
-	request: Request,
-	proxyConfiguration: ProxyConfiguration,
-	fetcher: Fetcher,
-	providerTarget: ReturnType<typeof getProviderTarget>,
-): Promise<Response> {
-	const url = new URL(request.url);
-
-	if (request.method === "GET" && url.pathname === "/health") {
-		return Response.json({
-			status: "ok",
-			upstream_protocol: proxyConfiguration.upstreamProtocol,
-		});
-	}
-
-	if (request.method === "GET" && url.pathname === "/v1/models") {
-		const authContext = createAuthContext(request, proxyConfiguration);
-		return Response.json(
-			await providerTarget.listModelsAsync({
-				fetcher,
-				headers: authContext.upstreamHeaders,
-				proxyConfiguration,
-			}),
-		);
-	}
-
-	if (request.method === "POST" && url.pathname === "/v1/chat/completions") {
-		const authContext = createAuthContext(request, proxyConfiguration);
-		const body = await readJsonBodyAsync(request);
-		return await providerTarget.createChatCompletionAsync({
-			fetcher,
-			headers: authContext.upstreamHeaders,
-			proxyConfiguration,
-			request: body,
-		});
-	}
-
+function createRouteNotFoundError(): ProxyError {
 	const error = new ProxyError("Route not found.", { status: 404, type: "invalid_request_error" });
-	Error.captureStackTrace(error, handleRequestAsync);
-	return createErrorResponse(error);
+	Error.captureStackTrace(error, createRouteNotFoundError);
+	return error;
 }
 
-async function readJsonBodyAsync(request: Request): Promise<OpenAiChatCompletionRequest> {
-	const contentType = request.headers.get("content-type") ?? "";
-	if (!contentType.includes("application/json")) {
-		const error = new ProxyError("Content-Type must be application/json.", { param: "content-type", status: 415 });
-		Error.captureStackTrace(error, readJsonBodyAsync);
-		throw error;
-	}
-
-	const body = await request.json();
-	if (typeof body !== "object" || !body || Array.isArray(body)) {
-		const error = new ProxyError("Request body must be a JSON object.");
-		Error.captureStackTrace(error, readJsonBodyAsync);
-		throw error;
-	}
-
-	const result = isOpenAiChatCompletionRequest(body);
-	if (result instanceof type.errors) {
-		const error = new ProxyError(result.summary);
-		Error.captureStackTrace(error, readJsonBodyAsync);
-		throw error;
-	}
-
-	if (!Array.isArray(result.messages) || result.messages.length === 0) {
-		const error = new ProxyError("At least one message is required.", { param: "messages" });
-		Error.captureStackTrace(error, readJsonBodyAsync);
-		throw error;
-	}
-
-	return result;
+function isFatalLogLevel(logLevel: string): boolean {
+	return parseLevel(logLevel) === 0;
 }
