@@ -21,8 +21,8 @@ The first supported path is OpenCode Go:
 
 ```sh
 cp .env.example .env
-mise x -- pnpm install --frozen-lockfile
-mise x -- pnpm run dev
+mise x -- ni --frozen-lockfile
+mise x -- nr dev
 ```
 
 Use your OpenCode Go API key as the client bearer token. In the default `client_bearer` mode, the proxy forwards that
@@ -144,11 +144,11 @@ and other risky fields by default.
 Run commands through mise:
 
 ```sh
-mise x -- pnpm run test
-mise x -- pnpm run type-check
-mise x -- pnpm run lint
-mise x -- pnpm run format:check
-mise x -- pnpm run bench
+mise x -- nr test
+mise x -- nr type-check
+mise x -- nr lint
+mise x -- nr format:check
+mise x -- nr bench
 ```
 
 ## Docker

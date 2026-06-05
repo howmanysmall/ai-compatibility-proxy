@@ -21,8 +21,8 @@ jobs:
       - uses: jdx/mise-action@v2
         with:
           install: true
-      - run: CI=true mise x -- pnpm install --frozen-lockfile
-      - run: mise x -- pnpm run type-check
+      - run: CI=true mise x -- ni --frozen-lockfile
+      - run: mise x -- nr type-check
 
   lint:
     name: Lint
@@ -32,9 +32,9 @@ jobs:
       - uses: jdx/mise-action@v2
         with:
           install: true
-      - run: CI=true mise x -- pnpm install --frozen-lockfile
-      - run: mise x -- pnpm exec oxlint --format github
-      - run: mise x -- pnpm exec biome ci --reporter github
+      - run: CI=true mise x -- ni --frozen-lockfile
+      - run: mise x -- nr oxlint --format github
+      - run: mise x -- nr biome ci --reporter github
 
   format:
     name: Format Check
@@ -44,8 +44,8 @@ jobs:
       - uses: jdx/mise-action@v2
         with:
           install: true
-      - run: CI=true mise x -- pnpm install --frozen-lockfile
-      - run: mise x -- pnpm run format:check
+      - run: CI=true mise x -- ni --frozen-lockfile
+      - run: mise x -- nr format:check
 
   test:
     name: Test
@@ -55,5 +55,5 @@ jobs:
       - uses: jdx/mise-action@v2
         with:
           install: true
-      - run: CI=true mise x -- pnpm install --frozen-lockfile
-      - run: mise x -- pnpm run test
+      - run: CI=true mise x -- ni --frozen-lockfile
+      - run: mise x -- nr test

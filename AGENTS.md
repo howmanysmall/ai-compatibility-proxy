@@ -97,7 +97,7 @@ hk manages pre-commit, commit-msg, pre-push, and post-merge hooks:
 
 ## Conventions
 
-- **Runtime**: Bun (managed by `mise.toml`). TypeScript with strict mode and `verbatimModuleSyntax`. Dependencies use `package.json` and `pnpm-lock.yaml`; do not use `bun install`.
+- **Runtime**: Bun (managed by `mise.toml`). TypeScript with strict mode and `verbatimModuleSyntax`. Dependencies use `package.json` and `aube-lock.yaml`; do not use `bun install`.
 - **Formatting**: tabs (width 4), 120 char line width, double quotes, trailing commas only in multiline. `oxfmt` owns TypeScript/JavaScript formatting. Biome owns JSON, JSONC, CSS, HTML, and lint-only checks for TS/JS.
 - **Linting**: `oxlint` (primary, JS/TS) + `biome` (supplementary: a11y, security, performance, CSS/JSON/HTML). Both must pass.
 - **Validation**: `arktype` for runtime schema validation with `type.errors` checking. `arkenv` for env var parsing with auto-coercion.

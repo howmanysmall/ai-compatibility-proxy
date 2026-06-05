@@ -22,7 +22,19 @@ url = "https://github.com/endevco/aube/releases/download/v1.18.0/aube-v1.18.0-x8
 url_api = "https://api.github.com/repos/endevco/aube/releases/assets/438526121"
 provenance = "github-attestations"
 
+[tools.aube."platforms.linux-x64-baseline"]
+checksum = "sha256:20b158c2439087267c95451dcc5feba13cfd1045b7a108e41a85c779bebbe1da"
+url = "https://github.com/endevco/aube/releases/download/v1.18.0/aube-v1.18.0-x86_64-unknown-linux-gnu.tar.gz"
+url_api = "https://api.github.com/repos/endevco/aube/releases/assets/438526121"
+provenance = "github-attestations"
+
 [tools.aube."platforms.linux-x64-musl"]
+checksum = "sha256:d4ef67a858817fd0e158aa4022787b079f4af566eebce7914bdd7eaf0cc803c1"
+url = "https://github.com/endevco/aube/releases/download/v1.18.0/aube-v1.18.0-x86_64-unknown-linux-musl.tar.gz"
+url_api = "https://api.github.com/repos/endevco/aube/releases/assets/438522827"
+provenance = "github-attestations"
+
+[tools.aube."platforms.linux-x64-musl-baseline"]
 checksum = "sha256:d4ef67a858817fd0e158aa4022787b079f4af566eebce7914bdd7eaf0cc803c1"
 url = "https://github.com/endevco/aube/releases/download/v1.18.0/aube-v1.18.0-x86_64-unknown-linux-musl.tar.gz"
 url_api = "https://api.github.com/repos/endevco/aube/releases/assets/438522827"
@@ -35,6 +47,12 @@ url_api = "https://api.github.com/repos/endevco/aube/releases/assets/438568960"
 provenance = "github-attestations"
 
 [tools.aube."platforms.windows-x64"]
+checksum = "sha256:ddc94d1cf21c14d675271761a7837193a23869f719a9cf57149807525e6b8620"
+url = "https://github.com/endevco/aube/releases/download/v1.18.0/aube-v1.18.0-x86_64-pc-windows-msvc.zip"
+url_api = "https://api.github.com/repos/endevco/aube/releases/assets/438529280"
+provenance = "github-attestations"
+
+[tools.aube."platforms.windows-x64-baseline"]
 checksum = "sha256:ddc94d1cf21c14d675271761a7837193a23869f719a9cf57149807525e6b8620"
 url = "https://github.com/endevco/aube/releases/download/v1.18.0/aube-v1.18.0-x86_64-pc-windows-msvc.zip"
 url_api = "https://api.github.com/repos/endevco/aube/releases/assets/438529280"
@@ -155,7 +173,17 @@ checksum = "sha256:ce0e94761beb6f326613794ddf0a5bdb3cb5404c50b1d26ef14670882dc51
 url = "https://github.com/howmanysmall/npm-registry-mcp/releases/download/v0.5.0/npm-registry-mcp_linux_x86_64.tar.gz"
 url_api = "https://api.github.com/repos/howmanysmall/npm-registry-mcp/releases/assets/359512057"
 
+[tools."github:howmanysmall/npm-registry-mcp"."platforms.linux-x64-baseline"]
+checksum = "sha256:ce0e94761beb6f326613794ddf0a5bdb3cb5404c50b1d26ef14670882dc518f1"
+url = "https://github.com/howmanysmall/npm-registry-mcp/releases/download/v0.5.0/npm-registry-mcp_linux_x86_64.tar.gz"
+url_api = "https://api.github.com/repos/howmanysmall/npm-registry-mcp/releases/assets/359512057"
+
 [tools."github:howmanysmall/npm-registry-mcp"."platforms.linux-x64-musl"]
+checksum = "sha256:ce0e94761beb6f326613794ddf0a5bdb3cb5404c50b1d26ef14670882dc518f1"
+url = "https://github.com/howmanysmall/npm-registry-mcp/releases/download/v0.5.0/npm-registry-mcp_linux_x86_64.tar.gz"
+url_api = "https://api.github.com/repos/howmanysmall/npm-registry-mcp/releases/assets/359512057"
+
+[tools."github:howmanysmall/npm-registry-mcp"."platforms.linux-x64-musl-baseline"]
 checksum = "sha256:ce0e94761beb6f326613794ddf0a5bdb3cb5404c50b1d26ef14670882dc518f1"
 url = "https://github.com/howmanysmall/npm-registry-mcp/releases/download/v0.5.0/npm-registry-mcp_linux_x86_64.tar.gz"
 url_api = "https://api.github.com/repos/howmanysmall/npm-registry-mcp/releases/assets/359512057"
@@ -170,7 +198,17 @@ checksum = "sha256:5d740f2d9ea863b76f3e8ea46095693857ee567c5aee42480b741c74a81f3
 url = "https://github.com/howmanysmall/npm-registry-mcp/releases/download/v0.5.0/npm-registry-mcp_darwin_x86_64.tar.gz"
 url_api = "https://api.github.com/repos/howmanysmall/npm-registry-mcp/releases/assets/359512055"
 
+[tools."github:howmanysmall/npm-registry-mcp"."platforms.macos-x64-baseline"]
+checksum = "sha256:5d740f2d9ea863b76f3e8ea46095693857ee567c5aee42480b741c74a81f397b"
+url = "https://github.com/howmanysmall/npm-registry-mcp/releases/download/v0.5.0/npm-registry-mcp_darwin_x86_64.tar.gz"
+url_api = "https://api.github.com/repos/howmanysmall/npm-registry-mcp/releases/assets/359512055"
+
 [tools."github:howmanysmall/npm-registry-mcp"."platforms.windows-x64"]
+checksum = "sha256:725bfd534aa9332de1a45401ed352a8daf73cc07c3957837df4e88723309176c"
+url = "https://github.com/howmanysmall/npm-registry-mcp/releases/download/v0.5.0/npm-registry-mcp_windows_x86_64.zip"
+url_api = "https://api.github.com/repos/howmanysmall/npm-registry-mcp/releases/assets/359512044"
+
+[tools."github:howmanysmall/npm-registry-mcp"."platforms.windows-x64-baseline"]
 checksum = "sha256:725bfd534aa9332de1a45401ed352a8daf73cc07c3957837df4e88723309176c"
 url = "https://github.com/howmanysmall/npm-registry-mcp/releases/download/v0.5.0/npm-registry-mcp_windows_x86_64.zip"
 url_api = "https://api.github.com/repos/howmanysmall/npm-registry-mcp/releases/assets/359512044"
@@ -194,7 +232,17 @@ checksum = "sha256:44489d2689351fb1c749792c71c09cfaef3009c7edbc42b8007cdb9f027d5
 url = "https://github.com/howmanysmall/pullhook/releases/download/v1.1.1/pullhook-x86_64-unknown-linux-musl.tar.xz"
 url_api = "https://api.github.com/repos/howmanysmall/pullhook/releases/assets/419689297"
 
+[tools."github:howmanysmall/pullhook"."platforms.linux-x64-baseline"]
+checksum = "sha256:44489d2689351fb1c749792c71c09cfaef3009c7edbc42b8007cdb9f027d5959"
+url = "https://github.com/howmanysmall/pullhook/releases/download/v1.1.1/pullhook-x86_64-unknown-linux-musl.tar.xz"
+url_api = "https://api.github.com/repos/howmanysmall/pullhook/releases/assets/419689297"
+
 [tools."github:howmanysmall/pullhook"."platforms.linux-x64-musl"]
+checksum = "sha256:44489d2689351fb1c749792c71c09cfaef3009c7edbc42b8007cdb9f027d5959"
+url = "https://github.com/howmanysmall/pullhook/releases/download/v1.1.1/pullhook-x86_64-unknown-linux-musl.tar.xz"
+url_api = "https://api.github.com/repos/howmanysmall/pullhook/releases/assets/419689297"
+
+[tools."github:howmanysmall/pullhook"."platforms.linux-x64-musl-baseline"]
 checksum = "sha256:44489d2689351fb1c749792c71c09cfaef3009c7edbc42b8007cdb9f027d5959"
 url = "https://github.com/howmanysmall/pullhook/releases/download/v1.1.1/pullhook-x86_64-unknown-linux-musl.tar.xz"
 url_api = "https://api.github.com/repos/howmanysmall/pullhook/releases/assets/419689297"
@@ -209,7 +257,17 @@ checksum = "sha256:8f465d07b20f226ae40b84c168e2ccabbeeaad2c32f9f0197c99f4b611dd0
 url = "https://github.com/howmanysmall/pullhook/releases/download/v1.1.1/pullhook-x86_64-apple-darwin.tar.xz"
 url_api = "https://api.github.com/repos/howmanysmall/pullhook/releases/assets/419689294"
 
+[tools."github:howmanysmall/pullhook"."platforms.macos-x64-baseline"]
+checksum = "sha256:8f465d07b20f226ae40b84c168e2ccabbeeaad2c32f9f0197c99f4b611dd043e"
+url = "https://github.com/howmanysmall/pullhook/releases/download/v1.1.1/pullhook-x86_64-apple-darwin.tar.xz"
+url_api = "https://api.github.com/repos/howmanysmall/pullhook/releases/assets/419689294"
+
 [tools."github:howmanysmall/pullhook"."platforms.windows-x64"]
+checksum = "sha256:89089232002d3c6eaa5a033f015985fab3e16aea6ca0d633bf609ac34bffae6a"
+url = "https://github.com/howmanysmall/pullhook/releases/download/v1.1.1/pullhook-x86_64-pc-windows-msvc.zip"
+url_api = "https://api.github.com/repos/howmanysmall/pullhook/releases/assets/419689296"
+
+[tools."github:howmanysmall/pullhook"."platforms.windows-x64-baseline"]
 checksum = "sha256:89089232002d3c6eaa5a033f015985fab3e16aea6ca0d633bf609ac34bffae6a"
 url = "https://github.com/howmanysmall/pullhook/releases/download/v1.1.1/pullhook-x86_64-pc-windows-msvc.zip"
 url_api = "https://api.github.com/repos/howmanysmall/pullhook/releases/assets/419689296"
@@ -230,7 +288,15 @@ url = "https://github.com/charmbracelet/gum/releases/download/v0.17.0/gum_0.17.0
 checksum = "sha256:69ee169bd6387331928864e94d47ed01ef649fbfe875baed1bbf27b5377a6fdb"
 url = "https://github.com/charmbracelet/gum/releases/download/v0.17.0/gum_0.17.0_Linux_x86_64.tar.gz"
 
+[tools.gum."platforms.linux-x64-baseline"]
+checksum = "sha256:69ee169bd6387331928864e94d47ed01ef649fbfe875baed1bbf27b5377a6fdb"
+url = "https://github.com/charmbracelet/gum/releases/download/v0.17.0/gum_0.17.0_Linux_x86_64.tar.gz"
+
 [tools.gum."platforms.linux-x64-musl"]
+checksum = "sha256:69ee169bd6387331928864e94d47ed01ef649fbfe875baed1bbf27b5377a6fdb"
+url = "https://github.com/charmbracelet/gum/releases/download/v0.17.0/gum_0.17.0_Linux_x86_64.tar.gz"
+
+[tools.gum."platforms.linux-x64-musl-baseline"]
 checksum = "sha256:69ee169bd6387331928864e94d47ed01ef649fbfe875baed1bbf27b5377a6fdb"
 url = "https://github.com/charmbracelet/gum/releases/download/v0.17.0/gum_0.17.0_Linux_x86_64.tar.gz"
 
@@ -242,7 +308,15 @@ url = "https://github.com/charmbracelet/gum/releases/download/v0.17.0/gum_0.17.0
 checksum = "sha256:cd66576aeebe6cd19c771863c7e8d696e0e1d5387d1e7075666baa67c2052e53"
 url = "https://github.com/charmbracelet/gum/releases/download/v0.17.0/gum_0.17.0_Darwin_x86_64.tar.gz"
 
+[tools.gum."platforms.macos-x64-baseline"]
+checksum = "sha256:cd66576aeebe6cd19c771863c7e8d696e0e1d5387d1e7075666baa67c2052e53"
+url = "https://github.com/charmbracelet/gum/releases/download/v0.17.0/gum_0.17.0_Darwin_x86_64.tar.gz"
+
 [tools.gum."platforms.windows-x64"]
+checksum = "sha256:b2be80531c6babc8d4e0e6ca95773d58118a2e1582ae006aace08dbc55503072"
+url = "https://github.com/charmbracelet/gum/releases/download/v0.17.0/gum_0.17.0_Windows_x86_64.zip"
+
+[tools.gum."platforms.windows-x64-baseline"]
 checksum = "sha256:b2be80531c6babc8d4e0e6ca95773d58118a2e1582ae006aace08dbc55503072"
 url = "https://github.com/charmbracelet/gum/releases/download/v0.17.0/gum_0.17.0_Windows_x86_64.zip"
 
@@ -262,7 +336,15 @@ url = "https://github.com/jdx/hk/releases/download/v1.46.0/hk-aarch64-unknown-li
 checksum = "sha256:85b2cc167443cd27b49e323ef9b9d1a946d4bc18196eccb66112842d30fb90cb"
 url = "https://github.com/jdx/hk/releases/download/v1.46.0/hk-x86_64-unknown-linux-gnu.tar.gz"
 
+[tools.hk."platforms.linux-x64-baseline"]
+checksum = "sha256:85b2cc167443cd27b49e323ef9b9d1a946d4bc18196eccb66112842d30fb90cb"
+url = "https://github.com/jdx/hk/releases/download/v1.46.0/hk-x86_64-unknown-linux-gnu.tar.gz"
+
 [tools.hk."platforms.linux-x64-musl"]
+checksum = "sha256:4ff45e1bfc9672b1b00572b4a50fac3b57e4add622ed56e9e2587745299932eb"
+url = "https://github.com/jdx/hk/releases/download/v1.46.0/hk-x86_64-unknown-linux-musl.tar.gz"
+
+[tools.hk."platforms.linux-x64-musl-baseline"]
 checksum = "sha256:4ff45e1bfc9672b1b00572b4a50fac3b57e4add622ed56e9e2587745299932eb"
 url = "https://github.com/jdx/hk/releases/download/v1.46.0/hk-x86_64-unknown-linux-musl.tar.gz"
 
@@ -271,6 +353,10 @@ checksum = "sha256:9db3fac25754cfb929dc3f92b294fffdb966d4e838b8e0adeaf5b9b7eccc4
 url = "https://github.com/jdx/hk/releases/download/v1.46.0/hk-aarch64-apple-darwin.tar.gz"
 
 [tools.hk."platforms.windows-x64"]
+checksum = "sha256:5af7e769acb7f70d8630ed53ae1fb2cc4b205117f29df5d83619fa0ff72a3bf1"
+url = "https://github.com/jdx/hk/releases/download/v1.46.0/hk-x86_64-pc-windows-msvc.zip"
+
+[tools.hk."platforms.windows-x64-baseline"]
 checksum = "sha256:5af7e769acb7f70d8630ed53ae1fb2cc4b205117f29df5d83619fa0ff72a3bf1"
 url = "https://github.com/jdx/hk/releases/download/v1.46.0/hk-x86_64-pc-windows-msvc.zip"
 
@@ -294,6 +380,8 @@ url = "https://github.com/jqlang/jq/releases/download/jq-1.8.1/jq-linux-amd64"
 provenance = "github-attestations"
 
 [tools.jq."platforms.linux-x64-baseline"]
+checksum = "sha256:020468de7539ce70ef1bceaf7cde2e8c4f2ca6c3afb84642aabc5c97d9fc2a0d"
+url = "https://github.com/jqlang/jq/releases/download/jq-1.8.1/jq-linux-amd64"
 provenance = "github-attestations"
 
 [tools.jq."platforms.linux-x64-musl"]
@@ -302,6 +390,8 @@ url = "https://github.com/jqlang/jq/releases/download/jq-1.8.1/jq-linux-amd64"
 provenance = "github-attestations"
 
 [tools.jq."platforms.linux-x64-musl-baseline"]
+checksum = "sha256:020468de7539ce70ef1bceaf7cde2e8c4f2ca6c3afb84642aabc5c97d9fc2a0d"
+url = "https://github.com/jqlang/jq/releases/download/jq-1.8.1/jq-linux-amd64"
 provenance = "github-attestations"
 
 [tools.jq."platforms.macos-arm64"]
@@ -315,6 +405,8 @@ url = "https://github.com/jqlang/jq/releases/download/jq-1.8.1/jq-macos-amd64"
 provenance = "github-attestations"
 
 [tools.jq."platforms.macos-x64-baseline"]
+checksum = "sha256:e80dbe0d2a2597e3c11c404f03337b981d74b4a8504b70586c354b7697a7c27f"
+url = "https://github.com/jqlang/jq/releases/download/jq-1.8.1/jq-macos-amd64"
 provenance = "github-attestations"
 
 [tools.jq."platforms.windows-x64"]
@@ -323,6 +415,8 @@ url = "https://github.com/jqlang/jq/releases/download/jq-1.8.1/jq-windows-amd64.
 provenance = "github-attestations"
 
 [tools.jq."platforms.windows-x64-baseline"]
+checksum = "sha256:23cb60a1354eed6bcc8d9b9735e8c7b388cd1fdcb75726b93bc299ef22dd9334"
+url = "https://github.com/jqlang/jq/releases/download/jq-1.8.1/jq-windows-amd64.exe"
 provenance = "github-attestations"
 
 [[tools.ni]]
@@ -345,7 +439,15 @@ url = "https://github.com/apple/pkl/releases/download/0.31.1/pkl-linux-aarch64"
 checksum = "sha256:618f13955d755cafbfe8c9cba1d27635848cd49dbc6abffd398d2751db1231bf"
 url = "https://github.com/apple/pkl/releases/download/0.31.1/pkl-linux-amd64"
 
+[tools.pkl."platforms.linux-x64-baseline"]
+checksum = "sha256:618f13955d755cafbfe8c9cba1d27635848cd49dbc6abffd398d2751db1231bf"
+url = "https://github.com/apple/pkl/releases/download/0.31.1/pkl-linux-amd64"
+
 [tools.pkl."platforms.linux-x64-musl"]
+checksum = "sha256:618f13955d755cafbfe8c9cba1d27635848cd49dbc6abffd398d2751db1231bf"
+url = "https://github.com/apple/pkl/releases/download/0.31.1/pkl-linux-amd64"
+
+[tools.pkl."platforms.linux-x64-musl-baseline"]
 checksum = "sha256:618f13955d755cafbfe8c9cba1d27635848cd49dbc6abffd398d2751db1231bf"
 url = "https://github.com/apple/pkl/releases/download/0.31.1/pkl-linux-amd64"
 
@@ -357,58 +459,17 @@ url = "https://github.com/apple/pkl/releases/download/0.31.1/pkl-macos-aarch64"
 checksum = "sha256:22123ed4ae4c03afa8c54c69f77f0bec39b0fa0f67b09d6d148e0a376a2a471d"
 url = "https://github.com/apple/pkl/releases/download/0.31.1/pkl-macos-amd64"
 
+[tools.pkl."platforms.macos-x64-baseline"]
+checksum = "sha256:22123ed4ae4c03afa8c54c69f77f0bec39b0fa0f67b09d6d148e0a376a2a471d"
+url = "https://github.com/apple/pkl/releases/download/0.31.1/pkl-macos-amd64"
+
 [tools.pkl."platforms.windows-x64"]
 checksum = "sha256:a8834481667325b44c539dbb758d7365a16389070f343c04b639bbe525ede013"
 url = "https://github.com/apple/pkl/releases/download/0.31.1/pkl-windows-amd64.exe"
 
-[[tools.pnpm]]
-version = "11.5.1"
-backend = "aqua:pnpm/pnpm"
-
-[tools.pnpm."platforms.linux-arm64"]
-checksum = "sha256:6f1e9d36d12a84aafddbbd024f9e98104aa701c888f05f7df5f4149e2fe87479"
-url = "https://github.com/pnpm/pnpm/releases/download/v11.5.1/pnpm-linux-arm64.tar.gz"
-provenance = "github-attestations"
-
-[tools.pnpm."platforms.linux-arm64-musl"]
-checksum = "sha256:24af7c258d77dd3af077be7775a67d462097864443b5bd48b93baf11c5bfe500"
-url = "https://github.com/pnpm/pnpm/releases/download/v11.5.1/pnpm-linux-arm64-musl.tar.gz"
-provenance = "github-attestations"
-
-[tools.pnpm."platforms.linux-x64"]
-checksum = "sha256:5cebc2fa002cabc2008075148427e1aa7baaa7df17dd9f5226e2b1b401e83583"
-url = "https://github.com/pnpm/pnpm/releases/download/v11.5.1/pnpm-linux-x64.tar.gz"
-provenance = "github-attestations"
-
-[tools.pnpm."platforms.linux-x64-baseline"]
-checksum = "sha256:5cebc2fa002cabc2008075148427e1aa7baaa7df17dd9f5226e2b1b401e83583"
-url = "https://github.com/pnpm/pnpm/releases/download/v11.5.1/pnpm-linux-x64.tar.gz"
-provenance = "github-attestations"
-
-[tools.pnpm."platforms.linux-x64-musl"]
-checksum = "sha256:103e77f25422802a89c6206a09466b05042e9f8e40921db177550944abc7882c"
-url = "https://github.com/pnpm/pnpm/releases/download/v11.5.1/pnpm-linux-x64-musl.tar.gz"
-provenance = "github-attestations"
-
-[tools.pnpm."platforms.linux-x64-musl-baseline"]
-checksum = "sha256:103e77f25422802a89c6206a09466b05042e9f8e40921db177550944abc7882c"
-url = "https://github.com/pnpm/pnpm/releases/download/v11.5.1/pnpm-linux-x64-musl.tar.gz"
-provenance = "github-attestations"
-
-[tools.pnpm."platforms.macos-arm64"]
-checksum = "sha256:6533dc62f42eafc1965ef3170fb0bf750ae5c3064d0fd9bcc50bc72c5b95e4c2"
-url = "https://github.com/pnpm/pnpm/releases/download/v11.5.1/pnpm-darwin-arm64.tar.gz"
-provenance = "github-attestations"
-
-[tools.pnpm."platforms.windows-x64"]
-checksum = "sha256:776efb770783a262d3de71ee0001460845e8b0ccb9c1a6ceba005fa47dc2d90b"
-url = "https://github.com/pnpm/pnpm/releases/download/v11.5.1/pnpm-win32-x64.zip"
-provenance = "github-attestations"
-
-[tools.pnpm."platforms.windows-x64-baseline"]
-checksum = "sha256:776efb770783a262d3de71ee0001460845e8b0ccb9c1a6ceba005fa47dc2d90b"
-url = "https://github.com/pnpm/pnpm/releases/download/v11.5.1/pnpm-win32-x64.zip"
-provenance = "github-attestations"
+[tools.pkl."platforms.windows-x64-baseline"]
+checksum = "sha256:a8834481667325b44c539dbb758d7365a16389070f343c04b639bbe525ede013"
+url = "https://github.com/apple/pkl/releases/download/0.31.1/pkl-windows-amd64.exe"
 
 [[tools.rumdl]]
 version = "0.2.4"
@@ -430,6 +491,8 @@ url = "https://github.com/rvben/rumdl/releases/download/v0.2.4/rumdl-v0.2.4-x86_
 provenance = "github-attestations"
 
 [tools.rumdl."platforms.linux-x64-baseline"]
+checksum = "sha256:b0ae99a215671311d425d49abe65bd69b9fe153f3662b489b8243e73e036959f"
+url = "https://github.com/rvben/rumdl/releases/download/v0.2.4/rumdl-v0.2.4-x86_64-unknown-linux-musl.tar.gz"
 provenance = "github-attestations"
 
 [tools.rumdl."platforms.linux-x64-musl"]
@@ -438,6 +501,8 @@ url = "https://github.com/rvben/rumdl/releases/download/v0.2.4/rumdl-v0.2.4-x86_
 provenance = "github-attestations"
 
 [tools.rumdl."platforms.linux-x64-musl-baseline"]
+checksum = "sha256:b0ae99a215671311d425d49abe65bd69b9fe153f3662b489b8243e73e036959f"
+url = "https://github.com/rvben/rumdl/releases/download/v0.2.4/rumdl-v0.2.4-x86_64-unknown-linux-musl.tar.gz"
 provenance = "github-attestations"
 
 [tools.rumdl."platforms.macos-arm64"]
@@ -451,6 +516,8 @@ url = "https://github.com/rvben/rumdl/releases/download/v0.2.4/rumdl-v0.2.4-x86_
 provenance = "github-attestations"
 
 [tools.rumdl."platforms.macos-x64-baseline"]
+checksum = "sha256:64bcc51604ce5e2af47b990b8fed5cb81d5766fabc42ccb9917b7d4fcb356e74"
+url = "https://github.com/rvben/rumdl/releases/download/v0.2.4/rumdl-v0.2.4-x86_64-apple-darwin.tar.gz"
 provenance = "github-attestations"
 
 [tools.rumdl."platforms.windows-x64"]
@@ -459,6 +526,8 @@ url = "https://github.com/rvben/rumdl/releases/download/v0.2.4/rumdl-v0.2.4-x86_
 provenance = "github-attestations"
 
 [tools.rumdl."platforms.windows-x64-baseline"]
+checksum = "sha256:d3bb0de583f4a01c110e47cefb7b5c048cfba38707e4c828c18aca4cda4a5e4e"
+url = "https://github.com/rvben/rumdl/releases/download/v0.2.4/rumdl-v0.2.4-x86_64-pc-windows-msvc.zip"
 provenance = "github-attestations"
 
 [[tools.shfmt]]
@@ -477,7 +546,15 @@ url = "https://github.com/mvdan/sh/releases/download/v3.13.1/shfmt_v3.13.1_linux
 checksum = "sha256:fb096c5d1ac6beabbdbaa2874d025badb03ee07929f0c9ff67563ce8c75398b1"
 url = "https://github.com/mvdan/sh/releases/download/v3.13.1/shfmt_v3.13.1_linux_amd64"
 
+[tools.shfmt."platforms.linux-x64-baseline"]
+checksum = "sha256:fb096c5d1ac6beabbdbaa2874d025badb03ee07929f0c9ff67563ce8c75398b1"
+url = "https://github.com/mvdan/sh/releases/download/v3.13.1/shfmt_v3.13.1_linux_amd64"
+
 [tools.shfmt."platforms.linux-x64-musl"]
+checksum = "sha256:fb096c5d1ac6beabbdbaa2874d025badb03ee07929f0c9ff67563ce8c75398b1"
+url = "https://github.com/mvdan/sh/releases/download/v3.13.1/shfmt_v3.13.1_linux_amd64"
+
+[tools.shfmt."platforms.linux-x64-musl-baseline"]
 checksum = "sha256:fb096c5d1ac6beabbdbaa2874d025badb03ee07929f0c9ff67563ce8c75398b1"
 url = "https://github.com/mvdan/sh/releases/download/v3.13.1/shfmt_v3.13.1_linux_amd64"
 
@@ -489,7 +566,15 @@ url = "https://github.com/mvdan/sh/releases/download/v3.13.1/shfmt_v3.13.1_darwi
 checksum = "sha256:6feedafc72915794163114f512348e2437d080d0047ef8b8fa2ec63b575f12af"
 url = "https://github.com/mvdan/sh/releases/download/v3.13.1/shfmt_v3.13.1_darwin_amd64"
 
+[tools.shfmt."platforms.macos-x64-baseline"]
+checksum = "sha256:6feedafc72915794163114f512348e2437d080d0047ef8b8fa2ec63b575f12af"
+url = "https://github.com/mvdan/sh/releases/download/v3.13.1/shfmt_v3.13.1_darwin_amd64"
+
 [tools.shfmt."platforms.windows-x64"]
+checksum = "sha256:60cd368533d0ad73fa86d93d5bbf95ef40587245ce684ed138c1b31557b5fe97"
+url = "https://github.com/mvdan/sh/releases/download/v3.13.1/shfmt_v3.13.1_windows_amd64.exe"
+
+[tools.shfmt."platforms.windows-x64-baseline"]
 checksum = "sha256:60cd368533d0ad73fa86d93d5bbf95ef40587245ce684ed138c1b31557b5fe97"
 url = "https://github.com/mvdan/sh/releases/download/v3.13.1/shfmt_v3.13.1_windows_amd64.exe"
 
@@ -509,7 +594,15 @@ url = "https://github.com/tombi-toml/tombi/releases/download/v1.1.1/tombi-cli-1.
 checksum = "sha256:6b01a72fbf67eb158a2efc72f7081756d87e2397054e0faf4de4b36478813342"
 url = "https://github.com/tombi-toml/tombi/releases/download/v1.1.1/tombi-cli-1.1.1-x86_64-unknown-linux-musl.tar.gz"
 
+[tools.tombi."platforms.linux-x64-baseline"]
+checksum = "sha256:6b01a72fbf67eb158a2efc72f7081756d87e2397054e0faf4de4b36478813342"
+url = "https://github.com/tombi-toml/tombi/releases/download/v1.1.1/tombi-cli-1.1.1-x86_64-unknown-linux-musl.tar.gz"
+
 [tools.tombi."platforms.linux-x64-musl"]
+checksum = "sha256:6b01a72fbf67eb158a2efc72f7081756d87e2397054e0faf4de4b36478813342"
+url = "https://github.com/tombi-toml/tombi/releases/download/v1.1.1/tombi-cli-1.1.1-x86_64-unknown-linux-musl.tar.gz"
+
+[tools.tombi."platforms.linux-x64-musl-baseline"]
 checksum = "sha256:6b01a72fbf67eb158a2efc72f7081756d87e2397054e0faf4de4b36478813342"
 url = "https://github.com/tombi-toml/tombi/releases/download/v1.1.1/tombi-cli-1.1.1-x86_64-unknown-linux-musl.tar.gz"
 
@@ -521,6 +614,14 @@ url = "https://github.com/tombi-toml/tombi/releases/download/v1.1.1/tombi-cli-1.
 checksum = "sha256:f4c70cfb7b1ada225df2b996ba97820a80dd9704484945f57fc18ad8fa18d9c6"
 url = "https://github.com/tombi-toml/tombi/releases/download/v1.1.1/tombi-cli-1.1.1-x86_64-apple-darwin.tar.gz"
 
+[tools.tombi."platforms.macos-x64-baseline"]
+checksum = "sha256:f4c70cfb7b1ada225df2b996ba97820a80dd9704484945f57fc18ad8fa18d9c6"
+url = "https://github.com/tombi-toml/tombi/releases/download/v1.1.1/tombi-cli-1.1.1-x86_64-apple-darwin.tar.gz"
+
 [tools.tombi."platforms.windows-x64"]
+checksum = "sha256:e899a3ae3a9361456061676b6264a5db0d4bb3e7d45e8890265d0ab5906439d1"
+url = "https://github.com/tombi-toml/tombi/releases/download/v1.1.1/tombi-cli-1.1.1-x86_64-pc-windows-msvc.zip"
+
+[tools.tombi."platforms.windows-x64-baseline"]
 checksum = "sha256:e899a3ae3a9361456061676b6264a5db0d4bb3e7d45e8890265d0ab5906439d1"
 url = "https://github.com/tombi-toml/tombi/releases/download/v1.1.1/tombi-cli-1.1.1-x86_64-pc-windows-msvc.zip"

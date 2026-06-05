@@ -16,7 +16,6 @@ pkl = "latest"
 rumdl = "latest"
 shfmt = "latest"
 tombi = "latest"
-pnpm = "latest"
 deno = "latest"
 
 [settings]

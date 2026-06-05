@@ -41,7 +41,7 @@
 	},
 	"formatter": {
 		"biome": {
-			"command": ["mise", "x", "--", "pnpm", "exec", "biome", "format", "--write", "$FILE"],
+			"command": ["mise", "x", "--", "nr", "biome", "format", "--write", "$FILE"],
 			"disabled": false,
 			"extensions": [
 				".astro",
@@ -67,7 +67,7 @@
 			]
 		},
 		"oxfmt": {
-			"command": ["mise", "x", "--", "pnpm", "exec", "oxfmt", "$FILE"],
+			"command": ["mise", "x", "--", "nr", "oxfmt", "$FILE"],
 			"disabled": false,
 			"environment": {},
 			"extensions": [
@@ -112,7 +112,7 @@
 	"instructions": ["./AGENTS.md"],
 	"lsp": {
 		"biome": {
-			"command": ["mise", "x", "--", "pnpm", "exec", "biome", "lsp-proxy"],
+			"command": ["mise", "x", "--", "nr", "biome", "lsp-proxy"],
 			"disabled": false,
 			"env": {},
 			"extensions": [
@@ -140,7 +140,7 @@
 		},
 		"eslint": { "disabled": true },
 		"oxfmt": {
-			"command": ["mise", "x", "--", "pnpm", "exec", "oxfmt", "--lsp"],
+			"command": ["mise", "x", "--", "nr", "oxfmt", "--lsp"],
 			"disabled": false,
 			"env": {},
 			"extensions": [
@@ -173,7 +173,7 @@
 			"initialization": {}
 		},
 		"oxlint": {
-			"command": ["mise", "x", "--", "pnpm", "exec", "oxlint", "--lsp"],
+			"command": ["mise", "x", "--", "nr", "oxlint", "--lsp"],
 			"disabled": false,
 			"env": {},
 			"extensions": [".js", ".mjs", ".cjs", ".ts", ".mts", ".cts", ".jsx", ".tsx", ".vue", ".svelte", ".astro"],
@@ -190,7 +190,7 @@
 			"extensions": [".toml"]
 		},
 		"typescript": {
-			"command": ["mise", "x", "--", "pnpm", "exec", "tsgo", "--lsp", "--stdio"],
+			"command": ["mise", "x", "--", "nr", "tsgo", "--lsp", "--stdio"],
 			"disabled": true,
 			"extensions": [".ts", ".tsx"]
 		}
