@@ -17,6 +17,7 @@ rumdl = "latest"
 shfmt = "latest"
 tombi = "latest"
 pnpm = "latest"
+deno = "latest"
 
 [settings]
 auto_install = false

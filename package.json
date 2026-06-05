@@ -16,7 +16,7 @@
 		"build:oxc": "bun run --bun scripts/build-small-rules.ts",
 		"commitlint": "commitlint",
 		"context7": "ctx7",
-		"dev": "bun --hot src/index.ts",
+		"dev": "bun run --bun --hot src/index.ts",
 		"format": "bash -c 'a=$(bash scripts/get-defaults.sh \"$@\"); nr biome check --fix $a && nr oxfmt $a' _",
 		"format:check": "bash -c 'a=$(bash scripts/get-defaults.sh \"$@\"); nr biome check --no-errors-on-unmatched $a && nr oxfmt --no-error-on-unmatched-pattern --check $a' _",
 		"format:safe": "bash -c 'a=$(bash scripts/get-defaults.sh \"$@\"); nr biome check --no-errors-on-unmatched --fix $a && nr oxfmt --no-error-on-unmatched-pattern $a' _",
@@ -29,7 +29,7 @@
 		"oxlint": "oxlint",
 		"skills": "skills",
 		"start": "bun src/index.ts",
-		"test": "vitest run --coverage --bail=1",
+		"test": "deno run -A npm:vitest run",
 		"type-check": "tsgo -p tsconfig.json --noEmit && tsgo -p tsconfig.scripts.json --noEmit"
 	},
 	"dependencies": {
