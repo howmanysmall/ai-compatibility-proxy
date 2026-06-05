@@ -23,12 +23,7 @@ const configuration = defineConfig({
 			provider: "v8",
 			reporter: ["text", "html", "text-summary"],
 			reportOnFailure: false,
-			thresholds: {
-				branches: 83,
-				functions: 95,
-				lines: 93,
-				statements: 90,
-			},
+			thresholds: { "100": true },
 		},
 		environment: "node",
 		fileParallelism: true,
