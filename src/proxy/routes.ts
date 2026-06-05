@@ -22,7 +22,7 @@ export function registerRoutes(app: Hono, dependencies: RouteDependencies): void
 
 	app.get("/v1/models", async (context) => {
 		const authContext = createAuthContext(context.req.raw, dependencies.proxyConfiguration);
-		return context.json(
+		return Response.json(
 			await dependencies.providerTarget.listModelsAsync({
 				fetcher: dependencies.fetcher,
 				headers: authContext.upstreamHeaders,
