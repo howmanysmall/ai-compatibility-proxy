@@ -88,3 +88,5 @@ hk.local.pkl
 .agents/skills/bun-runtime/
 .agents/skills/pnpm/
 .agents/skills/tsdown/
+.agents/skills/javascript-testing-expert/
+.agents/skills/mutation-testing/

@@ -67,11 +67,23 @@
       "skillPath": "skills/engineering/improve-codebase-architecture/SKILL.md",
       "computedHash": "ef32aea0a8fab9b365ff9e08a95f8d353e20ca21ea46ec2e73587c86dd341351"
     },
+    "javascript-testing-expert": {
+      "source": "dubzzz/fast-check",
+      "sourceType": "github",
+      "skillPath": "skills/javascript-testing-expert/SKILL.md",
+      "computedHash": "a01dcd9b4e74a629253b340e9a15e3ee647af1c785f32637e7006d9a26d43150"
+    },
     "mise-tasks": {
       "source": "terrylica/cc-skills",
       "sourceType": "github",
       "skillPath": "plugins/itp/skills/mise-tasks/SKILL.md",
       "computedHash": "50fb390a3b4a6a4286fcc57d4f25216ce8dcc410a94ec15909d6291f01a59dcf"
+    },
+    "mutation-testing": {
+      "source": "secondsky/claude-skills",
+      "sourceType": "github",
+      "skillPath": "plugins/mutation-testing/skills/mutation-testing/SKILL.md",
+      "computedHash": "f0a476424a9815651b6d967a6229d6483cd186e16c97c1d26f21260060ec9efb"
     },
     "pnpm": {
       "source": "antfu/skills",
