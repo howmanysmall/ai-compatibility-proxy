@@ -10,7 +10,7 @@ dist
 # code coverage
 coverage
 *.lcov
-reports/mutation/
+/reports/
 .stryker-tmp/
 .vitiate/
 .swc/
