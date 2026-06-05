@@ -1,6 +1,12 @@
 {
   "version": 1,
   "skills": {
+    "api-security-hardening": {
+      "source": "aj-geddes/useful-ai-prompts",
+      "sourceType": "github",
+      "skillPath": "skills/api-security-hardening/SKILL.md",
+      "computedHash": "cb3fac8f65a33ecaa4d8a4ef7f55097c3d0ff0d583c4b70ec28a8957a5d38d41"
+    },
     "clean-code": {
       "source": "pproenca/dot-skills",
       "sourceType": "github",
@@ -90,6 +96,12 @@
       "sourceType": "github",
       "skillPath": "skills/pnpm/SKILL.md",
       "computedHash": "318f9fca2441a3e06fedc336e195dd18be5dbe901064e4fa71b76b40b096ab3a"
+    },
+    "security-and-hardening": {
+      "source": "addyosmani/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/security-and-hardening/SKILL.md",
+      "computedHash": "5ab0ca195c66406f3bddefb0c97468f2eb717232e4ffced8628f5d921707e281"
     },
     "tdd": {
       "source": "pproenca/dot-skills",

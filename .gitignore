@@ -94,3 +94,5 @@ hk.local.pkl
 .agents/skills/tsdown/
 .agents/skills/javascript-testing-expert/
 .agents/skills/mutation-testing/
+.agents/skills/security-and-hardening/
+.agents/skills/api-security-hardening/
