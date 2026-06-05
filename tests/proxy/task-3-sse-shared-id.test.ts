@@ -1,9 +1,9 @@
-import { translateAnthropicSseText } from "@proxy/sse.ts";
+import { translateAnthropicSseText } from "@proxy/sse";
 import { Predicate } from "effect";
 
-import { assert, assertEquals } from "../utilities/test-utilities.ts";
+import { assert, assertEquals } from "../utilities/test-utilities";
 
-import type { ReadonlyRecord } from "@ts-types/utility-types.ts";
+import type { ReadonlyRecord } from "@ts-types/utility-types";
 
 function parseChunks(output: string): ReadonlyArray<ReadonlyRecord<string, unknown>> {
 	const chunks: Array<ReadonlyRecord<string, unknown>> = [];
@@ -20,7 +20,7 @@ function parseChunks(output: string): ReadonlyArray<ReadonlyRecord<string, unkno
 	return chunks;
 }
 
-Deno.test("all chunks in one Anthropic stream share a single id, created, and model", () => {
+test("all chunks in one Anthropic stream share a single id, created, and model", () => {
 	const input = [
 		'data: {"type":"message_start","message":{"id":"msg_abc123","model":"minimax-m3"}}',
 		"",
@@ -58,7 +58,7 @@ Deno.test("all chunks in one Anthropic stream share a single id, created, and mo
 	assertEquals(new Set(chunkModels).size, 1, `All chunks must share one model; got: ${JSON.stringify(chunkModels)}`);
 });
 
-Deno.test("stream id is taken from message_start, not generated per-chunk", () => {
+test("stream id is taken from message_start, not generated per-chunk", () => {
 	const input = [
 		'data: {"type":"message_start","message":{"id":"msg_xyz","model":"test-model"}}',
 		"",
@@ -77,7 +77,7 @@ Deno.test("stream id is taken from message_start, not generated per-chunk", () =
 	}
 });
 
-Deno.test("falls back to generated UUID and configured model when message_start is absent", () => {
+test("falls back to generated UUID and configured model when message_start is absent", () => {
 	const input = [
 		'data: {"type":"content_block_delta","delta":{"type":"text_delta","text":"Hi"}}',
 		"",

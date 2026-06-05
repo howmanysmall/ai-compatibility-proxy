@@ -1,10 +1,10 @@
 #!/usr/bin/env -S bun run --bun
 
 import fs from "node:fs/promises";
+import { basename, extname, resolve } from "node:path";
 import { performance } from "node:perf_hooks";
 import { cwd, exit } from "node:process";
 import { Command } from "@cliffy/command";
-import { basename, extname, resolve } from "@std/path";
 import { regex } from "arktype";
 import { argv, file } from "bun";
 import { bold, cyan, gray, green, magenta, red, yellow } from "colorette";

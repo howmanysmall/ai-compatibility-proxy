@@ -1,8 +1,8 @@
-import { translateAnthropicToOpenAi } from "@proxy/anthropic-translator.ts";
+import { translateAnthropicToOpenAi } from "@proxy/anthropic-translator";
 
-import { assert } from "../utilities/test-utilities.ts";
+import { assert } from "../utilities/test-utilities";
 
-Deno.test("translates a valid Anthropic message response", () => {
+test("translates a valid Anthropic message response", () => {
 	const openAiResponse = translateAnthropicToOpenAi(
 		{
 			content: [
@@ -34,7 +34,7 @@ Deno.test("translates a valid Anthropic message response", () => {
 	assert(openAiResponse.usage?.total_tokens === 22, "Expected total token mapping.");
 });
 
-Deno.test("falls through to the fallback for Anthropic message responses missing type", () => {
+test("falls through to the fallback for Anthropic message responses missing type", () => {
 	const openAiResponse = translateAnthropicToOpenAi(
 		{
 			content: [{ text: "Hello", type: "text" }],
@@ -51,7 +51,7 @@ Deno.test("falls through to the fallback for Anthropic message responses missing
 	assert(openAiResponse.id.startsWith("chatcmpl-"), "Expected generated id fallback.");
 });
 
-Deno.test("falls through to the fallback for Anthropic message responses with wrong type", () => {
+test("falls through to the fallback for Anthropic message responses with wrong type", () => {
 	const openAiResponse = translateAnthropicToOpenAi(
 		{
 			content: [{ text: "Hello", type: "text" }],
@@ -69,7 +69,7 @@ Deno.test("falls through to the fallback for Anthropic message responses with wr
 	assert(openAiResponse.id.startsWith("chatcmpl-"), "Expected generated id fallback.");
 });
 
-Deno.test("falls through to the fallback for Anthropic error responses", () => {
+test("falls through to the fallback for Anthropic error responses", () => {
 	const openAiResponse = translateAnthropicToOpenAi(
 		{ error: { message: "bad request", type: "error" }, type: "error" },
 		"fallback-model",
@@ -81,7 +81,7 @@ Deno.test("falls through to the fallback for Anthropic error responses", () => {
 	assert(openAiResponse.id.startsWith("chatcmpl-"), "Expected generated id fallback.");
 });
 
-Deno.test("falls through to the fallback for empty Anthropic payloads", () => {
+test("falls through to the fallback for empty Anthropic payloads", () => {
 	const openAiResponse = translateAnthropicToOpenAi({}, "fallback-model");
 
 	assert(openAiResponse.model === "fallback-model", "Expected request model fallback.");

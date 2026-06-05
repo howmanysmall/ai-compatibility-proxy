@@ -1,3 +1,4 @@
+import { mkdirSync } from "node:fs";
 import nodeProcess from "node:process";
 
 import { createDailyFileRotateReporter } from "./reports/daily-file-rotate-reporter.ts";
@@ -14,14 +15,6 @@ interface ContextualLogger {
 
 interface StructuredLogger extends ConsolaInstance {
 	readonly withContext: (context: LogContext) => ContextualLogger;
-}
-
-const termPermission = await Deno.permissions.query({ name: "env", variable: "TERM" });
-if (termPermission.state !== "granted") {
-	Object.defineProperty(nodeProcess, "env", {
-		configurable: true,
-		value: { TERM: "dumb" },
-	});
 }
 
 const { createConsola } = await import("consola");
@@ -42,7 +35,7 @@ const fileReporters = createFileReporters(canUseFileReporters);
 
 const baseLogger: ConsolaInstance = createConsola({
 	formatOptions: {
-		colors: Deno.stdout.isTerminal(),
+		colors: nodeProcess.stdout.isTTY,
 		compact: false,
 		date: true,
 		errorLevel: 10,
@@ -59,10 +52,10 @@ export function ensureLogDirectory(): boolean {
 	if (applicationLogPath === undefined) return false;
 
 	try {
-		Deno.mkdirSync(applicationLogPath, { recursive: true });
+		mkdirSync(applicationLogPath, { recursive: true });
 		return true;
 	} catch (error) {
-		if (error instanceof Deno.errors.NotCapable) return false;
+		if (isPermissionDeniedError(error)) return false;
 		throw error;
 	}
 }
@@ -88,9 +81,13 @@ async function getApplicationLogPathAsync(): Promise<string | undefined> {
 		const { applicationPaths } = await import("@constants/application-paths.ts");
 		return applicationPaths.log;
 	} catch (error) {
-		if (error instanceof Deno.errors.NotCapable) return undefined;
+		if (isPermissionDeniedError(error)) return undefined;
 		throw error;
 	}
+}
+
+function isPermissionDeniedError(error: unknown): boolean {
+	return error instanceof Error && "code" in error && (error.code === "EACCES" || error.code === "EPERM");
 }
 
 function createContextualLogger(context: LogContext): ContextualLogger {

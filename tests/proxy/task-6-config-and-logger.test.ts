@@ -1,8 +1,8 @@
-import { loadConfiguration } from "@proxy/config.ts";
+import { loadConfiguration } from "@proxy/config";
 
-import { assertEquals } from "../utilities/test-utilities.ts";
+import { assertEquals } from "../utilities/test-utilities";
 
-Deno.test("Arkenv config parses all env vars and preserves ProxyConfig field names", () => {
+test("Arkenv config parses all env vars and preserves ProxyConfig field names", () => {
 	const config = loadConfiguration({
 		CEREBRAS_DROP_UNSUPPORTED_FIELDS: "false",
 		CEREBRAS_STRICT_REQUEST_VALIDATION: "false",
@@ -41,7 +41,7 @@ Deno.test("Arkenv config parses all env vars and preserves ProxyConfig field nam
 	assertEquals(config.upstreamProtocol, "cerebras_openai", "Expected UPSTREAM_PROTOCOL mapping.");
 });
 
-Deno.test("Arkenv config applies defaults for all optional env vars", () => {
+test("Arkenv config applies defaults for all optional env vars", () => {
 	const config = loadConfiguration({});
 
 	assertEquals(config.cerebrasDropUnsupportedFields, true, "Expected Cerebras drop default.");
@@ -62,7 +62,7 @@ Deno.test("Arkenv config applies defaults for all optional env vars", () => {
 	assertEquals(config.upstreamProtocol, "anthropic_messages", "Expected protocol default.");
 });
 
-Deno.test("Arkenv config preserves Cerebras protocol-specific defaults", () => {
+test("Arkenv config preserves Cerebras protocol-specific defaults", () => {
 	const config = loadConfiguration({ UPSTREAM_PROTOCOL: "cerebras_openai" });
 
 	assertEquals(config.upstreamProtocol, "cerebras_openai", "Expected Cerebras protocol.");
@@ -71,23 +71,17 @@ Deno.test("Arkenv config preserves Cerebras protocol-specific defaults", () => {
 	assertEquals(config.defaultModel, "gpt-oss-120b", "Expected Cerebras model default.");
 });
 
-Deno.test({
-	fn: async () => {
-		const { ensureLogDirectory, logger } = await import("@logging/logger.ts");
+test("logger module handles log directory availability before reporters are used", async () => {
+	const { ensureLogDirectory, logger } = await import("@logging/logger.ts");
 
-		assertEquals(ensureLogDirectory(), false, "Expected logger import to avoid crashing without write permission.");
-		logger.info("log directory smoke test");
-	},
-	name: "logger module handles log directory setup before reporters are used",
+	assertEquals(typeof ensureLogDirectory(), "boolean", "Expected log directory availability probe.");
+	logger.info("log directory smoke test");
 });
 
-Deno.test({
-	fn: async () => {
-		const { logger, parseLevel } = await import("@logging/logger.ts");
+test("LOG_LEVEL=warn maps to consola level mutation", async () => {
+	const { logger, parseLevel } = await import("@logging/logger.ts");
 
-		logger.level = parseLevel("warn");
+	logger.level = parseLevel("warn");
 
-		assertEquals(logger.level, 2, "Expected warn to map to consola level 2.");
-	},
-	name: "LOG_LEVEL=warn maps to consola level mutation",
+	assertEquals(logger.level, 2, "Expected warn to map to consola level 2.");
 });

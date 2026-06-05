@@ -8,7 +8,6 @@ HK_MISE = 1
 "github:howmanysmall/pullhook" = "latest"
 aube = "latest"
 bun = "latest"
-deno = "2.8.1"
 gum = "latest"
 hk = "latest"
 jq = "latest"
@@ -61,7 +60,7 @@ fi
 
 [tasks.live-smoke]
 description = "Run repeatable live smoke tests for OpenCode Go and Cerebras proxy paths"
-run = "mise x -- deno run --allow-net --allow-env --allow-read --allow-run scripts/live-proxy-smoke.ts"
+run = "mise x -- bun run --bun scripts/live-proxy-smoke.ts"
 
 [tasks.bench-http]
 alias = "bench"
@@ -69,21 +68,21 @@ description = "Run real localhost HTTP benchmarks and print a compare-ready repo
 dir = "."
 env = { BENCH_LABEL = "default", CONCURRENCY = "50", DURATION = "10s", WARMUP_REQUESTS = "5" }
 raw = true
-run = "deno run --allow-env --allow-net --allow-read --allow-run --allow-write --allow-sys scripts/http-bench.ts run --label $BENCH_LABEL --duration $DURATION --concurrency $CONCURRENCY --warmup-requests $WARMUP_REQUESTS"
+run = "bun run --bun scripts/http-bench.ts run --label $BENCH_LABEL --duration $DURATION --concurrency $CONCURRENCY --warmup-requests $WARMUP_REQUESTS"
 
 [tasks.bench-http-quick]
 alias = "bench-quick"
 description = "Run a short benchmark pass with a readable report for quick local comparisons."
 dir = "."
 raw = true
-run = "deno run --allow-env --allow-net --allow-read --allow-run --allow-write --allow-sys scripts/http-bench.ts run --label quick --duration 2s --concurrency 10 --warmup-requests 2"
+run = "bun run --bun scripts/http-bench.ts run --label quick --duration 2s --concurrency 10 --warmup-requests 2"
 
 [tasks.bench-http-stress]
 alias = "bench-stress"
 description = "Run a longer benchmark pass with a readable report for higher-load comparisons."
 dir = "."
 raw = true
-run = "deno run --allow-env --allow-net --allow-read --allow-run --allow-write --allow-sys scripts/http-bench.ts run --label stress --duration 15s --concurrency 50 --warmup-requests 10"
+run = "bun run --bun scripts/http-bench.ts run --label stress --duration 15s --concurrency 50 --warmup-requests 10"
 
 [tasks.open-latest-bench]
 description = "Open the latest benchmark results in your browser."

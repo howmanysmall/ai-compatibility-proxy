@@ -1,13 +1,13 @@
-import { translateAnthropicToOpenAi, translateOpenAiToAnthropic } from "@proxy/anthropic-translator.ts";
-import { createApp } from "@proxy/app.ts";
-import { normalizeCerebrasRequest } from "@proxy/cerebras-translator.ts";
-import { loadConfiguration } from "@proxy/config.ts";
-import { translateAnthropicSseText } from "@proxy/sse.ts";
+import { translateAnthropicToOpenAi, translateOpenAiToAnthropic } from "@proxy/anthropic-translator";
+import { createApp } from "@proxy/app";
+import { normalizeCerebrasRequest } from "@proxy/cerebras-translator";
+import { loadConfiguration } from "@proxy/config";
+import { translateAnthropicSseText } from "@proxy/sse";
 import { Predicate } from "effect";
 
-import { assert, getInitHeader } from "../utilities/test-utilities.ts";
+import { assert, getInitHeader } from "../utilities/test-utilities";
 
-import type { ProxyConfiguration } from "@proxy/config.ts";
+import type { ProxyConfiguration } from "@proxy/config";
 
 function createConfiguration(overrides: Partial<ProxyConfiguration> = {}): ProxyConfiguration {
 	return {
@@ -72,7 +72,7 @@ function getArray(value: Record<string, unknown>, key: string): ReadonlyArray<un
 	return childValue;
 }
 
-Deno.test("translates OpenAI request to OpenCode Go Anthropic request", () => {
+test("translates OpenAI request to OpenCode Go Anthropic request", () => {
 	const anthropicRequest = translateOpenAiToAnthropic(
 		{
 			max_completion_tokens: 128,
@@ -101,7 +101,7 @@ Deno.test("translates OpenAI request to OpenCode Go Anthropic request", () => {
 	assert(anthropicRequest.top_p === 0.9, "Expected top_p passthrough.");
 });
 
-Deno.test("uses default token limit when OpenAI request omits one", () => {
+test("uses default token limit when OpenAI request omits one", () => {
 	const anthropicRequest = translateOpenAiToAnthropic(
 		{
 			messages: [{ content: "Hello", role: "user" }],
@@ -113,7 +113,7 @@ Deno.test("uses default token limit when OpenAI request omits one", () => {
 	assert(anthropicRequest.max_tokens === 1234, "Expected DEFAULT_MAX_TOKENS fallback.");
 });
 
-Deno.test("translates Anthropic response to OpenAI response with cache usage", () => {
+test("translates Anthropic response to OpenAI response with cache usage", () => {
 	const openAIResponse = translateAnthropicToOpenAi(
 		{
 			base_resp: { status_code: 0, status_msg: "success" },
@@ -146,7 +146,7 @@ Deno.test("translates Anthropic response to OpenAI response with cache usage", (
 	assert(openAIResponse.usage?.total_tokens === 22, "Expected total token mapping.");
 });
 
-Deno.test("translates Anthropic streaming events to OpenAI SSE", () => {
+test("translates Anthropic streaming events to OpenAI SSE", () => {
 	const output = translateAnthropicSseText(
 		[
 			'data: {"type":"message_start","message":{"id":"msg_1","model":"minimax-m3"}}',
@@ -166,7 +166,7 @@ Deno.test("translates Anthropic streaming events to OpenAI SSE", () => {
 	assert(output.includes('"prompt_tokens":4'), "Expected usage mapping.");
 });
 
-Deno.test("rejects unsupported Anthropic message content", () => {
+test("rejects unsupported Anthropic message content", () => {
 	let didThrow = false;
 
 	try {
@@ -189,13 +189,13 @@ Deno.test("rejects unsupported Anthropic message content", () => {
 	assert(didThrow, "Expected multimodal content to be rejected.");
 });
 
-Deno.test("rejects missing client bearer auth", async () => {
+test("rejects missing client bearer auth", async () => {
 	const app = createApp({
 		fetcher: () => Promise.reject(new Error("fetch should not be called")),
 		proxyConfiguration: createConfiguration(),
 	});
 
-	const response = await app.request(new Request("http://localhost/v1/models"));
+	const response = await app.fetch(new Request("http://localhost/v1/models"));
 	const body = await readRecordAsync(response);
 	const error = getRecord(body, "error");
 
@@ -203,13 +203,13 @@ Deno.test("rejects missing client bearer auth", async () => {
 	assert(error.type === "authentication_error", "Expected OpenAI-compatible authentication error.");
 });
 
-Deno.test("returns health status through Hono route", async () => {
+test("returns health status through Elysia route", async () => {
 	const app = createApp({
 		fetcher: () => Promise.reject(new Error("fetch should not be called")),
 		proxyConfiguration: createConfiguration(),
 	});
 
-	const response = await app.request(new Request("http://localhost/health"));
+	const response = await app.fetch(new Request("http://localhost/health"));
 	const body = await readRecordAsync(response);
 
 	assert(response.status === 200, "Expected health route to succeed.");
@@ -217,13 +217,13 @@ Deno.test("returns health status through Hono route", async () => {
 	assert(body.upstream_protocol === "anthropic_messages", "Expected configured upstream protocol.");
 });
 
-Deno.test("returns OpenAI-compatible not found errors", async () => {
+test("returns OpenAI-compatible not found errors", async () => {
 	const app = createApp({
 		fetcher: () => Promise.reject(new Error("fetch should not be called")),
 		proxyConfiguration: createConfiguration(),
 	});
 
-	const response = await app.request(new Request("http://localhost/not-found"));
+	const response = await app.fetch(new Request("http://localhost/not-found"));
 	const body = await readRecordAsync(response);
 	const error = getRecord(body, "error");
 
@@ -232,13 +232,13 @@ Deno.test("returns OpenAI-compatible not found errors", async () => {
 	assert(error.type === "invalid_request_error", "Expected OpenAI-compatible error type.");
 });
 
-Deno.test("rejects chat requests without JSON content type", async () => {
+test("rejects chat requests without JSON content type", async () => {
 	const app = createApp({
 		fetcher: () => Promise.reject(new Error("fetch should not be called")),
 		proxyConfiguration: createConfiguration(),
 	});
 
-	const response = await app.request(
+	const response = await app.fetch(
 		new Request("http://localhost/v1/chat/completions", {
 			body: JSON.stringify({ messages: [{ content: "Hello", role: "user" }] }),
 			headers: {
@@ -256,7 +256,7 @@ Deno.test("rejects chat requests without JSON content type", async () => {
 	assert(error.param === "content-type", "Expected content-type param.");
 });
 
-Deno.test("proxies model list from OpenCode Go model endpoint", async () => {
+test("proxies model list from OpenCode Go model endpoint", async () => {
 	let seenUrl = "";
 	let seenAuthorization = "";
 	const app = createApp({
@@ -273,7 +273,7 @@ Deno.test("proxies model list from OpenCode Go model endpoint", async () => {
 		proxyConfiguration: createConfiguration(),
 	});
 
-	const response = await app.request(
+	const response = await app.fetch(
 		new Request("http://localhost/v1/models", {
 			headers: { authorization: "Bearer upstream-key" },
 		}),
@@ -287,7 +287,7 @@ Deno.test("proxies model list from OpenCode Go model endpoint", async () => {
 	assert(Predicate.isRecord(firstModel) && firstModel.id === "minimax-m3", "Expected model id.");
 });
 
-Deno.test("probes OpenCode Go passthrough dynamically without hardcoded model ids", async () => {
+test("probes OpenCode Go passthrough dynamically without hardcoded model ids", async () => {
 	let seenAuthorization = "";
 	let seenBody: Record<string, unknown> = {};
 	let seenXApiKey = "";
@@ -333,7 +333,7 @@ Deno.test("probes OpenCode Go passthrough dynamically without hardcoded model id
 		proxyConfiguration: createConfiguration(),
 	});
 
-	const response = await app.request(
+	const response = await app.fetch(
 		createJsonRequest("/v1/chat/completions", {
 			messages: [{ content: "Reply pong.", role: "user" }],
 			model: "future-openai-model",
@@ -352,7 +352,7 @@ Deno.test("probes OpenCode Go passthrough dynamically without hardcoded model id
 	assert(body.model === "deepseek-v4-flash", "Expected upstream response body to pass through.");
 });
 
-Deno.test("falls back to Anthropic translation when passthrough returns a client error", async () => {
+test("falls back to Anthropic translation when passthrough returns a client error", async () => {
 	const seenUrls: Array<string> = [];
 	const app = createApp({
 		fetcher: (input, init) => {
@@ -395,7 +395,7 @@ Deno.test("falls back to Anthropic translation when passthrough returns a client
 		proxyConfiguration: createConfiguration(),
 	});
 
-	const response = await app.request(
+	const response = await app.fetch(
 		createJsonRequest("/v1/chat/completions", {
 			messages: [{ content: "Reply pong.", role: "user" }],
 			model: "fallback-model",
@@ -414,7 +414,7 @@ Deno.test("falls back to Anthropic translation when passthrough returns a client
 	);
 });
 
-Deno.test("maps upstream 400 errors to OpenAI-compatible errors", async () => {
+test("maps upstream 400 errors to OpenAI-compatible errors", async () => {
 	const app = createApp({
 		fetcher: () =>
 			Promise.resolve(
@@ -430,7 +430,7 @@ Deno.test("maps upstream 400 errors to OpenAI-compatible errors", async () => {
 		proxyConfiguration: createConfiguration(),
 	});
 
-	const response = await app.request(
+	const response = await app.fetch(
 		createJsonRequest("/v1/chat/completions", {
 			messages: [{ content: "Hello", role: "user" }],
 		}),
@@ -443,7 +443,7 @@ Deno.test("maps upstream 400 errors to OpenAI-compatible errors", async () => {
 	assert(error.type === "invalid_request_error", "Expected client error type.");
 });
 
-Deno.test("passes OpenAI-compatible streaming responses through without buffering", async () => {
+test("passes OpenAI-compatible streaming responses through without buffering", async () => {
 	const streamText = 'data: {"choices":[{"delta":{"content":"Hi"},"index":0}]}\n\n';
 	const app = createApp({
 		fetcher: () =>
@@ -462,7 +462,7 @@ Deno.test("passes OpenAI-compatible streaming responses through without bufferin
 		}),
 	});
 
-	const response = await app.request(
+	const response = await app.fetch(
 		createJsonRequest("/v1/chat/completions", {
 			messages: [{ content: "Hello", role: "user" }],
 			stream: true,
@@ -475,7 +475,7 @@ Deno.test("passes OpenAI-compatible streaming responses through without bufferin
 	assert((await response.text()) === streamText, "Expected raw stream body to pass through.");
 });
 
-Deno.test("normalizes Cerebras max_tokens and rejects unsupported fields", () => {
+test("normalizes Cerebras max_tokens and rejects unsupported fields", () => {
 	const config = createConfiguration({
 		defaultModel: "gpt-oss-120b",
 		upstreamBaseUrl: "https://api.cerebras.ai/v1",
@@ -513,7 +513,7 @@ Deno.test("normalizes Cerebras max_tokens and rejects unsupported fields", () =>
 	assert(didThrow, "Expected unsupported response_format to be rejected.");
 });
 
-Deno.test("server_key mode requires proxy token and uses upstream key", async () => {
+test("server_key mode requires proxy token and uses upstream key", async () => {
 	let seenAuthorization = "";
 	const app = createApp({
 		fetcher: (_input, init) => {
@@ -527,14 +527,14 @@ Deno.test("server_key mode requires proxy token and uses upstream key", async ()
 		}),
 	});
 
-	const invalidResponse = await app.request(
+	const invalidResponse = await app.fetch(
 		new Request("http://localhost/v1/models", {
 			headers: { authorization: "Bearer wrong-key" },
 		}),
 	);
 	assert(invalidResponse.status === 401, "Expected invalid proxy token to fail.");
 
-	const validResponse = await app.request(
+	const validResponse = await app.fetch(
 		new Request("http://localhost/v1/models", {
 			headers: { authorization: "Bearer proxy-key" },
 		}),
@@ -543,7 +543,7 @@ Deno.test("server_key mode requires proxy token and uses upstream key", async ()
 	assert(seenAuthorization === "Bearer upstream-key", "Expected server upstream key forwarding.");
 });
 
-Deno.test("loads OpenCode Go MiniMax M3 defaults", () => {
+test("loads OpenCode Go MiniMax M3 defaults", () => {
 	const config = loadConfiguration({});
 
 	assert(config.upstreamProtocol === "anthropic_messages", "Expected Anthropic protocol default.");
@@ -553,7 +553,7 @@ Deno.test("loads OpenCode Go MiniMax M3 defaults", () => {
 	assert(config.defaultMaxTokens === 4096, "Expected token default.");
 });
 
-Deno.test("loads Cerebras defaults", () => {
+test("loads Cerebras defaults", () => {
 	const config = loadConfiguration({ UPSTREAM_PROTOCOL: "cerebras_openai" });
 
 	assert(config.upstreamProtocol === "cerebras_openai", "Expected Cerebras protocol.");

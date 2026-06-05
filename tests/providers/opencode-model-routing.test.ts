@@ -1,8 +1,9 @@
-import { clearOpenCodeModelRoutingCache, resolveOpenCodeModelRouteAsync } from "@providers/opencode-model-routing.ts";
+import { clearOpenCodeModelRoutingCache, resolveOpenCodeModelRouteAsync } from "@providers/opencode-model-routing";
 
-import { assert, assertEquals } from "../utilities/test-utilities.ts";
+import { assert, assertEquals } from "../utilities/test-utilities";
 
-import type { ProxyConfiguration } from "@proxy/config.ts";
+import type { ProxyConfiguration } from "@proxy/config";
+import type { Fetcher } from "@proxy/upstream";
 
 function createConfiguration(overrides: Partial<ProxyConfiguration> = {}): ProxyConfiguration {
 	return {
@@ -39,7 +40,7 @@ function createMetadataResponse(): Response {
 	});
 }
 
-Deno.test("routes anthropic models to messages from metadata", async () => {
+test("routes anthropic models to messages from metadata", async () => {
 	clearOpenCodeModelRoutingCache();
 	const decision = await resolveOpenCodeModelRouteAsync(
 		async () => createMetadataResponse(),
@@ -51,7 +52,7 @@ Deno.test("routes anthropic models to messages from metadata", async () => {
 	assertEquals(decision.source, "metadata", "Expected fresh metadata source.");
 });
 
-Deno.test("routes openai-compatible models to chat completions from metadata", async () => {
+test("routes openai-compatible models to chat completions from metadata", async () => {
 	clearOpenCodeModelRoutingCache();
 	const decision = await resolveOpenCodeModelRouteAsync(
 		async () => createMetadataResponse(),
@@ -63,7 +64,7 @@ Deno.test("routes openai-compatible models to chat completions from metadata", a
 	assertEquals(decision.source, "metadata", "Expected fresh metadata source.");
 });
 
-Deno.test("uses provider default npm when model-specific provider metadata is absent", async () => {
+test("uses provider default npm when model-specific provider metadata is absent", async () => {
 	clearOpenCodeModelRoutingCache();
 	const decision = await resolveOpenCodeModelRouteAsync(
 		async () => createMetadataResponse(),
@@ -74,7 +75,7 @@ Deno.test("uses provider default npm when model-specific provider metadata is ab
 	assertEquals(decision.route, "chat_completions", "Expected provider default npm to route to chat completions.");
 });
 
-Deno.test("returns unknown when model is absent from metadata", async () => {
+test("returns unknown when model is absent from metadata", async () => {
 	clearOpenCodeModelRoutingCache();
 	const decision = await resolveOpenCodeModelRouteAsync(
 		async () => createMetadataResponse(),
@@ -86,10 +87,10 @@ Deno.test("returns unknown when model is absent from metadata", async () => {
 	assertEquals(decision.source, "metadata", "Expected metadata source despite unknown model.");
 });
 
-Deno.test("reuses cached metadata before TTL expires", async () => {
+test("reuses cached metadata before TTL expires", async () => {
 	clearOpenCodeModelRoutingCache();
 	let fetchCount = 0;
-	const fetchMetadataAsync: typeof fetch = async () => {
+	const fetchMetadataAsync: Fetcher = async () => {
 		fetchCount += 1;
 		return createMetadataResponse();
 	};
@@ -101,10 +102,10 @@ Deno.test("reuses cached metadata before TTL expires", async () => {
 	assertEquals(fetchCount, 1, "Expected metadata response to be cached before TTL expiry.");
 });
 
-Deno.test("uses stale cache when metadata refresh fails", async () => {
+test("uses stale cache when metadata refresh fails", async () => {
 	clearOpenCodeModelRoutingCache();
 	let fetchCount = 0;
-	const fetchMetadataAsync: typeof fetch = async () => {
+	const fetchMetadataAsync: Fetcher = async () => {
 		fetchCount += 1;
 		if (fetchCount === 1) return createMetadataResponse();
 		throw new Error("metadata down");
@@ -119,7 +120,7 @@ Deno.test("uses stale cache when metadata refresh fails", async () => {
 	assert(fetchCount >= 2, "Expected refresh attempt after TTL expiry.");
 });
 
-Deno.test("returns unknown on cold metadata failure", async () => {
+test("returns unknown on cold metadata failure", async () => {
 	clearOpenCodeModelRoutingCache();
 	const decision = await resolveOpenCodeModelRouteAsync(
 		async () => {

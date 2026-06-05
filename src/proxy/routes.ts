@@ -1,12 +1,12 @@
 import { type } from "arktype";
 
 import { createAuthContext } from "./auth.ts";
-import { ProxyError } from "./errors.ts";
-import { isOpenAiChatCompletionRequest } from "./openai-types.ts";
+import { createErrorResponse, ProxyError } from "./errors.ts";
+import { isOpenAiChatCompletionRequest } from "./openai-types";
 
-import type { getProviderTarget } from "@providers/registry.ts";
-import type { Hono } from "hono";
+import type { getProviderTarget } from "@providers/registry";
 
+import type { ProxyApp } from "./app";
 import type { ProxyConfiguration } from "./config.ts";
 import type { OpenAiChatCompletionRequest } from "./openai-types.ts";
 import type { Fetcher } from "./upstream.ts";
@@ -17,30 +17,42 @@ interface RouteDependencies {
 	readonly proxyConfiguration: ProxyConfiguration;
 }
 
-export function registerRoutes(app: Hono, dependencies: RouteDependencies): void {
+export function registerRoutes(app: ProxyApp, dependencies: RouteDependencies): void {
 	app.get("/health", () => createHealthResponse(dependencies.proxyConfiguration));
 
-	app.get("/v1/models", async (context) => {
-		const authContext = createAuthContext(context.req.raw, dependencies.proxyConfiguration);
-		return Response.json(
-			await dependencies.providerTarget.listModelsAsync({
+	app.get("/v1/models", ({ request }) =>
+		handleRouteAsync(async () => {
+			const authContext = createAuthContext(request, dependencies.proxyConfiguration);
+			return Response.json(
+				await dependencies.providerTarget.listModelsAsync({
+					fetcher: dependencies.fetcher,
+					headers: authContext.upstreamHeaders,
+					proxyConfiguration: dependencies.proxyConfiguration,
+				}),
+			);
+		}),
+	);
+
+	app.post("/v1/chat/completions", ({ request }) =>
+		handleRouteAsync(async () => {
+			const authContext = createAuthContext(request, dependencies.proxyConfiguration);
+			const body = await readJsonBodyAsync(request);
+			return await dependencies.providerTarget.createChatCompletionAsync({
 				fetcher: dependencies.fetcher,
 				headers: authContext.upstreamHeaders,
 				proxyConfiguration: dependencies.proxyConfiguration,
-			}),
-		);
-	});
+				request: body,
+			});
+		}),
+	);
+}
 
-	app.post("/v1/chat/completions", async (context) => {
-		const authContext = createAuthContext(context.req.raw, dependencies.proxyConfiguration);
-		const body = await readJsonBodyAsync(context.req.raw);
-		return await dependencies.providerTarget.createChatCompletionAsync({
-			fetcher: dependencies.fetcher,
-			headers: authContext.upstreamHeaders,
-			proxyConfiguration: dependencies.proxyConfiguration,
-			request: body,
-		});
-	});
+async function handleRouteAsync(callback: () => Promise<Response>): Promise<Response> {
+	try {
+		return await callback();
+	} catch (error) {
+		return createErrorResponse(error);
+	}
 }
 
 function createHealthResponse(proxyConfiguration: ProxyConfiguration): Response {

@@ -88,38 +88,6 @@ url = "https://github.com/oven-sh/bun/releases/download/bun-v1.3.14/bun-windows-
 checksum = "sha256:538f9c846355d9e847b2671bc00c47da4229a0befb24df3282b739770f3b475f"
 url = "https://github.com/oven-sh/bun/releases/download/bun-v1.3.14/bun-windows-x64-baseline.zip"
 
-[[tools.deno]]
-version = "2.8.1"
-backend = "core:deno"
-
-[tools.deno."platforms.linux-arm64"]
-checksum = "sha256:67e9df91870fd0af700df924173e3009ea7ff6956e2c3c3bb86065d6070d0fd6"
-url = "https://dl.deno.land/release/v2.8.1/deno-aarch64-unknown-linux-gnu.zip"
-
-[tools.deno."platforms.linux-arm64-musl"]
-checksum = "sha256:67e9df91870fd0af700df924173e3009ea7ff6956e2c3c3bb86065d6070d0fd6"
-url = "https://dl.deno.land/release/v2.8.1/deno-aarch64-unknown-linux-gnu.zip"
-
-[tools.deno."platforms.linux-x64"]
-checksum = "sha256:2d7bb6195226ac832e0bf7109a115f0af65ee69ac797a4bbde5b27a06cc242d9"
-url = "https://dl.deno.land/release/v2.8.1/deno-x86_64-unknown-linux-gnu.zip"
-
-[tools.deno."platforms.linux-x64-musl"]
-checksum = "sha256:2d7bb6195226ac832e0bf7109a115f0af65ee69ac797a4bbde5b27a06cc242d9"
-url = "https://dl.deno.land/release/v2.8.1/deno-x86_64-unknown-linux-gnu.zip"
-
-[tools.deno."platforms.macos-arm64"]
-checksum = "sha256:8154e2de0ee8c1cae31fa88e078724aaef0295fab9fd2ad6f8520389cee908f6"
-url = "https://dl.deno.land/release/v2.8.1/deno-aarch64-apple-darwin.zip"
-
-[tools.deno."platforms.macos-x64"]
-checksum = "sha256:47473845e0522ba11dd279e3dd318e2d84ee200c56b8280594e0ae0b0f827460"
-url = "https://dl.deno.land/release/v2.8.1/deno-x86_64-apple-darwin.zip"
-
-[tools.deno."platforms.windows-x64"]
-checksum = "sha256:Algorithm"
-url = "https://dl.deno.land/release/v2.8.1/deno-x86_64-pc-windows-msvc.zip"
-
 [[tools."github:howmanysmall/npm-registry-mcp"]]
 version = "0.5.0"
 backend = "github:howmanysmall/npm-registry-mcp"
@@ -277,9 +245,15 @@ checksum = "sha256:020468de7539ce70ef1bceaf7cde2e8c4f2ca6c3afb84642aabc5c97d9fc2
 url = "https://github.com/jqlang/jq/releases/download/jq-1.8.1/jq-linux-amd64"
 provenance = "github-attestations"
 
+[tools.jq."platforms.linux-x64-baseline"]
+provenance = "github-attestations"
+
 [tools.jq."platforms.linux-x64-musl"]
 checksum = "sha256:020468de7539ce70ef1bceaf7cde2e8c4f2ca6c3afb84642aabc5c97d9fc2a0d"
 url = "https://github.com/jqlang/jq/releases/download/jq-1.8.1/jq-linux-amd64"
+provenance = "github-attestations"
+
+[tools.jq."platforms.linux-x64-musl-baseline"]
 provenance = "github-attestations"
 
 [tools.jq."platforms.macos-arm64"]
@@ -292,9 +266,15 @@ checksum = "sha256:e80dbe0d2a2597e3c11c404f03337b981d74b4a8504b70586c354b7697a7c
 url = "https://github.com/jqlang/jq/releases/download/jq-1.8.1/jq-macos-amd64"
 provenance = "github-attestations"
 
+[tools.jq."platforms.macos-x64-baseline"]
+provenance = "github-attestations"
+
 [tools.jq."platforms.windows-x64"]
 checksum = "sha256:23cb60a1354eed6bcc8d9b9735e8c7b388cd1fdcb75726b93bc299ef22dd9334"
 url = "https://github.com/jqlang/jq/releases/download/jq-1.8.1/jq-windows-amd64.exe"
+provenance = "github-attestations"
+
+[tools.jq."platforms.windows-x64-baseline"]
 provenance = "github-attestations"
 
 [[tools.ni]]
@@ -401,9 +381,15 @@ checksum = "sha256:b0ae99a215671311d425d49abe65bd69b9fe153f3662b489b8243e73e0369
 url = "https://github.com/rvben/rumdl/releases/download/v0.2.4/rumdl-v0.2.4-x86_64-unknown-linux-musl.tar.gz"
 provenance = "github-attestations"
 
+[tools.rumdl."platforms.linux-x64-baseline"]
+provenance = "github-attestations"
+
 [tools.rumdl."platforms.linux-x64-musl"]
 checksum = "sha256:b0ae99a215671311d425d49abe65bd69b9fe153f3662b489b8243e73e036959f"
 url = "https://github.com/rvben/rumdl/releases/download/v0.2.4/rumdl-v0.2.4-x86_64-unknown-linux-musl.tar.gz"
+provenance = "github-attestations"
+
+[tools.rumdl."platforms.linux-x64-musl-baseline"]
 provenance = "github-attestations"
 
 [tools.rumdl."platforms.macos-arm64"]
@@ -416,9 +402,15 @@ checksum = "sha256:64bcc51604ce5e2af47b990b8fed5cb81d5766fabc42ccb9917b7d4fcb356
 url = "https://github.com/rvben/rumdl/releases/download/v0.2.4/rumdl-v0.2.4-x86_64-apple-darwin.tar.gz"
 provenance = "github-attestations"
 
+[tools.rumdl."platforms.macos-x64-baseline"]
+provenance = "github-attestations"
+
 [tools.rumdl."platforms.windows-x64"]
 checksum = "sha256:d3bb0de583f4a01c110e47cefb7b5c048cfba38707e4c828c18aca4cda4a5e4e"
 url = "https://github.com/rvben/rumdl/releases/download/v0.2.4/rumdl-v0.2.4-x86_64-pc-windows-msvc.zip"
+provenance = "github-attestations"
+
+[tools.rumdl."platforms.windows-x64-baseline"]
 provenance = "github-attestations"
 
 [[tools.shfmt]]

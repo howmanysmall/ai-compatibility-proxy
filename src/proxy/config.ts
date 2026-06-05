@@ -1,4 +1,4 @@
-import { getProviderTargetDefaults } from "@providers/registry.ts";
+import { getProviderTargetDefaults } from "@providers/registry";
 import arkenv, { type } from "arkenv";
 
 export type UpstreamProtocol = "anthropic_messages" | "cerebras_openai";
@@ -42,9 +42,7 @@ const isProxyEnvironment = type({
 	UPSTREAM_PROTOCOL: "'anthropic_messages' | 'cerebras_openai' = 'anthropic_messages'",
 }).readonly();
 
-export function loadConfiguration(
-	environment: Record<string, string | undefined> = Deno.env.toObject(),
-): ProxyConfiguration {
+export function loadConfiguration(environment: Record<string, string | undefined> = Bun.env): ProxyConfiguration {
 	const normalizedEnvironment = removeEmptyValues(environment);
 	const {
 		CEREBRAS_DROP_UNSUPPORTED_FIELDS,

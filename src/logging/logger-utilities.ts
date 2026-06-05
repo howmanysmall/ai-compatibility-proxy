@@ -1,9 +1,6 @@
-// oxlint-disable-next-line import/no-duplicates
-import "@utilities/deno-utilities.ts";
-
-import { getActiveLogContext, mergeLogContexts, runWithLogContext, sanitizeLogContext } from "@logging/log-context.ts";
-import { logger } from "@logging/logger.ts";
-import { uptime } from "@utilities/deno-utilities.ts";
+import { getActiveLogContext, mergeLogContexts, runWithLogContext, sanitizeLogContext } from "@logging/log-context";
+import { logger } from "@logging/logger";
+import { uptime } from "@utilities/time-utilities";
 import prettyBytes from "pretty-bytes";
 
 import type { ConsolaInstance, InputLogObject } from "consola";
@@ -56,7 +53,7 @@ function getLoggerContext(loggerInstance: ConsolaInstance): Readonly<Record<stri
 	return defaults.context ?? {};
 }
 
-function serializeMemoryUsage(currentMemoryUsage: Deno.MemoryUsage): SerializableMemoryUsage {
+function serializeMemoryUsage(currentMemoryUsage: NodeJS.MemoryUsage): SerializableMemoryUsage {
 	return {
 		external: {
 			bytes: currentMemoryUsage.external,
@@ -201,7 +198,7 @@ export async function measureAsync<Value>(
  */
 export function logSystemStats(loggerInstance: ConsolaInstance = logger): void {
 	loggerInstance.info("System statistics", {
-		memory: serializeMemoryUsage(Deno.memoryUsage()),
+		memory: serializeMemoryUsage(process.memoryUsage()),
 		uptimeSeconds: uptime(),
 	});
 }
@@ -222,9 +219,9 @@ export function tryGarbageCollection(loggerInstance: ConsolaInstance = logger): 
 		return;
 	}
 
-	const memoryBeforeCollection = Deno.memoryUsage();
+	const memoryBeforeCollection = process.memoryUsage();
 	garbageCollector();
-	const memoryAfterCollection = Deno.memoryUsage();
+	const memoryAfterCollection = process.memoryUsage();
 
 	loggerInstance.debug("Garbage collection completed", {
 		memoryAfterCollection: serializeMemoryUsage(memoryAfterCollection),

@@ -1,8 +1,8 @@
-import { serializeLogEntry } from "@logging/reports/daily-file-rotate-reporter.ts";
+import { serializeLogEntry } from "@logging/reports/daily-file-rotate-reporter";
 
-import { assert } from "../utilities/test-utilities.ts";
+import { assert } from "../utilities/test-utilities";
 
-import type { StructuredLogEntry } from "@logging/log-entry.ts";
+import type { StructuredLogEntry } from "@logging/log-entry";
 
 const textEncoder = new TextEncoder();
 
@@ -21,8 +21,8 @@ function createLogEntry(overrides: Partial<StructuredLogEntry> = {}): Structured
 		message: "Test message",
 		process: {
 			id: 1,
-			platform: Deno.build.os,
-			title: "deno",
+			platform: process.platform,
+			title: "bun",
 			version: "test-version",
 		},
 		sequenceNumber: 1,
@@ -36,14 +36,14 @@ function getByteLength(value: string): number {
 	return textEncoder.encode(value).byteLength;
 }
 
-Deno.test("serializeLogEntry keeps normal entries unchanged", () => {
+test("serializeLogEntry keeps normal entries unchanged", () => {
 	const entry = createLogEntry({ payload: { id: "small-payload" } });
 	const serializedEntry = serializeLogEntry(entry, 4096);
 
 	assert(serializedEntry === JSON.stringify(entry), "Expected normal entry to serialize without modification.");
 });
 
-Deno.test("serializeLogEntry truncates oversized entries", () => {
+test("serializeLogEntry truncates oversized entries", () => {
 	const entry = createLogEntry({
 		context: {
 			requestId: "test-request",

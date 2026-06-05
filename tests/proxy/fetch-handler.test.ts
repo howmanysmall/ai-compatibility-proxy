@@ -1,9 +1,9 @@
-import { createFetchHandler } from "@proxy/app.ts";
+import { createFetchHandler } from "@proxy/app";
 import { Predicate } from "effect";
 
-import { assert, getInitHeader } from "../utilities/test-utilities.ts";
+import { assert, getInitHeader } from "../utilities/test-utilities";
 
-import type { ProxyConfiguration } from "@proxy/config.ts";
+import type { ProxyConfiguration } from "@proxy/config";
 
 function createConfiguration(overrides: Partial<ProxyConfiguration> = {}): ProxyConfiguration {
 	return {
@@ -58,7 +58,7 @@ function getRecord(value: Record<string, unknown>, key: string): Record<string, 
 	return childValue;
 }
 
-Deno.test("fetch handler returns health status", async () => {
+test("fetch handler returns health status", async () => {
 	const handler = createFetchHandler({
 		fetcher: () => Promise.reject(new Error("fetch should not be called")),
 		proxyConfiguration: createConfiguration(),
@@ -72,7 +72,7 @@ Deno.test("fetch handler returns health status", async () => {
 	assert(body.upstream_protocol === "anthropic_messages", "Expected configured upstream protocol.");
 });
 
-Deno.test("fetch handler proxies model list", async () => {
+test("fetch handler proxies model list", async () => {
 	let seenUrl = "";
 	let seenAuthorization = "";
 	const handler = createFetchHandler({
@@ -103,7 +103,7 @@ Deno.test("fetch handler proxies model list", async () => {
 	assert(Predicate.isRecord(data[0]) && data[0].id === "minimax-m3", "Expected model id.");
 });
 
-Deno.test("fetch handler proxies chat completions", async () => {
+test("fetch handler proxies chat completions", async () => {
 	let seenUrl = "";
 	const handler = createFetchHandler({
 		fetcher: (input) => {
@@ -143,7 +143,7 @@ Deno.test("fetch handler proxies chat completions", async () => {
 	assert(body.object === "chat.completion", "Expected OpenAI-compatible chat completion.");
 });
 
-Deno.test("fetch handler returns OpenAI-compatible not found errors", async () => {
+test("fetch handler returns OpenAI-compatible not found errors", async () => {
 	const handler = createFetchHandler({
 		fetcher: () => Promise.reject(new Error("fetch should not be called")),
 		proxyConfiguration: createConfiguration(),
@@ -158,7 +158,7 @@ Deno.test("fetch handler returns OpenAI-compatible not found errors", async () =
 	assert(error.type === "invalid_request_error", "Expected OpenAI-compatible error type.");
 });
 
-Deno.test("fetch handler maps thrown errors", async () => {
+test("fetch handler maps thrown errors", async () => {
 	const handler = createFetchHandler({
 		fetcher: () => Promise.reject(new Error("upstream exploded")),
 		proxyConfiguration: createConfiguration(),
@@ -177,7 +177,7 @@ Deno.test("fetch handler maps thrown errors", async () => {
 	assert(error.type === "server_error", "Expected server error type.");
 });
 
-Deno.test("fetch handler passes streaming responses through without buffering", async () => {
+test("fetch handler passes streaming responses through without buffering", async () => {
 	const streamText = 'data: {"choices":[{"delta":{"content":"Hi"},"index":0}]}\n\n';
 	const handler = createFetchHandler({
 		fetcher: () =>

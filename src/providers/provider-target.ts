@@ -1,6 +1,6 @@
-import type { ProxyConfiguration, UpstreamProtocol } from "@proxy/config.ts";
-import type { OpenAiChatCompletionRequest, OpenAiModelListResponse } from "@proxy/openai-types.ts";
-import type { Fetcher } from "@proxy/upstream.ts";
+import type { ProxyConfiguration, UpstreamProtocol } from "@proxy/config";
+import type { OpenAiChatCompletionRequest, OpenAiModelListResponse } from "@proxy/openai-types";
+import type { Fetcher } from "@proxy/upstream";
 
 export interface ProviderTargetDefaults {
 	readonly authHeader: string;

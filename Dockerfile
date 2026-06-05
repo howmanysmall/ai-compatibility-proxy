@@ -1,15 +1,18 @@
-FROM denoland/deno:2.8.0
+FROM oven/bun:1.4.0
 
 WORKDIR /app
 
-COPY deno.json deno.lock ./
+RUN corepack enable
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY patches/ ./patches/
 COPY plugins/ ./plugins/
 COPY scripts/ ./scripts/
 COPY benchmarks/ ./benchmarks/
 COPY src ./src
 
-RUN deno cache src/index.ts
+RUN pnpm install --prod --frozen-lockfile
 
 EXPOSE 8000
 
-CMD ["run", "--allow-net", "--allow-env", "--allow-read", "--allow-write", "--allow-sys=homedir", "src/index.ts"]
+CMD ["bun", "src/index.ts"]

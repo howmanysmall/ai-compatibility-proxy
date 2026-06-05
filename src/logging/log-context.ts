@@ -1,8 +1,8 @@
 import { AsyncLocalStorage } from "node:async_hooks";
-import { sanitize } from "@logging/sanitizer.ts";
+import { sanitize } from "@logging/sanitizer";
 import { Predicate } from "effect";
 
-import type { ReadonlyRecord } from "@ts-types/utility-types.ts";
+import type { ReadonlyRecord } from "@ts-types/utility-types";
 
 export type LogContext = ReadonlyRecord<string, unknown>;
 

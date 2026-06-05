@@ -1,5 +1,8 @@
-#!/usr/bin/env -S deno run
+#!/usr/bin/env bun
 
+import { spawn } from "node:child_process";
+import { readFile, stat } from "node:fs/promises";
+import { env as processEnvironment, execPath, exit, stdin, stdout } from "node:process";
 import { Command } from "@cliffy/command";
 // oxlint-disable-next-line import/no-namespace -- Number conflicts with Number
 import * as Prompt from "@cliffy/prompt";
@@ -9,6 +12,7 @@ import { Effect, Predicate } from "effect";
 import prettyMilliseconds from "pretty-ms";
 
 import type { ReadonlyRecord } from "effect/Record";
+import type { ChildProcess } from "node:child_process";
 
 // oxlint-disable-next-line prefer-regex-literals
 const CLEAN_REGEXP = new RegExp(String.raw`\x1b\[[0-9;]*m`, "gu");
@@ -110,7 +114,7 @@ if (import.meta.main) {
 		)
 		.action(async (options) => {
 			const exitCode = await Effect.runPromise(runCommandEffect(options));
-			if (exitCode !== 0) Deno.exit(exitCode);
+			if (exitCode !== 0) exit(exitCode);
 		})
 		.parse(argv.slice(2));
 }
@@ -138,8 +142,8 @@ function shouldPrompt({ dryRun, live, opencodeModel, port, prompt, provider }: L
 		port === undefined &&
 		prompt === undefined &&
 		provider === undefined &&
-		Deno.stdin.isTerminal() &&
-		Deno.stdout.isTerminal()
+		stdin.isTTY &&
+		stdout.isTTY
 	);
 }
 
@@ -320,37 +324,21 @@ function testProviderEffect(
 	});
 }
 
-function startProxyProcess(providerConfiguration: ProviderConfiguration, port: number): Deno.ChildProcess {
-	const commandOptions = createCommandOptions(
-		["run", "--allow-net", "--allow-env", "--allow-read", "--allow-write", "--allow-sys=homedir", "src/index.ts"],
-		{
+function startProxyProcess(providerConfiguration: ProviderConfiguration, port: number): ChildProcess {
+	return spawn(execPath, ["src/index.ts"], {
+		env: {
+			...processEnvironment,
 			DEFAULT_MODEL: providerConfiguration.model,
 			LOG_LEVEL: "warn",
 			PORT: String(port),
 			UPSTREAM_BASE_URL: providerConfiguration.upstreamBaseUrl,
 			UPSTREAM_PROTOCOL: providerConfiguration.upstreamProtocol,
 		},
-	);
-	return new Deno.Command(Deno.execPath(), commandOptions).spawn();
-}
-
-function createCommandOptions(
-	parameters: ReadonlyArray<string>,
-	environment: Record<string, string>,
-): Deno.CommandOptions {
-	const commandOptions: Deno.CommandOptions = {
-		env: environment,
-		stderr: "null",
-		stdout: "null",
-	};
-	Object.defineProperty(commandOptions, "args", {
-		enumerable: true,
-		value: parameters,
+		stdio: "ignore",
 	});
-	return commandOptions;
 }
 
-function stopProxyProcessEffect(childProcess: Deno.ChildProcess): Effect.Effect<void, Error> {
+function stopProxyProcessEffect(childProcess: ChildProcess): Effect.Effect<void, Error> {
 	return Effect.tryPromise({
 		catch: toError,
 		try: async () => {
@@ -360,8 +348,16 @@ function stopProxyProcessEffect(childProcess: Deno.ChildProcess): Effect.Effect<
 				return;
 			}
 
-			await childProcess.status.catch(() => undefined);
+			await waitForChildExitAsync(childProcess);
 		},
+	});
+}
+
+async function waitForChildExitAsync(childProcess: ChildProcess): Promise<void> {
+	if (childProcess.exitCode !== null) return;
+
+	await new Promise<void>((resolve) => {
+		childProcess.once("close", () => resolve());
 	});
 }
 
@@ -469,15 +465,15 @@ function readApiKeyEffect({
 	return Effect.tryPromise({
 		catch: toError,
 		try: async () => {
-			const environmentValue = Deno.env.get(keyEnvironmentVariable)?.trim();
+			const environmentValue = processEnvironment[keyEnvironmentVariable]?.trim();
 			if (environmentValue) return environmentValue;
 
 			try {
-				const fileContent = await Deno.readTextFile(keyFilePath);
+				const fileContent = await readFile(keyFilePath, "utf8");
 				const fileValue = fileContent.trim();
 				if (fileValue.length > 0) return fileValue;
 			} catch (error) {
-				if (!(error instanceof Deno.errors.NotFound)) throw error;
+				if (!isNotFoundError(error)) throw error;
 			}
 
 			throw new Error(`Missing ${name} key. Set ${keyEnvironmentVariable} or create ${keyFilePath}.`);
@@ -492,13 +488,13 @@ function getKeyStatusEffect({
 	return Effect.tryPromise({
 		catch: toError,
 		try: async () => {
-			if (Deno.env.get(keyEnvironmentVariable)?.trim()) return `${keyEnvironmentVariable} is set`;
+			if (processEnvironment[keyEnvironmentVariable]?.trim()) return `${keyEnvironmentVariable} is set`;
 
 			try {
-				const fileInformation = await Deno.stat(keyFilePath);
-				return fileInformation.isFile ? `${keyFilePath} exists` : `${keyFilePath} is not a file`;
+				const fileInformation = await stat(keyFilePath);
+				return fileInformation.isFile() ? `${keyFilePath} exists` : `${keyFilePath} is not a file`;
 			} catch (error) {
-				if (error instanceof Deno.errors.NotFound) return `${keyFilePath} missing`;
+				if (isNotFoundError(error)) return `${keyFilePath} missing`;
 				return `${keyFilePath} could not be read`;
 			}
 		},
@@ -676,7 +672,7 @@ function printSummary(results: ReadonlyArray<SmokeResult>): void {
 }
 
 function getHomeDirectory(): string {
-	const homeDirectory = Deno.env.get("HOME")?.trim();
+	const homeDirectory = processEnvironment.HOME?.trim();
 	if (homeDirectory) return homeDirectory;
 
 	const error = new Error("HOME is required to locate default key files.");
@@ -686,6 +682,10 @@ function getHomeDirectory(): string {
 
 function toError(error: unknown): Error {
 	return Predicate.isError(error) ? error : new Error(String(error));
+}
+
+function isNotFoundError(error: unknown): boolean {
+	return error instanceof Error && "code" in error && error.code === "ENOENT";
 }
 
 function visualLength(value: string): number {

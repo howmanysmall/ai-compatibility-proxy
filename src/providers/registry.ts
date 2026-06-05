@@ -1,9 +1,9 @@
 import { anthropicTarget } from "./anthropic-target.ts";
-import { cerebrasTarget } from "./cerebras-target.ts";
+import { cerebrasTarget } from "./cerebras-target";
 
-import type { UpstreamProtocol } from "@proxy/config.ts";
+import type { UpstreamProtocol } from "@proxy/config";
 
-import type { ProviderTarget, ProviderTargetDefaults } from "./provider-target.ts";
+import type { ProviderTarget, ProviderTargetDefaults } from "./provider-target";
 
 export function getProviderTarget(upstreamProtocol: UpstreamProtocol): ProviderTarget {
 	if (upstreamProtocol === "anthropic_messages") return anthropicTarget;

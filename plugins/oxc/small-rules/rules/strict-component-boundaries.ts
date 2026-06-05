@@ -1,6 +1,6 @@
+import path from "node:path";
 import { toPascalCase } from "@oxlint-utilities/casing-utilities";
 import { resolveRelativeImport } from "@oxlint-utilities/resolve-import";
-import { basename, extname, relative } from "@std/path";
 import { defineRule } from "oxlint-plugin-utilities";
 
 import type { Visitor } from "oxlint-plugin-utilities";
@@ -20,7 +20,7 @@ function hasAnotherComponentInPath(pathParts: ReadonlyArray<string>): boolean {
 	return pathParts.some((part) => part === toPascalCase(part) && !part.includes("."));
 }
 function isIndexFile(filePath: string): boolean {
-	return basename(filePath, extname(filePath)) === "index";
+	return path.basename(filePath, path.extname(filePath)) === "index";
 }
 function isValidFixtureImport(pathParts: ReadonlyArray<string>): boolean {
 	if (!pathParts.includes("fixtures")) return false;
@@ -52,7 +52,7 @@ const strictComponentBoundaries = defineRule({
 				const resolved = resolveRelativeImport(importSource, filename);
 				if (!resolved.found) return;
 
-				const pathDifference = relative(filename, resolved.path);
+				const pathDifference = path.relative(filename, resolved.path);
 				const pathParts = pathSegmentsFromSource(pathDifference);
 				const traversals = countParentTraversals(pathDifference);
 

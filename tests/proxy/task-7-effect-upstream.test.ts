@@ -1,13 +1,13 @@
-import { logger } from "@logging/logger.ts";
-import { ProxyError } from "@proxy/errors.ts";
-import { UpstreamTimeoutError } from "@proxy/upstream-errors.ts";
-import { fetchUpstreamJsonAsync } from "@proxy/upstream.ts";
+import { logger } from "@logging/logger";
+import { ProxyError } from "@proxy/errors";
+import { fetchUpstreamJsonAsync } from "@proxy/upstream";
+import { UpstreamTimeoutError } from "@proxy/upstream-errors";
 import { Predicate } from "effect";
 
-import { assert, assertEquals } from "../utilities/test-utilities.ts";
+import { assert, assertEquals } from "../utilities/test-utilities";
 
-import type { ProxyConfiguration } from "@proxy/config.ts";
-import type { Fetcher } from "@proxy/upstream.ts";
+import type { ProxyConfiguration } from "@proxy/config";
+import type { Fetcher } from "@proxy/upstream";
 
 const successFetcher: Fetcher = () => Promise.resolve(Response.json({ ok: true }));
 
@@ -38,7 +38,13 @@ function createConfig(overrides: Partial<ProxyConfiguration> = {}): ProxyConfigu
 	};
 }
 
-Deno.test("Effect upstream POST returns parsed JSON on success", async () => {
+function isUpstreamTimeoutError(error: unknown): error is UpstreamTimeoutError {
+	return (
+		error instanceof UpstreamTimeoutError || (Predicate.isRecord(error) && error._tag === "UpstreamTimeoutError")
+	);
+}
+
+test("Effect upstream POST returns parsed JSON on success", async () => {
 	const response = await fetchUpstreamJsonAsync(
 		successFetcher,
 		"https://upstream.example/v1/messages?token=secret",
@@ -52,7 +58,7 @@ Deno.test("Effect upstream POST returns parsed JSON on success", async () => {
 	assertEquals(body.ok, true, "Expected successful upstream JSON.");
 });
 
-Deno.test("Effect upstream POST timeout throws UpstreamTimeoutError", async () => {
+test("Effect upstream POST timeout throws UpstreamTimeoutError", async () => {
 	const fetcher = createNeverResolvingFetcher();
 
 	try {
@@ -64,7 +70,7 @@ Deno.test("Effect upstream POST timeout throws UpstreamTimeoutError", async () =
 			createConfig({ requestTimeoutMs: 10 }),
 		);
 	} catch (error) {
-		assert(error instanceof UpstreamTimeoutError, "Expected an UpstreamTimeoutError.");
+		assert(isUpstreamTimeoutError(error), "Expected an UpstreamTimeoutError.");
 		assertEquals(error.url, "https://upstream.example/v1/messages?token=secret", "Expected timeout URL.");
 		assertEquals(error.timeoutMs, 10, "Expected timeout duration.");
 		return;
@@ -73,7 +79,7 @@ Deno.test("Effect upstream POST timeout throws UpstreamTimeoutError", async () =
 	throw new Error("Expected timeout to throw.");
 });
 
-Deno.test("Effect upstream POST retries transient HTTP 500 then succeeds", async () => {
+test("Effect upstream POST retries transient HTTP 500 then succeeds", async () => {
 	let calls = 0;
 	const fetcher: Fetcher = () => {
 		calls += 1;
@@ -99,7 +105,7 @@ Deno.test("Effect upstream POST retries transient HTTP 500 then succeeds", async
 	assertEquals(body.ok, true, "Expected retry success JSON.");
 });
 
-Deno.test("Effect upstream POST does not retry client HTTP 400", async () => {
+test("Effect upstream POST does not retry client HTTP 400", async () => {
 	let calls = 0;
 	const fetcher: Fetcher = () => {
 		calls += 1;
@@ -125,7 +131,7 @@ Deno.test("Effect upstream POST does not retry client HTTP 400", async () => {
 	throw new Error("Expected upstream 400 to throw.");
 });
 
-Deno.test("Effect upstream POST retries network failures then succeeds", async () => {
+test("Effect upstream POST retries network failures then succeeds", async () => {
 	let calls = 0;
 	const fetcher: Fetcher = () => {
 		calls += 1;
@@ -147,7 +153,7 @@ Deno.test("Effect upstream POST retries network failures then succeeds", async (
 	assertEquals(body.ok, true, "Expected retry success JSON.");
 });
 
-Deno.test("Effect upstream logs only safe upstream metadata", async () => {
+test("Effect upstream logs only safe upstream metadata", async () => {
 	const records: Array<LogRecord> = [];
 	const originalInfo = logger.info;
 	const originalError = logger.error;

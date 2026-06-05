@@ -1,13 +1,13 @@
-import { translateAnthropicToOpenAi, translateOpenAiToAnthropic } from "@proxy/anthropic-translator.ts";
-import { ProxyError } from "@proxy/errors.ts";
-import { getModelsAsync } from "@proxy/models.ts";
-import { createOpenAIStreamResponseAsync } from "@proxy/sse.ts";
-import { fetchUpstreamJsonAsync } from "@proxy/upstream.ts";
+import { translateAnthropicToOpenAi, translateOpenAiToAnthropic } from "@proxy/anthropic-translator";
+import { ProxyError } from "@proxy/errors";
+import { getModelsAsync } from "@proxy/models";
+import { createOpenAIStreamResponseAsync } from "@proxy/sse";
+import { fetchUpstreamJsonAsync } from "@proxy/upstream";
 import { Predicate } from "effect";
 
-import { resolveOpenCodeModelRouteAsync } from "./opencode-model-routing.ts";
+import { resolveOpenCodeModelRouteAsync } from "./opencode-model-routing";
 
-import type { OpenAiChatCompletionRequest } from "@proxy/openai-types.ts";
+import type { OpenAiChatCompletionRequest } from "@proxy/openai-types";
 import type { Writable } from "type-fest";
 
 import type {

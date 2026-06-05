@@ -1,7 +1,7 @@
+import path from "node:path";
 import { hasCodeLines } from "@oxlint-utilities/recognizers/code-recognizer";
 import { createJavaScriptDetectors } from "@oxlint-utilities/recognizers/javascript-footprint";
 import { isRecord } from "@oxlint-utilities/type-utilities";
-import { extname } from "@std/path";
 import { parseSync } from "oxc-parser";
 import { defineRule } from "oxlint-plugin-utilities";
 
@@ -185,7 +185,7 @@ function isValidParseResult(result: ParseResult): boolean {
 }
 
 function tryParse(value: string, filename: string): ParseResult | undefined {
-	const extension = extname(filename);
+	const extension = path.extname(filename);
 	const parseFilename = `file${extension || ".js"}`;
 	const result = parseSync(parseFilename, value);
 

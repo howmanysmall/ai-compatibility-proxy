@@ -1,5 +1,4 @@
-import { textEncoder } from "@constants/constant-classes.ts";
-import { crypto, timingSafeEqual } from "@std/crypto";
+import { createHash, timingSafeEqual } from "node:crypto";
 
 import { ProxyError } from "./errors.ts";
 
@@ -92,7 +91,7 @@ function setUpstreamAuthHeader(headers: Headers, headerName: string, token: stri
 }
 
 function hasSameToken(clientBearerToken: string, expectedToken: string): boolean {
-	const clientHash = crypto.subtle.digestSync("SHA-256", textEncoder.encode(clientBearerToken));
-	const expectedHash = crypto.subtle.digestSync("SHA-256", textEncoder.encode(expectedToken));
+	const clientHash = createHash("sha256").update(clientBearerToken, "utf8").digest();
+	const expectedHash = createHash("sha256").update(expectedToken, "utf8").digest();
 	return timingSafeEqual(clientHash, expectedHash);
 }

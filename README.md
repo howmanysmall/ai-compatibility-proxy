@@ -1,6 +1,6 @@
 # AI Compatibility Proxy
 
-A self-hosted Deno proxy that exposes a small OpenAI-compatible API and translates or normalizes requests for upstream
+A self-hosted Bun proxy that exposes a small OpenAI-compatible API and translates or normalizes requests for upstream
 providers that are not quite OpenAI-compatible.
 
 The first supported path is OpenCode Go:
@@ -21,7 +21,8 @@ The first supported path is OpenCode Go:
 
 ```sh
 cp .env.example .env
-mise x -- deno run --allow-net --allow-env src/index.ts
+mise x -- pnpm install --frozen-lockfile
+mise x -- pnpm run dev
 ```
 
 Use your OpenCode Go API key as the client bearer token. In the default `client_bearer` mode, the proxy forwards that
@@ -143,10 +144,11 @@ and other risky fields by default.
 Run commands through mise:
 
 ```sh
-mise x -- deno test
-mise x -- deno check
-mise x -- deno task lint
-mise x -- deno task format:check
+mise x -- pnpm run test
+mise x -- pnpm run type-check
+mise x -- pnpm run lint
+mise x -- pnpm run format:check
+mise x -- pnpm run bench
 ```
 
 ## Docker
@@ -166,7 +168,7 @@ docker compose up --build
 
 ## VPS Deployment
 
-A low-cost VPS is enough because the proxy is stateless and has no database. Install Docker or Deno 2.x, set the
+A low-cost VPS is enough because the proxy is stateless and has no database. Install Docker or Bun, set the
 environment variables, expose only HTTPS publicly, and put a reverse proxy in front.
 
 Prefer Caddy for simple automatic HTTPS. Add reverse-proxy rate limiting when using `server_key` mode to reduce abuse
@@ -174,7 +176,7 @@ risk. The proxy itself is cheap to run; upstream model usage is the real cost dr
 
 ## Direct systemd Deployment
 
-See [deploy/ai-compatibility-proxy.service](deploy/ai-compatibility-proxy.service). Install Deno 2.x on the server,
+See [deploy/ai-compatibility-proxy.service](deploy/ai-compatibility-proxy.service). Install Bun on the server,
 place environment variables in `/etc/ai-compatibility-proxy.env`, and run the service behind Caddy or Nginx.
 
 ## Caddy
@@ -184,5 +186,5 @@ See [deploy/Caddyfile](deploy/Caddyfile) for a minimal HTTPS reverse proxy.
 ## Hosting Notes
 
 Docker on a VPS or Fly.io is a good fit for this stateless proxy. Railway, Render, and Northflank can also work if their
-timeout limits fit your client usage. Deno Deploy may work for simple request/response usage, but confirm SSE and
-timeout behavior before relying on it for Warp. This project does not recommend Vercel.
+timeout limits fit your client usage. Confirm SSE and timeout behavior before relying on any request-limited platform
+for Warp. This project does not recommend Vercel.

@@ -1,5 +1,5 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { basename, dirname, extname, join, relative } from "@std/path";
+import path from "node:path";
 
 interface LocalComponentDefinition {
 	readonly componentName: string;
@@ -92,14 +92,14 @@ function getProjectRootFromDirectory(startDirectory: string): string | undefined
 	let currentDirectory = startDirectory;
 	while (true) {
 		if (
-			existsSync(join(currentDirectory, "package.json")) ||
-			existsSync(join(currentDirectory, "tsconfig.json"))
+			existsSync(path.join(currentDirectory, "package.json")) ||
+			existsSync(path.join(currentDirectory, "tsconfig.json"))
 		) {
 			projectRootCache.set(startDirectory, currentDirectory);
 			return currentDirectory;
 		}
 
-		const parentDirectory = dirname(currentDirectory);
+		const parentDirectory = path.dirname(currentDirectory);
 		if (parentDirectory === currentDirectory) {
 			projectRootCache.set(startDirectory, undefined);
 			return undefined;
@@ -122,16 +122,16 @@ function indexProjectFiles(rootDirectory: string): ReadonlyMap<string, ReadonlyA
 				continue;
 			}
 
-			const fullPath = join(directory, entry.name);
+			const fullPath = path.join(directory, entry.name);
 			if (entry.isDirectory()) {
 				visit(fullPath);
 				continue;
 			}
 
-			const extension = extname(entry.name);
+			const extension = path.extname(entry.name);
 			if (!COMPONENT_EXTENSIONS.has(extension) || entry.name.endsWith(".d.ts")) continue;
 
-			const baseName = basename(entry.name, extension).toLowerCase();
+			const baseName = path.basename(entry.name, extension).toLowerCase();
 			const existing = index.get(baseName);
 			if (existing === undefined) index.set(baseName, [fullPath]);
 			else existing.push(fullPath);
@@ -148,7 +148,7 @@ function indexProjectFiles(rootDirectory: string): ReadonlyMap<string, ReadonlyA
 }
 
 function toImportSource(sourceFile: string, targetFile: string): string {
-	let importSource = relative(dirname(sourceFile), targetFile).replaceAll("\\", "/");
+	let importSource = path.relative(path.dirname(sourceFile), targetFile).replaceAll("\\", "/");
 	importSource = importSource.replace(SOURCE_EXTENSION_PATTERN, "");
 	importSource = importSource.replace(INDEX_SUFFIX_PATTERN, "");
 
@@ -157,8 +157,8 @@ function toImportSource(sourceFile: string, targetFile: string): string {
 }
 
 function isIgnoredComponentPath(filePath: string): boolean {
-	const projectRoot = getProjectRootFromDirectory(dirname(filePath));
-	const normalizedPath = (projectRoot === undefined ? filePath : relative(projectRoot, filePath)).replaceAll(
+	const projectRoot = getProjectRootFromDirectory(path.dirname(filePath));
+	const normalizedPath = (projectRoot === undefined ? filePath : path.relative(projectRoot, filePath)).replaceAll(
 		"\\",
 		"/",
 	);
@@ -175,12 +175,12 @@ export function inspectLocalComponentFile(
 ): LocalComponentInspection {
 	if (isIgnoredComponentPath(filePath)) return { importStyle: undefined, matches: false };
 
-	const extension = extname(filePath);
+	const extension = path.extname(filePath);
 	if (!COMPONENT_EXTENSIONS.has(extension) || filePath.endsWith(".d.ts")) {
 		return { importStyle: undefined, matches: false };
 	}
 
-	const baseName = basename(filePath, extension).toLowerCase();
+	const baseName = path.basename(filePath, extension).toLowerCase();
 	const fileNames = definition.fileNames.map((fileName) => fileName.toLowerCase());
 	if (!fileNames.includes(baseName)) return { importStyle: undefined, matches: false };
 
@@ -206,7 +206,7 @@ export function discoverLocalComponent(
 	sourceFile: string,
 	definition: LocalComponentDefinition,
 ): LocalComponentDiscovery {
-	const projectRoot = getProjectRootFromDirectory(dirname(sourceFile));
+	const projectRoot = getProjectRootFromDirectory(path.dirname(sourceFile));
 	if (projectRoot === undefined) return { found: false };
 
 	const projectFiles = indexProjectFiles(projectRoot);
@@ -220,14 +220,14 @@ export function discoverLocalComponent(
 	);
 	if (matches.length !== 1) return { found: false };
 
-	const [path] = matches;
-	if (path === undefined) return { found: false };
+	const [matchedPath] = matches;
+	if (matchedPath === undefined) return { found: false };
 
-	const inspection = inspectLocalComponentFile(path, definition);
+	const inspection = inspectLocalComponentFile(matchedPath, definition);
 	return {
 		found: true,
-		importSource: toImportSource(sourceFile, path),
+		importSource: toImportSource(sourceFile, matchedPath),
 		importStyle: inspection.importStyle,
-		path,
+		path: matchedPath,
 	};
 }

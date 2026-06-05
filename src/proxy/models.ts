@@ -1,4 +1,4 @@
-import { getNumber } from "@utilities/default-utilities.ts";
+import { getNumber } from "@utilities/default-utilities";
 import { Predicate } from "effect";
 
 import { fetchUpstreamGetAsync } from "./upstream.ts";

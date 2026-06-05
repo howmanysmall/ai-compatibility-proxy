@@ -1,11 +1,14 @@
+import { spawn } from "node:child_process";
+import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import net from "node:net";
+import { join } from "node:path";
+import { cwd, env as processEnvironment } from "node:process";
 import { setTimeout as delayAsync } from "node:timers/promises";
 import { Command } from "@cliffy/command";
-import $ from "@david/dax";
 import { logger, parseLevel } from "@logging/logger";
 import { createFetchHandler } from "@proxy/app";
 import { loadConfiguration } from "@proxy/config";
 import { html as renderHtml, raw, tag } from "@sander/html";
-import { join } from "@std/path";
 import { type } from "arktype";
 import { Effect } from "effect";
 import prettyBytes from "pretty-bytes";
@@ -199,43 +202,50 @@ await new Command()
 				);
 			}),
 	)
-	.parse(Deno.args);
+	.parse(Bun.argv.slice(2));
 
 async function runBenchmarkAsync(options: BenchmarkOptions): Promise<BenchmarkRunResult> {
 	logger.level = parseLevel("fatal");
 
-	const payloadPath = join(Deno.cwd(), options.payloadFile);
-	const payloadText = await Deno.readTextFile(payloadPath);
-	const resultsRoot = join(Deno.cwd(), options.resultsDir);
+	const payloadPath = join(cwd(), options.payloadFile);
+	const payloadText = await readFile(payloadPath, "utf8");
+	const resultsRoot = join(cwd(), options.resultsDir);
 	const resultDirectory = join(resultsRoot, `${createTimestamp()}-${sanitizeLabel(options.label)}`);
 	const comparisonSnapshots = await readComparisonSnapshotsAsync(resultsRoot);
 	const baselineSummary = comparisonSnapshots[0]?.summary;
 
-	await Deno.mkdir(join(resultDirectory, "raw"), { recursive: true });
+	await mkdir(join(resultDirectory, "raw"), { recursive: true });
 
-	const mockServer = Deno.serve({ hostname: options.host, port: options.mockPort }, createMockUpstreamHandler());
-	const mockPort = getListeningPort(mockServer.addr, "mock upstream");
+	const mockPort = await chooseListeningPortAsync(options.host, options.mockPort);
+	const mockServer = Bun.serve({
+		fetch: createMockUpstreamHandler(),
+		hostname: options.host,
+		port: mockPort,
+	});
+	const mockListeningPort = getListeningPort(mockServer, "mock upstream");
 	const configuration = loadConfiguration({
-		...Deno.env.toObject(),
+		...Bun.env,
 		LOG_LEVEL: "fatal",
-		OPENCODE_MODELS_URL: `http://${options.host}:${mockPort}/api.json`,
-		UPSTREAM_BASE_URL: `http://${options.host}:${mockPort}/v1`,
+		OPENCODE_MODELS_URL: `http://${options.host}:${mockListeningPort}/api.json`,
+		UPSTREAM_BASE_URL: `http://${options.host}:${mockListeningPort}/v1`,
 		UPSTREAM_PROTOCOL: "anthropic_messages",
 	});
-	const proxyServer = Deno.serve(
-		{ hostname: options.host, port: options.port },
-		createFetchHandler({ proxyConfiguration: configuration }),
-	);
-	const proxyPort = getListeningPort(proxyServer.addr, "proxy");
+	const proxyPort = await chooseListeningPortAsync(options.host, options.port);
+	const proxyServer = Bun.serve({
+		fetch: createFetchHandler({ proxyConfiguration: configuration }),
+		hostname: options.host,
+		port: proxyPort,
+	});
+	const proxyListeningPort = getListeningPort(proxyServer, "proxy");
 
-	const proxyBaseUrl = `http://${options.host}:${proxyPort}`;
+	const proxyBaseUrl = `http://${options.host}:${proxyListeningPort}`;
 
 	try {
-		await waitForHealthyAsync(`http://${options.host}:${mockPort}/api.json`);
+		await waitForHealthyAsync(`http://${options.host}:${mockListeningPort}/api.json`);
 		await waitForHealthyAsync(`${proxyBaseUrl}/health`);
 		await warmProxyAsync(proxyBaseUrl, payloadText, options.warmupRequests);
 
-		printRunHeader(options, resultDirectory, proxyPort, mockPort);
+		printRunHeader(options, resultDirectory, proxyListeningPort, mockListeningPort);
 
 		const rawJsonByName: BenchmarkRawJsonByName = {
 			chat: await runOhaAsync({
@@ -280,27 +290,27 @@ async function runBenchmarkAsync(options: BenchmarkOptions): Promise<BenchmarkRu
 			summary,
 		};
 	} finally {
-		await proxyServer.shutdown();
-		await mockServer.shutdown();
+		await proxyServer.stop();
+		await mockServer.stop();
 	}
 }
 
 async function persistArtifactsAsync(options: BenchmarkOptions, result: BenchmarkRunResult): Promise<void> {
 	const rawDirectory = join(result.resultDirectory, "raw");
-	await Deno.mkdir(rawDirectory, { recursive: true });
-	await Deno.writeTextFile(join(rawDirectory, "health.json"), `${result.rawJsonByName.health}\n`);
-	await Deno.writeTextFile(join(rawDirectory, "models.json"), `${result.rawJsonByName.models}\n`);
-	await Deno.writeTextFile(join(rawDirectory, "chat.json"), `${result.rawJsonByName.chat}\n`);
+	await mkdir(rawDirectory, { recursive: true });
+	await writeFile(join(rawDirectory, "health.json"), `${result.rawJsonByName.health}\n`);
+	await writeFile(join(rawDirectory, "models.json"), `${result.rawJsonByName.models}\n`);
+	await writeFile(join(rawDirectory, "chat.json"), `${result.rawJsonByName.chat}\n`);
 
 	const summaryJson = `${JSON.stringify(result.summary, undefined, 2)}\n`;
 	const summaryPath = join(result.resultDirectory, "summary.json");
 	const reportPath = join(result.resultDirectory, "report.html");
-	await Deno.writeTextFile(summaryPath, summaryJson);
-	await Deno.writeTextFile(reportPath, result.reportHtml);
+	await writeFile(summaryPath, summaryJson);
+	await writeFile(reportPath, result.reportHtml);
 
-	const resultsRoot = join(Deno.cwd(), options.resultsDir);
-	await Deno.writeTextFile(join(resultsRoot, RESULTS_LATEST_SUMMARY), summaryJson);
-	await Deno.writeTextFile(join(resultsRoot, RESULTS_LATEST_REPORT), result.reportHtml);
+	const resultsRoot = join(cwd(), options.resultsDir);
+	await writeFile(join(resultsRoot, RESULTS_LATEST_SUMMARY), summaryJson);
+	await writeFile(join(resultsRoot, RESULTS_LATEST_REPORT), result.reportHtml);
 }
 
 function buildSummary(options: BenchmarkOptions, rawJsonByName: BenchmarkRawJsonByName): BenchmarkSummary {
@@ -1128,7 +1138,7 @@ function createHtmlReport(
 							tag("strong", { class: "mono" }, "Artifacts"),
 							" — raw oha JSON and a machine-readable summary.json are saved next to this report. Charts load via the Chart.js CDN.",
 						]),
-						tag("div", "Built with oha + Deno · threshold: ±0% for tie"),
+						tag("div", "Built with oha + Bun · threshold: ±0% for tie"),
 					]),
 				]),
 				tag("script", { src: "https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" }),
@@ -1895,7 +1905,7 @@ updateComparison();
 }
 
 function printArtifactSummary(options: BenchmarkOptions, result: BenchmarkRunResult): void {
-	const resultsRoot = join(Deno.cwd(), options.resultsDir);
+	const resultsRoot = join(cwd(), options.resultsDir);
 	console.log(`\n${ANSI.bold}Artifacts${ANSI.reset}`);
 	console.log(`- Summary JSON: ${join(result.resultDirectory, "summary.json")}`);
 	console.log(`- Visual report: ${join(result.resultDirectory, "report.html")}`);
@@ -1909,11 +1919,36 @@ function printArtifactSummary(options: BenchmarkOptions, result: BenchmarkRunRes
 	}
 }
 
-function getListeningPort(address: Deno.Addr, serviceName: string): number {
-	if (address.transport === "tcp") return address.port;
-	const error = new Error(`Expected a tcp address for ${serviceName}.`);
+function getListeningPort(server: Bun.Server<undefined>, serviceName: string): number {
+	const { port } = server;
+	if (typeof port === "number" && port > 0) return port;
+	const error = new Error(`Expected ${serviceName} to listen on a tcp port.`);
 	Error.captureStackTrace(error, getListeningPort);
 	throw error;
+}
+
+async function chooseListeningPortAsync(host: string, requestedPort: number): Promise<number> {
+	if (requestedPort !== 0) return requestedPort;
+
+	return await new Promise<number>((resolve, reject) => {
+		const server = net.createServer();
+		server.unref();
+		server.once("error", reject);
+		server.listen({ host, port: 0 }, () => {
+			const address = server.address();
+			server.close((error) => {
+				if (error) {
+					reject(error);
+					return;
+				}
+				if (typeof address === "object" && address !== null) {
+					resolve(address.port);
+					return;
+				}
+				reject(new Error("Failed to allocate an available benchmark port."));
+			});
+		});
+	});
 }
 
 function createMockUpstreamHandler(): (request: Request) => Promise<Response> {
@@ -1964,19 +1999,40 @@ async function runOhaAsync(options: {
 	if (options.bodyFile) parameters.push("-D", options.bodyFile);
 	parameters.push(options.url);
 
-	const { code, stderr, stdout } = await new Deno.Command("oha", {
-		// oxlint-disable-next-line small-rules/prevent-abbreviations
-		args: parameters,
-		env: { NO_COLOR: "false" },
-		stderr: "piped",
-		stdout: "piped",
-	}).output();
+	const { code, stderr, stdout } = await runCommandAsync("oha", parameters, { NO_COLOR: "false" });
 	if (code !== 0) {
-		const error = new Error(`oha failed for ${options.name}: ${new TextDecoder().decode(stderr)}`);
+		const error = new Error(`oha failed for ${options.name}: ${stderr}`);
 		Error.captureStackTrace(error, runOhaAsync);
 		throw error;
 	}
-	return new TextDecoder().decode(stdout).trim();
+	return stdout.trim();
+}
+
+async function runCommandAsync(
+	command: string,
+	args: ReadonlyArray<string>,
+	env: Readonly<Record<string, string>>,
+): Promise<{ readonly code: number; readonly stderr: string; readonly stdout: string }> {
+	return await new Promise((resolve, reject) => {
+		const childProcess = spawn(command, args, {
+			env: { ...processEnvironment, ...env },
+			stdio: ["ignore", "pipe", "pipe"],
+		});
+		let stdout = "";
+		let stderr = "";
+		childProcess.stdout.setEncoding("utf8");
+		childProcess.stderr.setEncoding("utf8");
+		childProcess.stdout.on("data", (chunk) => {
+			stdout += chunk;
+		});
+		childProcess.stderr.on("data", (chunk) => {
+			stderr += chunk;
+		});
+		childProcess.on("error", reject);
+		childProcess.on("close", (code) => {
+			resolve({ code: code ?? 1, stderr, stdout });
+		});
+	});
 }
 
 async function warmProxyAsync(proxyBaseUrl: string, payloadText: string, warmupRequests: number): Promise<void> {
@@ -2036,7 +2092,7 @@ async function createSparklineAsync(values: ReadonlyArray<number>): Promise<stri
 }
 
 async function ensureDependencyAsync(command: string): Promise<void> {
-	const executablePath = await $.which(command);
+	const executablePath = Bun.which(command);
 	if (!executablePath) {
 		const error = new Error(`${command} is required but was not found on PATH.`);
 		Error.captureStackTrace(error, ensureDependencyAsync);
@@ -2045,18 +2101,17 @@ async function ensureDependencyAsync(command: string): Promise<void> {
 }
 
 async function readComparisonSnapshotsAsync(resultsRoot: string): Promise<ReadonlyArray<BenchmarkSnapshot>> {
-	let entries: Array<Deno.DirEntry>;
+	let directoryNames: Array<string>;
 	try {
-		entries = await Array.fromAsync(Deno.readDir(resultsRoot));
+		const entries = await readdir(resultsRoot, { encoding: "utf8", withFileTypes: true });
+		directoryNames = entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name);
 	} catch (error) {
-		if (error instanceof Deno.errors.NotFound) return [];
+		if (isNotFoundError(error)) return [];
 		throw error;
 	}
 
 	const snapshots = await Promise.all(
-		entries
-			.filter((entry) => entry.isDirectory)
-			.map(async (entry) => readSnapshotSummaryIfExistsAsync(resultsRoot, entry.name)),
+		directoryNames.map(async (directoryName) => readSnapshotSummaryIfExistsAsync(resultsRoot, directoryName)),
 	);
 	return snapshots
 		.filter(isDefined)
@@ -2072,14 +2127,18 @@ async function readSnapshotSummaryIfExistsAsync(
 		return {
 			id: directoryName,
 			summary: parseBenchmarkSummary(
-				JSON.parse(await Deno.readTextFile(summaryPath)),
+				JSON.parse(await readFile(summaryPath, "utf8")),
 				`saved summary at ${summaryPath}`,
 			),
 		};
 	} catch (error) {
-		if (error instanceof Deno.errors.NotFound) return undefined;
+		if (isNotFoundError(error)) return undefined;
 		throw error;
 	}
+}
+
+function isNotFoundError(error: unknown): boolean {
+	return error instanceof Error && "code" in error && error.code === "ENOENT";
 }
 
 function isDefined<Value>(value: Value | undefined): value is Value {

@@ -154,7 +154,7 @@ case "${1:---serve}" in
 		;;
 	--serve | --launch)
 		shift || true
-		exec deno run -A npm:chrome-devtools-mcp@latest --executablePath "${chrome_path}" "$@"
+		exec bunx --bun chrome-devtools-mcp@latest --executablePath "${chrome_path}" "$@"
 		;;
 	*)
 		error "Usage: $0 [--print-path|--serve]"

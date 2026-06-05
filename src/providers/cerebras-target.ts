@@ -1,6 +1,6 @@
-import { normalizeCerebrasRequest } from "@proxy/cerebras-translator.ts";
-import { getModelsAsync } from "@proxy/models.ts";
-import { fetchUpstreamJsonAsync } from "@proxy/upstream.ts";
+import { normalizeCerebrasRequest } from "@proxy/cerebras-translator";
+import { getModelsAsync } from "@proxy/models";
+import { fetchUpstreamJsonAsync } from "@proxy/upstream";
 
 import type {
 	ProviderChatCompletionInput,

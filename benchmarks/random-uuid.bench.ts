@@ -1,15 +1,16 @@
-// oxlint-disable id-length
 import cryptoNode from "node:crypto";
-import { crypto as cryptoJsr } from "@std/crypto";
+import { bench, run } from "mitata";
 
-Deno.bench("Node", { baseline: true, n: 50000000, warmup: 100 }, () => {
+bench("Node", () => {
 	cryptoNode.randomUUID();
 });
 
-Deno.bench("Deno", { n: 50000000, warmup: 100 }, () => {
+bench("Web Crypto", () => {
 	crypto.randomUUID();
 });
 
-Deno.bench("JSR", { n: 50000000, warmup: 100 }, () => {
-	cryptoJsr.randomUUID();
+bench("Bun UUID v7", () => {
+	Bun.randomUUIDv7();
 });
+
+await run();

@@ -1,4 +1,4 @@
-import { getUnixSeconds } from "@utilities/time-utilities.ts";
+import { getUnixSeconds } from "@utilities/time-utilities";
 import { Predicate, String } from "effect";
 
 import { mapAnthropicFinishReason, mapAnthropicUsage } from "./anthropic-translator.ts";

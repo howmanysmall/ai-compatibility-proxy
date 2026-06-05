@@ -13,10 +13,8 @@
 		"**/do-not-sync-ever/**",
 		".vscode/mcp.json",
 		"opencode.jsonc",
-		"plugins/deno.jsonc",
 		"plugins/oxc/small-rules/**/*.ts",
 		"plugins/oxc/**/*.js",
-		"scripts/deno.jsonc",
 		"docker-compose.yml",
 		"src/logging/sanitizer.ts",
 		".tsbuildinfo*",
@@ -54,7 +52,7 @@
 			}
 		},
 		{
-			"files": ["biome.jsonc", ".oxlintrc.json", "knip.jsonc", "deno.jsonc"],
+			"files": ["biome.jsonc", ".oxlintrc.json", "knip.jsonc"],
 			"options": {
 				"trailingComma": "none"
 			}

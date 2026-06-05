@@ -1,8 +1,8 @@
-import { createApp } from "@proxy/app.ts";
+import { createApp } from "@proxy/app";
 
-import { assert, getInitHeader } from "../utilities/test-utilities.ts";
+import { assert, getInitHeader } from "../utilities/test-utilities";
 
-import type { ProxyConfiguration } from "@proxy/config.ts";
+import type { ProxyConfiguration } from "@proxy/config";
 
 function createConfiguration(overrides: Partial<ProxyConfiguration> = {}): ProxyConfiguration {
 	return {
@@ -26,7 +26,7 @@ function createConfiguration(overrides: Partial<ProxyConfiguration> = {}): Proxy
 	};
 }
 
-Deno.test("server_key mode rejects same-length wrong token", async () => {
+test("server_key mode rejects same-length wrong token", async () => {
 	const app = createApp({
 		fetcher: (_input, init) => {
 			assert(getInitHeader(init, "authorization") === "Bearer upstream-key", "Expected upstream auth header.");
@@ -35,7 +35,7 @@ Deno.test("server_key mode rejects same-length wrong token", async () => {
 		proxyConfiguration: createConfiguration(),
 	});
 
-	const response = await app.request(
+	const response = await app.fetch(
 		new Request("http://localhost/v1/models", {
 			headers: { authorization: "Bearer wrong-key" },
 		}),
@@ -44,13 +44,13 @@ Deno.test("server_key mode rejects same-length wrong token", async () => {
 	assert(response.status === 401, "Expected same-length wrong token to fail.");
 });
 
-Deno.test("server_key mode rejects different-length wrong token", async () => {
+test("server_key mode rejects different-length wrong token", async () => {
 	const app = createApp({
 		fetcher: () => Promise.resolve(Response.json({ data: [], object: "list" })),
 		proxyConfiguration: createConfiguration(),
 	});
 
-	const response = await app.request(
+	const response = await app.fetch(
 		new Request("http://localhost/v1/models", {
 			headers: { authorization: "Bearer wrong-key-longer" },
 		}),
@@ -59,7 +59,7 @@ Deno.test("server_key mode rejects different-length wrong token", async () => {
 	assert(response.status === 401, "Expected different-length wrong token to fail.");
 });
 
-Deno.test("server_key mode accepts correct token", async () => {
+test("server_key mode accepts correct token", async () => {
 	const app = createApp({
 		fetcher: (_input, init) => {
 			assert(getInitHeader(init, "authorization") === "Bearer upstream-key", "Expected upstream auth header.");
@@ -68,7 +68,7 @@ Deno.test("server_key mode accepts correct token", async () => {
 		proxyConfiguration: createConfiguration(),
 	});
 
-	const response = await app.request(
+	const response = await app.fetch(
 		new Request("http://localhost/v1/models", {
 			headers: { authorization: "Bearer proxy-key" },
 		}),

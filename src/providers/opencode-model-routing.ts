@@ -1,5 +1,5 @@
-import type { ProxyConfiguration } from "@proxy/config.ts";
-import type { Fetcher } from "@proxy/upstream.ts";
+import type { ProxyConfiguration } from "@proxy/config";
+import type { Fetcher } from "@proxy/upstream";
 
 export type OpenCodeRoute = "chat_completions" | "messages" | "unknown";
 

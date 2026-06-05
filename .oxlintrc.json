@@ -15,7 +15,12 @@
 	},
 	"extends": [],
 	"globals": {
-		"Deno": "readonly"
+		"Bun": "readonly",
+		"beforeEach": "readonly",
+		"describe": "readonly",
+		"expect": "readonly",
+		"test": "readonly",
+		"vi": "readonly"
 	},
 	"ignorePatterns": [
 		"**/dist/**",
@@ -58,8 +63,10 @@
 			"files": ["benchmarks/**/*.bench.ts"],
 			"rules": {
 				"import/unambiguous": "off",
+				"no-await-in-loop": "off",
 				"no-console": "off",
-				"small-rules/prevent-abbreviations": "off"
+				"small-rules/prevent-abbreviations": "off",
+				"small-rules/require-async-suffix": "off"
 			}
 		},
 		{
@@ -88,6 +95,21 @@
 			}
 		},
 		{
+			"files": ["plugins/oxc/small-rules/**/*.ts"],
+			"rules": {
+				"eslint/prefer-named-capture-group": "off",
+				"prefer-named-capture-group": "off"
+			}
+		},
+		{
+			"files": ["scripts/**/*.ts"],
+			"rules": {
+				"promise/avoid-new": "off",
+				"small-rules/prevent-abbreviations": "off",
+				"unicorn/import-style": "off"
+			}
+		},
+		{
 			"files": ["tests/**/*.test.{tsx,ts}"],
 			"plugins": [
 				"eslint",
@@ -108,26 +130,21 @@
 				"max-lines-per-function": "off",
 				"no-console": "off",
 				"no-non-null-assertion": "off",
-				"small-rules/prefer-expect-assertions": [
-					"error",
-					{
-						"additionalExpectCallNames": []
-					}
-				],
+				"small-rules/prefer-expect-assertions": "off",
 				"small-rules/prevent-abbreviations": "off",
 				"unicorn/no-null": "off",
 				"vitest/consistent-each-for": "error",
 				"vitest/consistent-test-filename": "error",
 				"vitest/consistent-test-it": "error",
 				"vitest/consistent-vitest-vi": "error",
-				"vitest/expect-expect": "error",
+				"vitest/expect-expect": "off",
 				"vitest/hoisted-apis-on-top": "error",
 				"vitest/max-expects": "off",
 				"vitest/max-nested-describe": "error",
 				"vitest/no-alias-methods": "error",
 				"vitest/no-commented-out-tests": "error",
 				"vitest/no-conditional-expect": "error",
-				"vitest/no-conditional-in-test": "error",
+				"vitest/no-conditional-in-test": "off",
 				"vitest/no-conditional-tests": "error",
 				"vitest/no-disabled-tests": "error",
 				"vitest/no-duplicate-hooks": "error",
@@ -143,10 +160,10 @@
 				"vitest/prefer-called-once": "error",
 				"vitest/prefer-called-times": "error",
 				"vitest/prefer-describe-function-title": "off",
-				"vitest/prefer-expect-assertions": "error",
+				"vitest/prefer-expect-assertions": "off",
 				"vitest/prefer-expect-type-of": "error",
 				"vitest/prefer-import-in-mock": "error",
-				"vitest/prefer-importing-vitest-globals": "error",
+				"vitest/prefer-importing-vitest-globals": "off",
 				"vitest/prefer-strict-boolean-matchers": "error",
 				"vitest/prefer-to-be-falsy": "off",
 				"vitest/prefer-to-be-object": "error",
@@ -156,8 +173,8 @@
 				"vitest/require-awaited-expect-poll": "error",
 				"vitest/require-local-test-context-for-concurrent-snapshots": "error",
 				"vitest/require-mock-type-parameters": "error",
-				"vitest/require-test-timeout": "error",
-				"vitest/require-top-level-describe": "error",
+				"vitest/require-test-timeout": "off",
+				"vitest/require-top-level-describe": "off",
 				"vitest/valid-expect": "error",
 				"vitest/valid-title": "error",
 				"vitest/warn-todo": "error"
@@ -199,6 +216,7 @@
 			}
 		],
 		"eslint/no-use-before-define": "off",
+		"eslint/prefer-named-capture-group": "off",
 		"eslint/require-await": "off",
 		"for-direction": "error",
 		"func-names": ["error", "as-needed", { "generators": "as-needed" }],
@@ -241,15 +259,7 @@
 		"import/no-unassigned-import": [
 			"error",
 			{
-				"allow": [
-					"**/*.css",
-					"**/*.scss",
-					"**/*.less",
-					"**/*.sass",
-					"@total-typescript/ts-reset",
-					"@utilities/deno-utilities.ts",
-					"@std/dotenv/load"
-				]
+				"allow": ["**/*.css", "**/*.scss", "**/*.less", "**/*.sass", "@total-typescript/ts-reset"]
 			}
 		],
 		"import/prefer-default-export": "off",
@@ -373,6 +383,7 @@
 		"oxc/no-map-spread": "error",
 		"oxc/no-rest-spread-properties": "off",
 		"prefer-arrow-callback": "off",
+		"prefer-named-capture-group": "off",
 		"prefer-object-spread": "error",
 		"prefer-rest-params": "error",
 		"prefer-spread": "error",

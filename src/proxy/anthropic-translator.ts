@@ -1,12 +1,12 @@
-import { getFiniteNumber } from "@utilities/default-utilities.ts";
-import { getUnixSeconds } from "@utilities/time-utilities.ts";
-import { isArrayOfStrings } from "@validators/simple-types.ts";
+import { getFiniteNumber } from "@utilities/default-utilities";
+import { getUnixSeconds } from "@utilities/time-utilities";
+import { isArrayOfStrings } from "@validators/simple-types";
 
-import { isAnthropicMessagesResponse } from "./anthropic-types.ts";
+import { isAnthropicMessagesResponse } from "./anthropic-types";
 import { ProxyError } from "./errors.ts";
-import { OPENAI_NULL } from "./openai-constants.ts";
+import { OPENAI_NULL } from "./openai-constants";
 
-import type { ReadonlyRecord } from "@ts-types/utility-types.ts";
+import type { ReadonlyRecord } from "@ts-types/utility-types";
 import type { Writable } from "type-fest";
 
 import type {

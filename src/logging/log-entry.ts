@@ -1,8 +1,10 @@
+import { hostname } from "node:os";
+import path from "node:path";
 import nodeProcess from "node:process";
-import { name, version } from "@constants/package-json.ts";
-import { getActiveLogContext, mergeLogContexts, sanitizeLogContext } from "@logging/log-context.ts";
-import { sanitize } from "@logging/sanitizer.ts";
-import { basename } from "@std/path";
+import { inspect } from "node:util";
+import { name, version } from "@constants/package-json";
+import { getActiveLogContext, mergeLogContexts, sanitizeLogContext } from "@logging/log-context";
+import { sanitize } from "@logging/sanitizer";
 import { Predicate } from "effect";
 
 import type { LogObject, LogType } from "consola";
@@ -27,7 +29,7 @@ export interface StructuredLogEntry {
 	readonly payload?: unknown;
 	readonly process: {
 		readonly id: number;
-		readonly platform: typeof Deno.build.os;
+		readonly platform: NodeJS.Platform;
 		readonly title: string;
 		readonly version: string;
 	};
@@ -42,7 +44,7 @@ export interface StructuredLogEntry {
 
 function getHostName(): string {
 	try {
-		return Deno.hostname();
+		return hostname();
 	} catch {
 		return UNKNOWN_HOST_NAME;
 	}
@@ -120,10 +122,16 @@ function getPayload(sanitizedArguments: ReadonlyArray<unknown>): unknown {
 }
 
 function getVersion(): string {
-	return Deno.inspect(Deno.version, {
-		depth: 1,
-		sorted: true,
-	});
+	return inspect(
+		{
+			bun: typeof Bun === "undefined" ? "unavailable" : Bun.version,
+			node: nodeProcess.version,
+		},
+		{
+			depth: 1,
+			sorted: true,
+		},
+	);
 }
 
 export function normalizeLogEntry(logObject: LogObject): StructuredLogEntry {
@@ -144,9 +152,9 @@ export function normalizeLogEntry(logObject: LogObject): StructuredLogEntry {
 		levelValue: logObject.level,
 		message: buildMessage(logObject, sanitizedArguments),
 		process: {
-			id: Deno.pid,
-			platform: Deno.build.os,
-			title: basename(nodeProcess.title),
+			id: nodeProcess.pid,
+			platform: nodeProcess.platform,
+			title: path.basename(nodeProcess.title),
 			version: getVersion(),
 		},
 		sequenceNumber: ++currentSequenceNumber,

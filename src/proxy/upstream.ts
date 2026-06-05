@@ -1,4 +1,4 @@
-import { logger } from "@logging/logger.ts";
+import { logger } from "@logging/logger";
 import { Data, Duration, Effect, Either, Schedule } from "effect";
 
 import { createUpstreamErrorAsync, ProxyError } from "./errors.ts";
@@ -6,7 +6,7 @@ import { UpstreamHttpError, UpstreamTimeoutError } from "./upstream-errors.ts";
 
 import type { ProxyConfiguration } from "./config.ts";
 
-export type Fetcher = typeof fetch;
+export type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
 const retryTransientHttpFailures = Schedule.addDelay(Schedule.recurs(2), () => Duration.millis(500));
 

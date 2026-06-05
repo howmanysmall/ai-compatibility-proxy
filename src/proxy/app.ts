@@ -1,6 +1,6 @@
-import { logger, parseLevel } from "@logging/logger.ts";
-import { getProviderTarget } from "@providers/registry.ts";
-import { Hono } from "hono";
+import { logger, parseLevel } from "@logging/logger";
+import { getProviderTarget } from "@providers/registry";
+import { Elysia } from "elysia";
 
 import { createErrorResponse, ProxyError } from "./errors.ts";
 import { registerRoutes } from "./routes.ts";
@@ -13,9 +13,11 @@ export interface AppOptions {
 	readonly proxyConfiguration: ProxyConfiguration;
 }
 
-export function createApp({ proxyConfiguration: config, fetcher = fetch }: AppOptions): Hono {
+export type ProxyApp = Elysia;
+
+export function createApp({ proxyConfiguration: config, fetcher = fetch }: AppOptions): ProxyApp {
 	const providerTarget = getProviderTarget(config.upstreamProtocol);
-	const app = new Hono();
+	const app = new Elysia();
 
 	registerRoutes(app, {
 		fetcher,
@@ -23,8 +25,7 @@ export function createApp({ proxyConfiguration: config, fetcher = fetch }: AppOp
 		proxyConfiguration: config,
 	});
 
-	app.notFound(() => createErrorResponse(createRouteNotFoundError()));
-	app.onError((error) => createErrorResponse(error));
+	app.onError(({ code, error }) => createErrorResponse(code === "NOT_FOUND" ? createRouteNotFoundError() : error));
 
 	return app;
 }

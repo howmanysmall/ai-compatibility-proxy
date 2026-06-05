@@ -1,6 +1,6 @@
 {
 	"compilerOptions": {
-		"allowImportingTsExtensions": false,
+		"allowImportingTsExtensions": true,
 		"noEmit": true,
 		"paths": {
 			"@build-plugins/*": ["./scripts/plugins/*"],

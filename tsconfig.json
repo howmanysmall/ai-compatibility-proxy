@@ -12,5 +12,14 @@
 		},
 		"tsBuildInfoFile": "./node_modules/.tsbuildinfo"
 	},
-	"extends": "./tsconfig.base.json"
+	"exclude": [
+		"**/do-not-sync-ever/**",
+		"**/node_modules/**",
+		"benchmarks/results/**",
+		"coverage/**",
+		"dist/**",
+		"plugins/**"
+	],
+	"extends": "./tsconfig.base.json",
+	"include": ["commitlint.config.ts", "vitest.config.ts", "src/**/*.ts", "tests/**/*.ts", "benchmarks/**/*.ts"]
 }

@@ -2,6 +2,7 @@
 import { faker } from "@faker-js/faker";
 import { type } from "arktype";
 import { Schema } from "effect";
+import { bench, run } from "mitata";
 import * as sury from "sury";
 import Typebox from "typebox";
 import { Compile } from "typebox/compile";
@@ -206,7 +207,7 @@ for (let index = 0; index < 10000; index += 1) {
 }
 
 function benchmarkArkType(): void {
-	Deno.bench("ArkType", {}, () => {
+	bench("ArkType", () => {
 		const validData = new Array<unknown>();
 
 		for (const data of randomData) {
@@ -218,7 +219,7 @@ function benchmarkArkType(): void {
 		void validData;
 	});
 
-	Deno.bench("ArkType (.allows)", { baseline: true }, () => {
+	bench("ArkType (.allows)", () => {
 		const validData = new Array<unknown>();
 
 		for (const data of randomData) {
@@ -236,7 +237,7 @@ function benchmarkEffect(): void {
 	const fromEffectIs = Schema.is(fromEffect);
 	// const fromEffectAssertion = Schema.asserts(fromEffect);
 
-	Deno.bench("Effect Schema (decodeUnknownSync)", () => {
+	bench("Effect Schema (decodeUnknownSync)", () => {
 		const validData = new Array<unknown>();
 
 		for (const data of randomData) {
@@ -250,7 +251,7 @@ function benchmarkEffect(): void {
 		void validData;
 	});
 
-	Deno.bench("Effect Schema (decodeUnknownEither)", () => {
+	bench("Effect Schema (decodeUnknownEither)", () => {
 		const validData = new Array<unknown>();
 
 		for (const data of randomData) {
@@ -261,7 +262,7 @@ function benchmarkEffect(): void {
 
 		void validData;
 	});
-	Deno.bench("Effect Schema (is)", () => {
+	bench("Effect Schema (is)", () => {
 		const validData = new Array<unknown>();
 
 		for (const data of randomData) {
@@ -272,7 +273,7 @@ function benchmarkEffect(): void {
 		void validData;
 	});
 
-	// Deno.bench("Effect Schema (asserts)", () => {
+	// bench("Effect Schema (asserts)", () => {
 	// 	const validData = new Array<unknown>();
 	// 	for (const data of randomData) {
 	// 		try {
@@ -287,7 +288,7 @@ function benchmarkEffect(): void {
 }
 
 function benchmarkSury(): void {
-	Deno.bench("Sury (parser)", () => {
+	bench("Sury (parser)", () => {
 		const validData = new Array<unknown>();
 
 		for (const data of randomData) {
@@ -301,7 +302,7 @@ function benchmarkSury(): void {
 		void validData;
 	});
 
-	Deno.bench("Sury (assert)", () => {
+	bench("Sury (assert)", () => {
 		const validData = new Array<unknown>();
 
 		for (const data of randomData) {
@@ -316,7 +317,7 @@ function benchmarkSury(): void {
 		void validData;
 	});
 
-	Deno.bench("Sury (safe)", () => {
+	bench("Sury (safe)", () => {
 		const validData = new Array<unknown>();
 
 		for (const data of randomData) {
@@ -330,7 +331,7 @@ function benchmarkSury(): void {
 }
 
 function benchmarkZod(): void {
-	Deno.bench("Zod (parse)", () => {
+	bench("Zod (parse)", () => {
 		const validData = new Array<unknown>();
 
 		for (const data of randomData) {
@@ -344,7 +345,7 @@ function benchmarkZod(): void {
 		void validData;
 	});
 
-	Deno.bench("Zod (safeParse)", () => {
+	bench("Zod (safeParse)", () => {
 		const validData = new Array<unknown>();
 
 		for (const data of randomData) {
@@ -358,7 +359,7 @@ function benchmarkZod(): void {
 }
 
 function benchmarkValibot(): void {
-	Deno.bench("Valibot (parse)", () => {
+	bench("Valibot (parse)", () => {
 		const validData = new Array<unknown>();
 
 		for (const data of randomData) {
@@ -372,7 +373,7 @@ function benchmarkValibot(): void {
 		void validData;
 	});
 
-	Deno.bench("Valibot (safeParse)", () => {
+	bench("Valibot (safeParse)", () => {
 		const validData = new Array<unknown>();
 
 		for (const data of randomData) {
@@ -384,7 +385,7 @@ function benchmarkValibot(): void {
 		void validData;
 	});
 
-	Deno.bench("Valibot (is)", () => {
+	bench("Valibot (is)", () => {
 		const validData = new Array<unknown>();
 
 		for (const data of randomData) {
@@ -397,7 +398,7 @@ function benchmarkValibot(): void {
 }
 
 function benchmarkTypebox(): void {
-	Deno.bench("Typebox (Check)", () => {
+	bench("Typebox (Check)", () => {
 		const validData = new Array<unknown>();
 
 		for (const data of randomData) {
@@ -415,3 +416,5 @@ benchmarkSury();
 benchmarkZod();
 benchmarkValibot();
 benchmarkTypebox();
+
+await run();

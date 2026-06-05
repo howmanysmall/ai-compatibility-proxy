@@ -1,4 +1,4 @@
-allowBuilds: { '@jsr/sander__html': false }
+allowBuilds: { "@jsr/sander__html": false }
 packages: []
 fetchRetries: 5
 fetchRetryMintimeout: 1000

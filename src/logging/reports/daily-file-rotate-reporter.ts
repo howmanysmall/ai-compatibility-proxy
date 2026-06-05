@@ -1,8 +1,10 @@
-import { textEncoder } from "@constants/constant-classes.ts";
-import { normalizeLogEntry } from "@logging/log-entry.ts";
+import nodeProcess from "node:process";
+import { inspect } from "node:util";
+import { textEncoder } from "@constants/constant-classes";
+import { normalizeLogEntry } from "@logging/log-entry";
 import { createStream } from "rotating-file-stream";
 
-import type { StructuredLogEntry } from "@logging/log-entry.ts";
+import type { StructuredLogEntry } from "@logging/log-entry";
 import type { ConsolaReporter, LogObject } from "consola";
 import type { FileSize, Interval } from "rotating-file-stream";
 
@@ -18,7 +20,7 @@ function alwaysTrue(): boolean {
 }
 
 async function writeFileLoggingWarningAsync(error: Error): Promise<void> {
-	await Deno.stderr.write(textEncoder.encode(`[logging] ${error.message}\n`));
+	nodeProcess.stderr.write(`[logging] ${error.message}\n`);
 }
 
 function getByteLength(value: string): number {
@@ -33,7 +35,7 @@ function truncateString(value: string, maxLength: number): string {
 function stringifyContextValue(value: unknown): unknown {
 	if (typeof value === "string") return truncateString(value, MAX_NOTICE_CONTEXT_VALUE_LENGTH);
 	if (typeof value === "number" || typeof value === "boolean" || value === null) return value;
-	return truncateString(Deno.inspect(value, { depth: 1, iterableLimit: 5 }), MAX_NOTICE_CONTEXT_VALUE_LENGTH);
+	return truncateString(inspect(value, { depth: 1, maxArrayLength: 5 }), MAX_NOTICE_CONTEXT_VALUE_LENGTH);
 }
 
 function createStorageSafeContext(context: Readonly<Record<string, unknown>>): Readonly<Record<string, unknown>> {

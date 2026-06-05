@@ -1,9 +1,9 @@
-import { createApp } from "@proxy/app.ts";
+import { createApp } from "@proxy/app";
 import { Predicate } from "effect";
 
-import { assert } from "../utilities/test-utilities.ts";
+import { assert } from "../utilities/test-utilities";
 
-import type { ProxyConfiguration } from "@proxy/config.ts";
+import type { ProxyConfiguration } from "@proxy/config";
 
 function createConfiguration(overrides: Partial<ProxyConfiguration> = {}): ProxyConfiguration {
 	return {
@@ -58,12 +58,12 @@ function getRecord(value: Record<string, unknown>, key: string): Record<string, 
 	return childValue;
 }
 
-Deno.test("rejects request bodies missing messages", async () => {
+test("rejects request bodies missing messages", async () => {
 	const app = createApp({
 		fetcher: () => Promise.reject(new Error("fetch should not be called")),
 		proxyConfiguration: createConfiguration(),
 	});
-	const response = await app.request(createJsonRequest({ model: "minimax-m3" }));
+	const response = await app.fetch(createJsonRequest({ model: "minimax-m3" }));
 	const body = await readRecordAsync(response);
 	const error = getRecord(body, "error");
 
@@ -71,12 +71,12 @@ Deno.test("rejects request bodies missing messages", async () => {
 	assert(typeof error.message === "string", "Expected error message.");
 });
 
-Deno.test("rejects request bodies with non-array messages", async () => {
+test("rejects request bodies with non-array messages", async () => {
 	const app = createApp({
 		fetcher: () => Promise.reject(new Error("fetch should not be called")),
 		proxyConfiguration: createConfiguration(),
 	});
-	const response = await app.request(createJsonRequest({ messages: "not an array" }));
+	const response = await app.fetch(createJsonRequest({ messages: "not an array" }));
 	const body = await readRecordAsync(response);
 	const error = getRecord(body, "error");
 
@@ -84,12 +84,12 @@ Deno.test("rejects request bodies with non-array messages", async () => {
 	assert(typeof error.message === "string", "Expected error message.");
 });
 
-Deno.test("rejects request bodies with empty messages arrays", async () => {
+test("rejects request bodies with empty messages arrays", async () => {
 	const app = createApp({
 		fetcher: () => Promise.reject(new Error("fetch should not be called")),
 		proxyConfiguration: createConfiguration(),
 	});
-	const response = await app.request(createJsonRequest({ messages: [] }));
+	const response = await app.fetch(createJsonRequest({ messages: [] }));
 	const body = await readRecordAsync(response);
 	const error = getRecord(body, "error");
 
@@ -97,12 +97,12 @@ Deno.test("rejects request bodies with empty messages arrays", async () => {
 	assert(typeof error.message === "string", "Expected error message.");
 });
 
-Deno.test("rejects empty request bodies", async () => {
+test("rejects empty request bodies", async () => {
 	const app = createApp({
 		fetcher: () => Promise.reject(new Error("fetch should not be called")),
 		proxyConfiguration: createConfiguration(),
 	});
-	const response = await app.request(createJsonRequest({}));
+	const response = await app.fetch(createJsonRequest({}));
 	const body = await readRecordAsync(response);
 	const error = getRecord(body, "error");
 
