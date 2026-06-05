@@ -24,7 +24,7 @@
 		"strict": true,
 		"target": "ESNext",
 		"tsBuildInfoFile": "./node_modules/.tsbuildinfo",
-		"types": ["bun", "node", "vitest/globals"],
+		"types": ["bun", "node"],
 		"verbatimModuleSyntax": true
 	},
 	"exclude": ["dist", "**/node_modules/**", "**/do-not-sync-ever/**"]

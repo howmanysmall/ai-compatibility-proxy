@@ -1,4 +1,6 @@
+import { expect } from "vitest";
 import { type } from "arktype";
+import { Predicate } from "effect";
 
 const isHeadersArray = type(["string", "string"]).readonly().array().readonly();
 const isHeadersRecord = type("Record<string, string>").readonly();
@@ -22,18 +24,6 @@ export function getInitHeader(init: RequestInit | undefined, name: string): stri
 	return JSON.parse("null") as null;
 }
 
-export function assert(condition: boolean, message: string): asserts condition {
-	if (condition) return;
-
-	const error = new Error(message);
-	Error.captureStackTrace(error, assert);
-	throw error;
-}
-
-export function assertEquals<TValue>(actual: TValue, expected: TValue, message: string): void {
-	if (actual === expected) return;
-
-	const error = new Error(`${message} (expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)})`);
-	Error.captureStackTrace(error, assertEquals);
-	throw error;
+export function expectRecord(value: unknown, message: string): asserts value is Record<string, unknown> {
+	expect(Predicate.isRecord(value), message).toBe(true);
 }

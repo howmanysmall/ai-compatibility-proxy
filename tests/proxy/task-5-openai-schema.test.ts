@@ -1,8 +1,6 @@
 import { createApp } from "@proxy/app";
 import { Predicate } from "effect";
 
-import { assert } from "../utilities/test-utilities";
-
 import type { ProxyConfiguration } from "@proxy/config";
 
 function createConfiguration(overrides: Partial<ProxyConfiguration> = {}): ProxyConfiguration {
@@ -67,8 +65,8 @@ test("rejects request bodies missing messages", async () => {
 	const body = await readRecordAsync(response);
 	const error = getRecord(body, "error");
 
-	assert(response.status === 400, "Expected missing messages to fail.");
-	assert(typeof error.message === "string", "Expected error message.");
+	expect(response.status === 400, "Expected missing messages to fail.").toBe(true);
+	expect(typeof error.message === "string", "Expected error message.").toBe(true);
 });
 
 test("rejects request bodies with non-array messages", async () => {
@@ -80,8 +78,8 @@ test("rejects request bodies with non-array messages", async () => {
 	const body = await readRecordAsync(response);
 	const error = getRecord(body, "error");
 
-	assert(response.status === 400, "Expected non-array messages to fail.");
-	assert(typeof error.message === "string", "Expected error message.");
+	expect(response.status === 400, "Expected non-array messages to fail.").toBe(true);
+	expect(typeof error.message === "string", "Expected error message.").toBe(true);
 });
 
 test("rejects request bodies with empty messages arrays", async () => {
@@ -93,8 +91,8 @@ test("rejects request bodies with empty messages arrays", async () => {
 	const body = await readRecordAsync(response);
 	const error = getRecord(body, "error");
 
-	assert(response.status === 400, "Expected empty messages to fail.");
-	assert(typeof error.message === "string", "Expected error message.");
+	expect(response.status === 400, "Expected empty messages to fail.").toBe(true);
+	expect(typeof error.message === "string", "Expected error message.").toBe(true);
 });
 
 test("rejects empty request bodies", async () => {
@@ -106,6 +104,6 @@ test("rejects empty request bodies", async () => {
 	const body = await readRecordAsync(response);
 	const error = getRecord(body, "error");
 
-	assert(response.status === 400, "Expected empty body to fail.");
-	assert(typeof error.message === "string", "Expected error message.");
+	expect(response.status === 400, "Expected empty body to fail.").toBe(true);
+	expect(typeof error.message === "string", "Expected error message.").toBe(true);
 });

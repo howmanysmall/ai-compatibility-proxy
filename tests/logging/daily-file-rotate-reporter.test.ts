@@ -1,7 +1,5 @@
 import { serializeLogEntry } from "@logging/reports/daily-file-rotate-reporter";
 
-import { assert } from "../utilities/test-utilities";
-
 import type { StructuredLogEntry } from "@logging/log-entry";
 
 const textEncoder = new TextEncoder();
@@ -40,7 +38,9 @@ test("serializeLogEntry keeps normal entries unchanged", () => {
 	const entry = createLogEntry({ payload: { id: "small-payload" } });
 	const serializedEntry = serializeLogEntry(entry, 4096);
 
-	assert(serializedEntry === JSON.stringify(entry), "Expected normal entry to serialize without modification.");
+	expect(serializedEntry === JSON.stringify(entry), "Expected normal entry to serialize without modification.").toBe(
+		true,
+	);
 });
 
 test("serializeLogEntry truncates oversized entries", () => {
@@ -58,8 +58,33 @@ test("serializeLogEntry truncates oversized entries", () => {
 	const serializedEntry = serializeLogEntry(entry, maxEntryBytes);
 	const parsedEntry = JSON.parse(serializedEntry) as StructuredLogEntry;
 
-	assert(getByteLength(serializedEntry) <= maxEntryBytes, "Expected serialized entry to fit within the byte cap.");
-	assert(parsedEntry.customProperties?.logEntryTruncated === true, "Expected entry to be marked as truncated.");
-	assert(parsedEntry.payload === "[Truncated: log entry exceeded storage limit]", "Expected payload to be omitted.");
-	assert(parsedEntry.message.length < entry.message.length, "Expected message to be shortened.");
+	expect(
+		getByteLength(serializedEntry) <= maxEntryBytes,
+		"Expected serialized entry to fit within the byte cap.",
+	).toBe(true);
+	expect(parsedEntry.customProperties?.logEntryTruncated === true, "Expected entry to be marked as truncated.").toBe(
+		true,
+	);
+	expect(
+		parsedEntry.payload === "[Truncated: log entry exceeded storage limit]",
+		"Expected payload to be omitted.",
+	).toBe(true);
+	expect(parsedEntry.message.length < entry.message.length, "Expected message to be shortened.").toBe(true);
+});
+
+test("serializeLogEntry falls back to minimal truncation when notice entry is still too large", () => {
+	const entry = createLogEntry({
+		context: Object.fromEntries(Array.from({ length: 30 }, (_, index) => [`key-${index}`, "x".repeat(1000)])),
+		message: "m".repeat(100_000),
+		payload: {
+			largeValue: "x".repeat(100_000),
+		},
+	});
+
+	const parsedEntry = JSON.parse(serializeLogEntry(entry, 512)) as StructuredLogEntry;
+
+	expect(parsedEntry.message, "Expected minimal truncation message.").toBe(
+		"Log entry omitted because it exceeded the storage safety limit",
+	);
+	expect(parsedEntry.context, "Expected minimal truncation to drop context.").toEqual({});
 });

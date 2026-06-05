@@ -1,6 +1,6 @@
 import { createApp } from "@proxy/app";
 
-import { assert, getInitHeader } from "../utilities/test-utilities";
+import { getInitHeader } from "../utilities/test-utilities";
 
 import type { ProxyConfiguration } from "@proxy/config";
 
@@ -29,7 +29,10 @@ function createConfiguration(overrides: Partial<ProxyConfiguration> = {}): Proxy
 test("server_key mode rejects same-length wrong token", async () => {
 	const app = createApp({
 		fetcher: (_input, init) => {
-			assert(getInitHeader(init, "authorization") === "Bearer upstream-key", "Expected upstream auth header.");
+			expect(
+				getInitHeader(init, "authorization") === "Bearer upstream-key",
+				"Expected upstream auth header.",
+			).toBe(true);
 			return Promise.resolve(Response.json({ data: [], object: "list" }));
 		},
 		proxyConfiguration: createConfiguration(),
@@ -41,7 +44,7 @@ test("server_key mode rejects same-length wrong token", async () => {
 		}),
 	);
 
-	assert(response.status === 401, "Expected same-length wrong token to fail.");
+	expect(response.status === 401, "Expected same-length wrong token to fail.").toBe(true);
 });
 
 test("server_key mode rejects different-length wrong token", async () => {
@@ -56,13 +59,16 @@ test("server_key mode rejects different-length wrong token", async () => {
 		}),
 	);
 
-	assert(response.status === 401, "Expected different-length wrong token to fail.");
+	expect(response.status === 401, "Expected different-length wrong token to fail.").toBe(true);
 });
 
 test("server_key mode accepts correct token", async () => {
 	const app = createApp({
 		fetcher: (_input, init) => {
-			assert(getInitHeader(init, "authorization") === "Bearer upstream-key", "Expected upstream auth header.");
+			expect(
+				getInitHeader(init, "authorization") === "Bearer upstream-key",
+				"Expected upstream auth header.",
+			).toBe(true);
 			return Promise.resolve(Response.json({ data: [], object: "list" }));
 		},
 		proxyConfiguration: createConfiguration(),
@@ -74,5 +80,5 @@ test("server_key mode accepts correct token", async () => {
 		}),
 	);
 
-	assert(response.status === 200, "Expected correct token to pass.");
+	expect(response.status === 200, "Expected correct token to pass.").toBe(true);
 });

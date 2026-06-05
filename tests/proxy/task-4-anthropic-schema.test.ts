@@ -1,7 +1,5 @@
 import { translateAnthropicToOpenAi } from "@proxy/anthropic-translator";
 
-import { assert } from "../utilities/test-utilities";
-
 test("translates a valid Anthropic message response", () => {
 	const openAiResponse = translateAnthropicToOpenAi(
 		{
@@ -25,13 +23,17 @@ test("translates a valid Anthropic message response", () => {
 		"fallback-model",
 	);
 
-	assert(openAiResponse.id === "msg_123", "Expected upstream id.");
-	assert(openAiResponse.model === "minimax-m3", "Expected upstream model.");
-	assert(openAiResponse.choices[0]?.message.content === "Hello there.", "Expected concatenated text blocks.");
-	assert(openAiResponse.choices[0]?.finish_reason === "length", "Expected max_tokens to map to length.");
-	assert(openAiResponse.usage?.prompt_tokens === 15, "Expected cache tokens to count toward prompt tokens.");
-	assert(openAiResponse.usage?.completion_tokens === 7, "Expected output token mapping.");
-	assert(openAiResponse.usage?.total_tokens === 22, "Expected total token mapping.");
+	expect(openAiResponse.id === "msg_123", "Expected upstream id.").toBe(true);
+	expect(openAiResponse.model === "minimax-m3", "Expected upstream model.").toBe(true);
+	expect(openAiResponse.choices[0]?.message.content === "Hello there.", "Expected concatenated text blocks.").toBe(
+		true,
+	);
+	expect(openAiResponse.choices[0]?.finish_reason === "length", "Expected max_tokens to map to length.").toBe(true);
+	expect(openAiResponse.usage?.prompt_tokens === 15, "Expected cache tokens to count toward prompt tokens.").toBe(
+		true,
+	);
+	expect(openAiResponse.usage?.completion_tokens === 7, "Expected output token mapping.").toBe(true);
+	expect(openAiResponse.usage?.total_tokens === 22, "Expected total token mapping.").toBe(true);
 });
 
 test("falls through to the fallback for Anthropic message responses missing type", () => {
@@ -45,10 +47,10 @@ test("falls through to the fallback for Anthropic message responses missing type
 		"fallback-model",
 	);
 
-	assert(openAiResponse.model === "fallback-model", "Expected request model fallback.");
-	assert(openAiResponse.choices[0]?.message.content === "", "Expected empty assistant content.");
-	assert(openAiResponse.choices[0]?.finish_reason === null, "Expected no finish reason.");
-	assert(openAiResponse.id.startsWith("chatcmpl-"), "Expected generated id fallback.");
+	expect(openAiResponse.model === "fallback-model", "Expected request model fallback.").toBe(true);
+	expect(openAiResponse.choices[0]?.message.content === "", "Expected empty assistant content.").toBe(true);
+	expect(openAiResponse.choices[0]?.finish_reason === null, "Expected no finish reason.").toBe(true);
+	expect(openAiResponse.id.startsWith("chatcmpl-"), "Expected generated id fallback.").toBe(true);
 });
 
 test("falls through to the fallback for Anthropic message responses with wrong type", () => {
@@ -63,10 +65,10 @@ test("falls through to the fallback for Anthropic message responses with wrong t
 		"fallback-model",
 	);
 
-	assert(openAiResponse.model === "fallback-model", "Expected request model fallback.");
-	assert(openAiResponse.choices[0]?.message.content === "", "Expected empty assistant content.");
-	assert(openAiResponse.choices[0]?.finish_reason === null, "Expected no finish reason.");
-	assert(openAiResponse.id.startsWith("chatcmpl-"), "Expected generated id fallback.");
+	expect(openAiResponse.model === "fallback-model", "Expected request model fallback.").toBe(true);
+	expect(openAiResponse.choices[0]?.message.content === "", "Expected empty assistant content.").toBe(true);
+	expect(openAiResponse.choices[0]?.finish_reason === null, "Expected no finish reason.").toBe(true);
+	expect(openAiResponse.id.startsWith("chatcmpl-"), "Expected generated id fallback.").toBe(true);
 });
 
 test("falls through to the fallback for Anthropic error responses", () => {
@@ -75,17 +77,17 @@ test("falls through to the fallback for Anthropic error responses", () => {
 		"fallback-model",
 	);
 
-	assert(openAiResponse.model === "fallback-model", "Expected request model fallback.");
-	assert(openAiResponse.choices[0]?.message.content === "", "Expected empty assistant content.");
-	assert(openAiResponse.choices[0]?.finish_reason === null, "Expected no finish reason.");
-	assert(openAiResponse.id.startsWith("chatcmpl-"), "Expected generated id fallback.");
+	expect(openAiResponse.model === "fallback-model", "Expected request model fallback.").toBe(true);
+	expect(openAiResponse.choices[0]?.message.content === "", "Expected empty assistant content.").toBe(true);
+	expect(openAiResponse.choices[0]?.finish_reason === null, "Expected no finish reason.").toBe(true);
+	expect(openAiResponse.id.startsWith("chatcmpl-"), "Expected generated id fallback.").toBe(true);
 });
 
 test("falls through to the fallback for empty Anthropic payloads", () => {
 	const openAiResponse = translateAnthropicToOpenAi({}, "fallback-model");
 
-	assert(openAiResponse.model === "fallback-model", "Expected request model fallback.");
-	assert(openAiResponse.choices[0]?.message.content === "", "Expected empty assistant content.");
-	assert(openAiResponse.choices[0]?.finish_reason === null, "Expected no finish reason.");
-	assert(openAiResponse.id.startsWith("chatcmpl-"), "Expected generated id fallback.");
+	expect(openAiResponse.model === "fallback-model", "Expected request model fallback.").toBe(true);
+	expect(openAiResponse.choices[0]?.message.content === "", "Expected empty assistant content.").toBe(true);
+	expect(openAiResponse.choices[0]?.finish_reason === null, "Expected no finish reason.").toBe(true);
+	expect(openAiResponse.id.startsWith("chatcmpl-"), "Expected generated id fallback.").toBe(true);
 });

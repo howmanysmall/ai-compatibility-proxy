@@ -1,8 +1,6 @@
 import { translateAnthropicSseText } from "@proxy/sse";
 import { Predicate } from "effect";
 
-import { assert, assertEquals } from "../utilities/test-utilities";
-
 import type { ReadonlyRecord } from "@ts-types/utility-types";
 
 function parseChunks(output: string): ReadonlyArray<ReadonlyRecord<string, unknown>> {
@@ -35,7 +33,7 @@ test("all chunks in one Anthropic stream share a single id, created, and model",
 	const output = translateAnthropicSseText(input, "minimax-m3");
 	const chunks = parseChunks(output);
 
-	assert(chunks.length >= 3, `Expected at least 3 chunks, got ${chunks.length}`);
+	expect(chunks.length >= 3, `Expected at least 3 chunks, got ${chunks.length}`).toBe(true);
 
 	const chunkIds: Array<unknown> = [];
 	const chunkCreated: Array<unknown> = [];
@@ -49,13 +47,11 @@ test("all chunks in one Anthropic stream share a single id, created, and model",
 		chunkModels[size++] = model;
 	}
 
-	assertEquals(new Set(chunkIds).size, 1, `All chunks must share one id; got: ${JSON.stringify(chunkIds)}`);
-	assertEquals(
-		new Set(chunkCreated).size,
+	expect(new Set(chunkIds).size, `All chunks must share one id; got: ${JSON.stringify(chunkIds)}`).toBe(1);
+	expect(new Set(chunkCreated).size, `All chunks must share one created; got: ${JSON.stringify(chunkCreated)}`).toBe(
 		1,
-		`All chunks must share one created; got: ${JSON.stringify(chunkCreated)}`,
 	);
-	assertEquals(new Set(chunkModels).size, 1, `All chunks must share one model; got: ${JSON.stringify(chunkModels)}`);
+	expect(new Set(chunkModels).size, `All chunks must share one model; got: ${JSON.stringify(chunkModels)}`).toBe(1);
 });
 
 test("stream id is taken from message_start, not generated per-chunk", () => {
@@ -72,8 +68,8 @@ test("stream id is taken from message_start, not generated per-chunk", () => {
 	const chunks = parseChunks(output);
 
 	for (const chunk of chunks) {
-		assertEquals(chunk.id, "msg_xyz", "All chunks must use the id from message_start");
-		assertEquals(chunk.model, "test-model", "All chunks must use the model from message_start");
+		expect(chunk.id, "All chunks must use the id from message_start").toBe("msg_xyz");
+		expect(chunk.model, "All chunks must use the model from message_start").toBe("test-model");
 	}
 });
 
@@ -88,7 +84,7 @@ test("falls back to generated UUID and configured model when message_start is ab
 	const output = translateAnthropicSseText(input, "my-model");
 	const chunks = parseChunks(output);
 
-	assert(chunks.length >= 2, "Expected at least 2 chunks");
+	expect(chunks.length >= 2, "Expected at least 2 chunks").toBe(true);
 
 	const ids: Array<string> = [];
 	const models: Array<unknown> = [];
@@ -100,8 +96,8 @@ test("falls back to generated UUID and configured model when message_start is ab
 		models[size++] = model;
 	}
 
-	assertEquals(new Set(ids).size, 1, "All chunks must share one id even without message_start");
-	assert(ids[0]?.startsWith("chatcmpl-") === true, "Fallback id should be chatcmpl-<uuid>");
-	assertEquals(new Set(models).size, 1, "All chunks must share one model");
-	assertEquals(models[0], "my-model", "Model should fall back to configured model");
+	expect(new Set(ids).size, "All chunks must share one id even without message_start").toBe(1);
+	expect(ids[0]?.startsWith("chatcmpl-") === true, "Fallback id should be chatcmpl-<uuid>").toBe(true);
+	expect(new Set(models).size, "All chunks must share one model").toBe(1);
+	expect(models[0], "Model should fall back to configured model").toBe("my-model");
 });

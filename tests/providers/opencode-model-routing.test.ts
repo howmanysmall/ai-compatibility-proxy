@@ -1,7 +1,5 @@
 import { clearOpenCodeModelRoutingCache, resolveOpenCodeModelRouteAsync } from "@providers/opencode-model-routing";
 
-import { assert, assertEquals } from "../utilities/test-utilities";
-
 import type { ProxyConfiguration } from "@proxy/config";
 import type { Fetcher } from "@proxy/upstream";
 
@@ -48,8 +46,8 @@ test("routes anthropic models to messages from metadata", async () => {
 		"claude-sonnet-4",
 	);
 
-	assertEquals(decision.route, "messages", "Expected anthropic npm to route to messages.");
-	assertEquals(decision.source, "metadata", "Expected fresh metadata source.");
+	expect(decision.route, "Expected anthropic npm to route to messages.").toBe("messages");
+	expect(decision.source, "Expected fresh metadata source.").toBe("metadata");
 });
 
 test("routes openai-compatible models to chat completions from metadata", async () => {
@@ -60,8 +58,8 @@ test("routes openai-compatible models to chat completions from metadata", async 
 		"deepseek-v4-flash",
 	);
 
-	assertEquals(decision.route, "chat_completions", "Expected OpenAI-compatible npm to route to chat completions.");
-	assertEquals(decision.source, "metadata", "Expected fresh metadata source.");
+	expect(decision.route, "Expected OpenAI-compatible npm to route to chat completions.").toBe("chat_completions");
+	expect(decision.source, "Expected fresh metadata source.").toBe("metadata");
 });
 
 test("uses provider default npm when model-specific provider metadata is absent", async () => {
@@ -72,7 +70,7 @@ test("uses provider default npm when model-specific provider metadata is absent"
 		"future-model",
 	);
 
-	assertEquals(decision.route, "chat_completions", "Expected provider default npm to route to chat completions.");
+	expect(decision.route, "Expected provider default npm to route to chat completions.").toBe("chat_completions");
 });
 
 test("returns unknown when model is absent from metadata", async () => {
@@ -83,8 +81,8 @@ test("returns unknown when model is absent from metadata", async () => {
 		"missing-model",
 	);
 
-	assertEquals(decision.route, "unknown", "Expected missing model to return unknown.");
-	assertEquals(decision.source, "metadata", "Expected metadata source despite unknown model.");
+	expect(decision.route, "Expected missing model to return unknown.").toBe("unknown");
+	expect(decision.source, "Expected metadata source despite unknown model.").toBe("metadata");
 });
 
 test("reuses cached metadata before TTL expires", async () => {
@@ -99,7 +97,7 @@ test("reuses cached metadata before TTL expires", async () => {
 	await resolveOpenCodeModelRouteAsync(fetchMetadataAsync, configuration, "deepseek-v4-flash");
 	await resolveOpenCodeModelRouteAsync(fetchMetadataAsync, configuration, "claude-sonnet-4");
 
-	assertEquals(fetchCount, 1, "Expected metadata response to be cached before TTL expiry.");
+	expect(fetchCount, "Expected metadata response to be cached before TTL expiry.").toBe(1);
 });
 
 test("uses stale cache when metadata refresh fails", async () => {
@@ -115,9 +113,9 @@ test("uses stale cache when metadata refresh fails", async () => {
 	await resolveOpenCodeModelRouteAsync(fetchMetadataAsync, configuration, "deepseek-v4-flash");
 	const decision = await resolveOpenCodeModelRouteAsync(fetchMetadataAsync, configuration, "deepseek-v4-flash");
 
-	assertEquals(decision.route, "chat_completions", "Expected stale cache to preserve last known route.");
-	assertEquals(decision.source, "stale_metadata", "Expected stale metadata source after refresh failure.");
-	assert(fetchCount >= 2, "Expected refresh attempt after TTL expiry.");
+	expect(decision.route, "Expected stale cache to preserve last known route.").toBe("chat_completions");
+	expect(decision.source, "Expected stale metadata source after refresh failure.").toBe("stale_metadata");
+	expect(fetchCount >= 2, "Expected refresh attempt after TTL expiry.").toBe(true);
 });
 
 test("returns unknown on cold metadata failure", async () => {
@@ -130,6 +128,6 @@ test("returns unknown on cold metadata failure", async () => {
 		"deepseek-v4-flash",
 	);
 
-	assertEquals(decision.route, "unknown", "Expected cold metadata failure to return unknown.");
-	assertEquals(decision.source, "unknown", "Expected unknown source when metadata never loaded.");
+	expect(decision.route, "Expected cold metadata failure to return unknown.").toBe("unknown");
+	expect(decision.source, "Expected unknown source when metadata never loaded.").toBe("unknown");
 });

@@ -1,0 +1,18 @@
+{
+	"compilerOptions": {
+		"paths": {
+			"@constants/*": ["../src/constants/*"],
+			"@logging/*": ["../src/logging/*"],
+			"@polyfills/*": ["../src/polyfills/*"],
+			"@providers/*": ["../src/providers/*"],
+			"@proxy/*": ["../src/proxy/*"],
+			"@ts-types/*": ["../src/types/*"],
+			"@utilities/*": ["../src/utilities/*"],
+			"@validators/*": ["../src/validators/*"]
+		},
+		"tsBuildInfoFile": "../node_modules/.tsbuildinfo-tests",
+		"types": ["bun", "node", "vitest/globals"]
+	},
+	"extends": "../tsconfig.base.json",
+	"include": ["../src/**/*.ts", "./**/*.ts", "./**/*.test-d.ts"]
+}
