@@ -1,9 +1,9 @@
-import { isTsTypeAnnotation } from "@oxlint-utilities/oxc-utilities.ts";
-import { walkAstSlop } from "@oxlint-utilities/react-hook-utilities.ts";
-import { isUppercaseName } from "@oxlint-utilities/string-utilities.ts";
+import { isTsTypeAnnotation } from "@oxlint-utilities/oxc-utilities";
+import { walkAstSlop } from "@oxlint-utilities/react-hook-utilities";
+import { isUppercaseName } from "@oxlint-utilities/string-utilities";
 import { defineRule } from "oxlint-plugin-utilities";
 
-import type { CallbackFunction } from "@oxlint-types/missing-types.ts";
+import type { CallbackFunction } from "@oxlint-types/missing-types";
 import type { ESTree, Visitor } from "oxlint-plugin-utilities";
 
 const REACT_NODE_TYPE_NAMES = new Set(["JSXElement", "ReactElement", "ReactNode"]);

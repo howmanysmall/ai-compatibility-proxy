@@ -1,7 +1,7 @@
-import { unwrapExpression } from "@oxlint-utilities/ast-utilities.ts";
-import { isKeyOfNode, isNode } from "@oxlint-utilities/oxc-utilities.ts";
+import { unwrapExpression } from "@oxlint-utilities/ast-utilities";
+import { isKeyOfNode, isNode } from "@oxlint-utilities/oxc-utilities";
 
-import type { CallbackFunction } from "@oxlint-types/missing-types.ts";
+import type { CallbackFunction } from "@oxlint-types/missing-types";
 import type { ESTree, SourceCode } from "oxlint-plugin-utilities";
 
 const SETTER_IDENTIFIER_PATTERN = /^set[A-Z]/u;

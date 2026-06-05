@@ -5,11 +5,11 @@ import {
 	isModifiersString,
 	isPredefinedFormatsString,
 	isUnderscoreOptionsString,
-} from "./enums.ts";
+} from "./enums";
 
 import type { Context as RuleContext, ESTree } from "oxlint-plugin-utilities";
 
-import type { ModifiersString, PredefinedFormatsString, UnderscoreOptionsString } from "./enums.ts";
+import type { ModifiersString, PredefinedFormatsString, UnderscoreOptionsString } from "./enums";
 
 export type MessageIds =
 	| "doesNotMatchFormat"

@@ -1,4 +1,4 @@
-import type { Detector } from "./detector.ts";
+import type { Detector } from "./detector";
 
 /**
  * Creates a detector for camelCase patterns. Returns 1 if lowercase char followed by uppercase char is found.

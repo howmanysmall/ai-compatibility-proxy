@@ -1,6 +1,6 @@
-import { isComponentDeclaration } from "@oxlint-utilities/component-utilities.ts";
-import { isComponentAssignment } from "@oxlint-utilities/lint-utilities.ts";
-import { isNode } from "@oxlint-utilities/oxc-utilities.ts";
+import { isComponentDeclaration } from "@oxlint-utilities/component-utilities";
+import { isComponentAssignment } from "@oxlint-utilities/lint-utilities";
+import { isNode } from "@oxlint-utilities/oxc-utilities";
 import { defineRule } from "oxlint-plugin-utilities";
 
 import type { ESTree, Visitor } from "oxlint-plugin-utilities";

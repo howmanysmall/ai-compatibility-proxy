@@ -1,5 +1,5 @@
-import { getImportedName } from "@oxlint-utilities/oxc-utilities.ts";
-import { getEnvironment, getReactSources, isReactImport } from "@oxlint-utilities/react-utilities.ts";
+import { getImportedName } from "@oxlint-utilities/oxc-utilities";
+import { getEnvironment, getReactSources, isReactImport } from "@oxlint-utilities/react-utilities";
 import { defineRule } from "oxlint-plugin-utilities";
 
 import type { ESTree, SourceCode, Visitor } from "oxlint-plugin-utilities";

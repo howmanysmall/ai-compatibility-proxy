@@ -1,4 +1,4 @@
-import type { Detector } from "./detector.ts";
+import type { Detector } from "./detector";
 
 const WHITESPACE_REGEX = /\s/v;
 

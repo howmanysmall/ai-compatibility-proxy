@@ -1,4 +1,4 @@
-import { isLiteralNode } from "@oxlint-utilities/oxc-utilities.ts";
+import { isLiteralNode } from "@oxlint-utilities/oxc-utilities";
 import { defineRule } from "oxlint-plugin-utilities";
 
 import type { ESTree, Visitor } from "oxlint-plugin-utilities";

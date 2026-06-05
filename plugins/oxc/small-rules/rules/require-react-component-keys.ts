@@ -1,6 +1,6 @@
 import { defineRule } from "oxlint-plugin-utilities";
 
-import type { CallbackFunction } from "@oxlint-types/missing-types.ts";
+import type { CallbackFunction } from "@oxlint-types/missing-types";
 import type { ESTree, Scope, SourceCode, Visitor } from "oxlint-plugin-utilities";
 
 type ScopeVariable = Scope["set"] extends Map<string, infer VariableType> ? VariableType : never;

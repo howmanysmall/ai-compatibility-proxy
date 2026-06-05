@@ -1,10 +1,10 @@
-import { getHookName } from "@oxlint-utilities/react-hook-utilities.ts";
-import { isEnvironment } from "@oxlint-utilities/react-utilities.ts";
-import { isRecord } from "@oxlint-utilities/type-utilities.ts";
+import { getHookName } from "@oxlint-utilities/react-hook-utilities";
+import { isEnvironment } from "@oxlint-utilities/react-utilities";
+import { isRecord } from "@oxlint-utilities/type-utilities";
 import { defineRule } from "oxlint-plugin-utilities";
 
-import type { CallbackFunction } from "@oxlint-types/missing-types.ts";
-import type { Environment } from "@oxlint-utilities/react-utilities.ts";
+import type { CallbackFunction } from "@oxlint-types/missing-types";
+import type { Environment } from "@oxlint-utilities/react-utilities";
 import type { ESTree, Scope, SourceCode, Visitor } from "oxlint-plugin-utilities";
 
 interface HookConfiguration {

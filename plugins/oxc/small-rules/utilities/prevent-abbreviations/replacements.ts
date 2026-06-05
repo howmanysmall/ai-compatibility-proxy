@@ -1,5 +1,5 @@
-import { mergeObjects } from "@oxlint-utilities/object-utilities.ts";
-import { isRecord, isStringArray, isStringRecord } from "@oxlint-utilities/type-utilities.ts";
+import { mergeObjects } from "@oxlint-utilities/object-utilities";
+import { isRecord, isStringArray, isStringRecord } from "@oxlint-utilities/type-utilities";
 import { regex } from "arktype";
 
 import {
@@ -12,7 +12,7 @@ import {
 	MESSAGE_ID_REPLACE,
 	MESSAGE_ID_SUGGESTION,
 	WORD_SPLIT_PATTERN,
-} from "./constants.ts";
+} from "./constants";
 
 import type {
 	ImportCheckOption,
@@ -22,7 +22,7 @@ import type {
 	ShorthandConfiguration,
 	ShorthandMatcher,
 	ShorthandReplacement,
-} from "./types.ts";
+} from "./types";
 
 const SPECIAL_CHARACTER_REGEX = /[.+^${}()|[\]\\]/gu;
 const REGEX_PATTERN_MATCHER = regex("^/(?<first>.+)/(?<second>[gimsuy]*)$", "v");

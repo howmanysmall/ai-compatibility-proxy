@@ -1,7 +1,7 @@
-import { getMemberPropertyName } from "@oxlint-utilities/ast-utilities.ts";
-import { isRecord } from "@oxlint-utilities/type-utilities.ts";
+import { getMemberPropertyName } from "@oxlint-utilities/ast-utilities";
+import { isRecord } from "@oxlint-utilities/type-utilities";
 
-import type { CallbackFunction } from "@oxlint-types/missing-types.ts";
+import type { CallbackFunction } from "@oxlint-types/missing-types";
 import type { ESTree, FixFunction } from "oxlint-plugin-utilities";
 
 export type FixReturn = ReturnType<FixFunction>;

@@ -1,4 +1,4 @@
-import { walkAstSlop } from "@oxlint-utilities/react-hook-utilities.ts";
+import { walkAstSlop } from "@oxlint-utilities/react-hook-utilities";
 import { defineRule } from "oxlint-plugin-utilities";
 
 import type { ESTree, Visitor } from "oxlint-plugin-utilities";

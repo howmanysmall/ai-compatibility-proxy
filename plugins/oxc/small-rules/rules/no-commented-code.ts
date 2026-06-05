@@ -1,6 +1,6 @@
-import { hasCodeLines } from "@oxlint-utilities/recognizers/code-recognizer.ts";
-import { createJavaScriptDetectors } from "@oxlint-utilities/recognizers/javascript-footprint.ts";
-import { isRecord } from "@oxlint-utilities/type-utilities.ts";
+import { hasCodeLines } from "@oxlint-utilities/recognizers/code-recognizer";
+import { createJavaScriptDetectors } from "@oxlint-utilities/recognizers/javascript-footprint";
+import { isRecord } from "@oxlint-utilities/type-utilities";
 import { extname } from "@std/path";
 import { parseSync } from "oxc-parser";
 import { defineRule } from "oxlint-plugin-utilities";

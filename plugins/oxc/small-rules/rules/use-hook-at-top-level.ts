@@ -1,9 +1,9 @@
-import { isComponentName } from "@oxlint-utilities/oxc-utilities.ts";
-import { getHookName } from "@oxlint-utilities/react-hook-utilities.ts";
-import { isRecord } from "@oxlint-utilities/type-utilities.ts";
+import { isComponentName } from "@oxlint-utilities/oxc-utilities";
+import { getHookName } from "@oxlint-utilities/react-hook-utilities";
+import { isRecord } from "@oxlint-utilities/type-utilities";
 import { defineRule } from "oxlint-plugin-utilities";
 
-import type { CallbackFunction } from "@oxlint-types/missing-types.ts";
+import type { CallbackFunction } from "@oxlint-types/missing-types";
 import type { ESTree, Visitor } from "oxlint-plugin-utilities";
 
 interface ControlFlowContext {

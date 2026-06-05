@@ -1,4 +1,4 @@
-import { unwrapExpression } from "@oxlint-utilities/ast-utilities.ts";
+import { unwrapExpression } from "@oxlint-utilities/ast-utilities";
 import { defineRule } from "oxlint-plugin-utilities";
 
 import type { ESTree, SourceCode, Visitor } from "oxlint-plugin-utilities";

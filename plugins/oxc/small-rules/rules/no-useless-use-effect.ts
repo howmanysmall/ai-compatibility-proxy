@@ -1,10 +1,10 @@
-import { getImportedName, isFunctionNode, isNode } from "@oxlint-utilities/oxc-utilities.ts";
-import { getReactSources, isEnvironment, isReactImport } from "@oxlint-utilities/react-utilities.ts";
-import { isNonEmptyString, isStringArray } from "@oxlint-utilities/type-utilities.ts";
+import { getImportedName, isFunctionNode, isNode } from "@oxlint-utilities/oxc-utilities";
+import { getReactSources, isEnvironment, isReactImport } from "@oxlint-utilities/react-utilities";
+import { isNonEmptyString, isStringArray } from "@oxlint-utilities/type-utilities";
 import { defineRule } from "oxlint-plugin-utilities";
 
-import type { CallbackFunction } from "@oxlint-types/missing-types.ts";
-import type { Environment } from "@oxlint-utilities/react-utilities.ts";
+import type { CallbackFunction } from "@oxlint-types/missing-types";
+import type { Environment } from "@oxlint-utilities/react-utilities";
 import type { ESTree, Visitor } from "oxlint-plugin-utilities";
 
 export interface NoUselessUseEffectOptions {

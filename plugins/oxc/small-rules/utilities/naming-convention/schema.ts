@@ -1,5 +1,5 @@
-import { MetaSelectors, Modifiers, PredefinedFormats, Selectors, UnderscoreOptions } from "./enums.ts";
-import { getEnumNames } from "./get-enum-names.ts";
+import { MetaSelectors, Modifiers, PredefinedFormats, Selectors, UnderscoreOptions } from "./enums";
+import { getEnumNames } from "./get-enum-names";
 
 export const SCHEMA = [
 	{

@@ -1,8 +1,8 @@
-import { isNode } from "@oxlint-utilities/oxc-utilities.ts";
-import { isRecord } from "@oxlint-utilities/type-utilities.ts";
+import { isNode } from "@oxlint-utilities/oxc-utilities";
+import { isRecord } from "@oxlint-utilities/type-utilities";
 import { defineRule } from "oxlint-plugin-utilities";
 
-import type { CallbackFunction } from "@oxlint-types/missing-types.ts";
+import type { CallbackFunction } from "@oxlint-types/missing-types";
 import type { Context, ESTree, Fix, Scope, SourceCode, Visitor } from "oxlint-plugin-utilities";
 
 const FUNCTION_DECLARATIONS = new Set<string>([

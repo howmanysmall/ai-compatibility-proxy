@@ -1,9 +1,9 @@
-import { createCamelCaseDetector } from "./camel-case-detector.ts";
-import { createContainsDetector } from "./contains-detector.ts";
-import { createEndWithDetector } from "./end-with-detector.ts";
-import { createKeywordsDetector } from "./keywords-detector.ts";
+import { createCamelCaseDetector } from "./camel-case-detector";
+import { createContainsDetector } from "./contains-detector";
+import { createEndWithDetector } from "./end-with-detector";
+import { createKeywordsDetector } from "./keywords-detector";
 
-import type { Detector } from "./detector.ts";
+import type { Detector } from "./detector";
 
 const JS_KEYWORDS = [
 	"public",

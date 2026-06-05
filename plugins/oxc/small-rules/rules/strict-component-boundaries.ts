@@ -1,5 +1,5 @@
-import { toPascalCase } from "@oxlint-utilities/casing-utilities.ts";
-import { resolveRelativeImport } from "@oxlint-utilities/resolve-import.ts";
+import { toPascalCase } from "@oxlint-utilities/casing-utilities";
+import { resolveRelativeImport } from "@oxlint-utilities/resolve-import";
 import { basename, extname, relative } from "@std/path";
 import { defineRule } from "oxlint-plugin-utilities";
 

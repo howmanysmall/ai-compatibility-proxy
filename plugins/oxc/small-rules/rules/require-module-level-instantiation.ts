@@ -1,4 +1,4 @@
-import { isRecord } from "@oxlint-utilities/type-utilities.ts";
+import { isRecord } from "@oxlint-utilities/type-utilities";
 import { defineRule } from "oxlint-plugin-utilities";
 
 import type { ESTree, Scope, Visitor } from "oxlint-plugin-utilities";

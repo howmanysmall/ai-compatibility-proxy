@@ -1,4 +1,4 @@
-import { isRecord } from "@oxlint-utilities/type-utilities.ts";
+import { isRecord } from "@oxlint-utilities/type-utilities";
 
 import type { ESTree } from "oxlint-plugin-utilities";
 

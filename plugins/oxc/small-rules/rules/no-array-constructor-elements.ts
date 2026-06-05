@@ -1,4 +1,4 @@
-import { getMemberPropertyName, hasShadowedBinding, unwrapExpression } from "@oxlint-utilities/ast-utilities.ts";
+import { getMemberPropertyName, hasShadowedBinding, unwrapExpression } from "@oxlint-utilities/ast-utilities";
 import {
 	isArrayExpression,
 	isArrowFunctionExpression,
@@ -23,12 +23,12 @@ import {
 	isUnaryExpression,
 	isVariableDeclarationNode,
 	isVariableDeclarator,
-} from "@oxlint-utilities/oxc-utilities.ts";
+} from "@oxlint-utilities/oxc-utilities";
 import { defineRule } from "oxlint-plugin-utilities";
 
-import type { BindingName } from "@oxlint-types/missing-types.ts";
-import type { FixReturn } from "@oxlint-utilities/oxc-utilities.ts";
-import type { Environment } from "@oxlint-utilities/react-utilities.ts";
+import type { BindingName } from "@oxlint-types/missing-types";
+import type { FixReturn } from "@oxlint-utilities/oxc-utilities";
+import type { Environment } from "@oxlint-utilities/react-utilities";
 import type { ESTree, Fix, Fixer, SourceCode, Visitor } from "oxlint-plugin-utilities";
 
 interface NoArrayConstructorElementsOptions {

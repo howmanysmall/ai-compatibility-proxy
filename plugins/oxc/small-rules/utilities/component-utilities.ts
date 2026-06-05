@@ -1,4 +1,4 @@
-import { isUppercaseName } from "@oxlint-utilities/string-utilities.ts";
+import { isUppercaseName } from "@oxlint-utilities/string-utilities";
 
 import type { ESTree } from "oxlint-plugin-utilities";
 

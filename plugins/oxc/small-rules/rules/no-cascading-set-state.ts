@@ -1,4 +1,4 @@
-import { countSetStateCalls, getEffectCallback, getHookName } from "@oxlint-utilities/react-hook-utilities.ts";
+import { countSetStateCalls, getEffectCallback, getHookName } from "@oxlint-utilities/react-hook-utilities";
 import { defineRule } from "oxlint-plugin-utilities";
 
 import type { Visitor } from "oxlint-plugin-utilities";

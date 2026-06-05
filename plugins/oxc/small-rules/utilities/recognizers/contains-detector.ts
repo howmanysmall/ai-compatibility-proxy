@@ -1,4 +1,4 @@
-import type { Detector } from "./detector.ts";
+import type { Detector } from "./detector";
 
 const ESCAPE = /[-/^$*+?.()|[\]{}]/gu;
 const REGEXP_ESCAPED = String.raw`\$&`;

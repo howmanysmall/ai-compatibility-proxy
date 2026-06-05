@@ -1,5 +1,5 @@
-import { isComponentAssignment, isHookCall } from "@oxlint-utilities/lint-utilities.ts";
-import { isUppercaseName } from "@oxlint-utilities/string-utilities.ts";
+import { isComponentAssignment, isHookCall } from "@oxlint-utilities/lint-utilities";
+import { isUppercaseName } from "@oxlint-utilities/string-utilities";
 import { defineRule } from "oxlint-plugin-utilities";
 
 import type { ESTree, InferContextFromRule, Visitor } from "oxlint-plugin-utilities";

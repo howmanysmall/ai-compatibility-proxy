@@ -1,9 +1,9 @@
-import { isSimpleExpression } from "@oxlint-utilities/component-utilities.ts";
-import { isHookCall } from "@oxlint-utilities/lint-utilities.ts";
-import { getEffectCallback } from "@oxlint-utilities/react-hook-utilities.ts";
+import { isSimpleExpression } from "@oxlint-utilities/component-utilities";
+import { isHookCall } from "@oxlint-utilities/lint-utilities";
+import { getEffectCallback } from "@oxlint-utilities/react-hook-utilities";
 import { defineRule } from "oxlint-plugin-utilities";
 
-import type { CallbackFunction } from "@oxlint-types/missing-types.ts";
+import type { CallbackFunction } from "@oxlint-types/missing-types";
 import type { ESTree, Visitor } from "oxlint-plugin-utilities";
 
 function getReturnExpression(callback: CallbackFunction): ESTree.Expression | undefined {

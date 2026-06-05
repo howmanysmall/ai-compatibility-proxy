@@ -4,12 +4,12 @@ import {
 	isExpectAssertionsCall,
 	isExpectHasAssertionsCall,
 	isTestCaseCall,
-} from "@oxlint-utilities/jest-utilities.ts";
-import { isNumericLiteral } from "@oxlint-utilities/oxc-utilities.ts";
-import { isRecord } from "@oxlint-utilities/type-utilities.ts";
+} from "@oxlint-utilities/jest-utilities";
+import { isNumericLiteral } from "@oxlint-utilities/oxc-utilities";
+import { isRecord } from "@oxlint-utilities/type-utilities";
 import { defineRule } from "oxlint-plugin-utilities";
 
-import type { CallbackFunction } from "@oxlint-types/missing-types.ts";
+import type { CallbackFunction } from "@oxlint-types/missing-types";
 import type { Context, ESTree, Fix, Visitor } from "oxlint-plugin-utilities";
 
 type RuleMessageId =

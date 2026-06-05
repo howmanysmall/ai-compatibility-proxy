@@ -22,13 +22,13 @@ import {
 	isTsTypeAliasDeclarationNode,
 	isVariableDeclarationNode,
 	isVariableDeclarator,
-} from "@oxlint-utilities/oxc-utilities.ts";
+} from "@oxlint-utilities/oxc-utilities";
 
-import { isValidIdentifier } from "./identifier.ts";
+import { isValidIdentifier } from "./identifier";
 
 import type { Definition, ESTree, Fix, Fixer, Scope, Variable } from "oxlint-plugin-utilities";
 
-import type { BroadIdentifier, ImportCheckOption, IsSafe, NodeRange, VariableLike } from "./types.ts";
+import type { BroadIdentifier, ImportCheckOption, IsSafe, NodeRange, VariableLike } from "./types";
 
 export function getScopes(scope: Scope): Array<Scope> {
 	const result = [scope];

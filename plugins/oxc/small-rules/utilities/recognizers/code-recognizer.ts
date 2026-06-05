@@ -1,6 +1,6 @@
-import { recognize } from "./detector.ts";
+import { recognize } from "./detector";
 
-import type { Detector } from "./detector.ts";
+import type { Detector } from "./detector";
 
 const PROBABILITY_THRESHOLD = 0.9;
 

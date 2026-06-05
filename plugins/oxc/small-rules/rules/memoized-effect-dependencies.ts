@@ -1,7 +1,7 @@
-import { unwrapExpression } from "@oxlint-utilities/ast-utilities.ts";
-import { getImportedName } from "@oxlint-utilities/oxc-utilities.ts";
-import { getReactSources, isEnvironment, isReactImport } from "@oxlint-utilities/react-utilities.ts";
-import { isRecord } from "@oxlint-utilities/type-utilities.ts";
+import { unwrapExpression } from "@oxlint-utilities/ast-utilities";
+import { getImportedName } from "@oxlint-utilities/oxc-utilities";
+import { getReactSources, isEnvironment, isReactImport } from "@oxlint-utilities/react-utilities";
+import { isRecord } from "@oxlint-utilities/type-utilities";
 import { defineRule } from "oxlint-plugin-utilities";
 
 import type { Definition, ESTree, Scope, Variable, Visitor } from "oxlint-plugin-utilities";

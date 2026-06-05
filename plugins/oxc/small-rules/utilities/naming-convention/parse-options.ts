@@ -1,12 +1,12 @@
-import { MetaSelectors, ModifierWeights, Selectors } from "./enums.ts";
-import { getEnumNames } from "./get-enum-names.ts";
-import { isMetaSelector, isMethodOrPropertySelector } from "./shared.ts";
-import { isSelectorArray } from "./types.ts";
-import { createValidator } from "./validator.ts";
+import { MetaSelectors, ModifierWeights, Selectors } from "./enums";
+import { getEnumNames } from "./get-enum-names";
+import { isMetaSelector, isMethodOrPropertySelector } from "./shared";
+import { isSelectorArray } from "./types";
+import { createValidator } from "./validator";
 
 import type { Except } from "type-fest";
 
-import type { IndividualAndMetaSelectorsString, MetaSelectorsString } from "./enums.ts";
+import type { IndividualAndMetaSelectorsString, MetaSelectorsString } from "./enums";
 import type {
 	Context,
 	NameNode,
@@ -15,7 +15,7 @@ import type {
 	Options,
 	ParsedOptions,
 	Selector,
-} from "./types.ts";
+} from "./types";
 
 const META_SELECTOR_MAP: Record<MetaSelectorsString, Array<keyof typeof Selectors>> = {
 	accessor: ["classicAccessor", "autoAccessor"],

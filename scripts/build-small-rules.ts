@@ -1,15 +1,18 @@
-#!/usr/bin/env -S deno run
+#!/usr/bin/env -S bun run --bun
 
+import fs from "node:fs/promises";
 import { performance } from "node:perf_hooks";
+import { cwd, exit } from "node:process";
 import { Command } from "@cliffy/command";
-import $ from "@david/dax";
-import { bold, cyan, gray, green, magenta, red, yellow } from "@std/fmt/colors";
 import { basename, extname, resolve } from "@std/path";
 import { regex } from "arktype";
+import { argv, file } from "bun";
+import { bold, cyan, gray, green, magenta, red, yellow } from "colorette";
 import { consola } from "consola";
 import prettyBytes from "pretty-bytes";
 import prettyMilliseconds from "pretty-ms";
 import { build } from "tsdown";
+import { $ } from "zx";
 
 const scriptPath = new URL(import.meta.url).pathname;
 const scriptName = basename(scriptPath, extname(scriptPath));
@@ -48,14 +51,12 @@ function getBooleanString(boolean: boolean): string {
 }
 
 async function removeAsync(filePath: string, verbose: boolean): Promise<void> {
-	try {
-		await Deno.stat(filePath);
-	} catch {
-		return;
-	}
+	const bunFile = file(filePath);
+	const exists = await bunFile.exists();
+	if (!exists) return;
 
 	if (verbose) consola.info(`Removing ${cyan(filePath)}...`);
-	await Deno.remove(filePath, { recursive: true });
+	await bunFile.delete();
 }
 
 async function cleanOutputFilesAsync(verbose: boolean): Promise<void> {
@@ -63,18 +64,18 @@ async function cleanOutputFilesAsync(verbose: boolean): Promise<void> {
 }
 
 async function getOutputFilesAsync(sourcemap: boolean): Promise<ReadonlyArray<OutputFile>> {
-	const javaScriptStatistics = await Deno.stat(javaScriptOutputPath);
+	const javaScriptStatistics = await fs.stat(javaScriptOutputPath);
 	const files = [
 		{
-			path: javaScriptOutputPath.replace(`${Deno.cwd()}/`, ""),
+			path: javaScriptOutputPath.replace(`${cwd()}/`, ""),
 			size: javaScriptStatistics.size,
 		},
 	];
 
 	if (sourcemap) {
-		const sourceMapStatistics = await Deno.stat(sourceMapOutputPath);
+		const sourceMapStatistics = await fs.stat(sourceMapOutputPath);
 		files[1] = {
-			path: sourceMapOutputPath.replace(`${Deno.cwd()}/`, ""),
+			path: sourceMapOutputPath.replace(`${cwd()}/`, ""),
 			size: sourceMapStatistics.size,
 		};
 	}
@@ -194,7 +195,7 @@ async function getSourceLinesAsync(
 	if (cached) return cached;
 
 	try {
-		const fileContent = await Deno.readTextFile(filePath);
+		const fileContent = await fs.readFile(filePath, { encoding: "utf8" });
 		const sourceLines = fileContent.split("\n");
 		fileCache.set(filePath, sourceLines);
 		return sourceLines;
@@ -218,8 +219,8 @@ async function printSourceContextAsync(
 	const sourceLine = sourceLines[lineNumber - 1]?.replace(CARRIAGE_RETURN, "");
 	if (sourceLine === undefined) return;
 
-	const displayLine = sourceLine.replaceAll("	", "    ");
-	const tabCount = (sourceLine.slice(0, columnNumber - 1).match(TAB_REGEXP) ?? []).length;
+	const displayLine = sourceLine.replaceAll("\t", "    ");
+	const tabCount = (TAB_REGEXP.exec(sourceLine.slice(0, columnNumber - 1)) ?? []).length;
 	const displayColumn = columnNumber - 1 + tabCount * 3;
 
 	consola.log(`${gray(lineNumberString)} | ${displayLine}`);
@@ -227,14 +228,49 @@ async function printSourceContextAsync(
 	consola.log(`${padding}${red("^")}`);
 }
 
+async function printTypeCheckDiagnosticAsync(
+	fileCache: Map<string, ReadonlyArray<string>>,
+	line: string,
+): Promise<void> {
+	const match = MATCH_LINE.exec(line);
+	if (!match) {
+		if (line.trim() !== "") consola.log(gray(line));
+		return;
+	}
+
+	const { code, columnNumberString, filePath, level, lineNumberString, message } = match.groups;
+	const relativePath = filePath.replace(`${cwd()}/`, "");
+	const lineNumber = Number.parseInt(lineNumberString, 10);
+	const columnNumber = Number.parseInt(columnNumberString, 10);
+
+	consola.log(`${cyan(relativePath)}:${yellow(lineNumberString)}:${yellow(columnNumberString)}`);
+
+	try {
+		await printSourceContextAsync(fileCache, filePath, lineNumber, lineNumberString, columnNumber);
+	} catch {
+		// Keep the original type-check output even if context extraction fails.
+	}
+
+	const levelText = level === "error" ? red("error:") : yellow("warning:");
+	const codeText = gray(`(${code})`);
+	consola.log(`${levelText} ${message} ${codeText}\n`);
+}
+
+async function printTypeCheckOutputAsync(stdout: string): Promise<void> {
+	if (stdout.trim() === "") return;
+
+	const fileCache = new Map<string, ReadonlyArray<string>>();
+	await Promise.all(stdout.split("\n").map(async (line) => printTypeCheckDiagnosticAsync(fileCache, line)));
+}
+
 async function validateTypesAsync(verbose: boolean): Promise<void> {
 	if (verbose) consola.start("Validating types...");
 	const startTime = performance.now();
 
-	const shellOutput = await $`deno check plugins/`.quiet().noThrow();
+	const shellOutput = await $`tsgo --project ./tsconfig.plugins.json`.quiet().nothrow();
 	const duration = performance.now() - startTime;
 
-	if (shellOutput.code === 0) {
+	if (shellOutput.exitCode === 0) {
 		if (verbose) consola.success(`Types validated in ${prettyMilliseconds(duration)}`);
 		return;
 	}
@@ -242,40 +278,12 @@ async function validateTypesAsync(verbose: boolean): Promise<void> {
 	consola.fail(red(`Type validation failed in ${prettyMilliseconds(duration)}`));
 	consola.log("");
 
-	const stdout = shellOutput.stdout.trim();
-	if (stdout) {
-		const lines = stdout.split("\n");
-		const fileCache = new Map<string, ReadonlyArray<string>>();
-
-		for (const line of lines) {
-			const match = MATCH_LINE.exec(line);
-			if (match) {
-				const { code, columnNumberString, filePath, level, lineNumberString, message } = match.groups;
-
-				const relativePath = filePath.replace(`${Deno.cwd()}/`, "");
-				const lineNumber = Number.parseInt(lineNumberString, 10);
-				const columnNumber = Number.parseInt(columnNumberString, 10);
-
-				consola.log(`${cyan(relativePath)}:${yellow(lineNumberString)}:${yellow(columnNumberString)}`);
-
-				try {
-					// oxlint-disable-next-line no-await-in-loop
-					await printSourceContextAsync(fileCache, filePath, lineNumber, lineNumberString, columnNumber);
-				} catch {
-					// Keep the original type-check output even if context extraction fails.
-				}
-
-				const levelText = level === "error" ? red("error:") : yellow("warning:");
-				const codeText = gray(`(${code})`);
-				consola.log(`${levelText} ${message} ${codeText}\n`);
-			} else if (line.trim() !== "") consola.log(gray(line));
-		}
-	}
+	await printTypeCheckOutputAsync(shellOutput.stdout);
 
 	const stderr = shellOutput.stderr.trim();
 	if (stderr) consola.error(`\n${red(stderr)}`);
 
-	Deno.exit(1);
+	exit(1);
 }
 
 const command = new Command()
@@ -300,7 +308,7 @@ const command = new Command()
 		const buildResult = await runBuildAsync({ clean, minify, sourcemap, verbose });
 		printBuildSummary(buildResult, verbose);
 
-		if (!buildResult.success) Deno.exit(1);
+		if (!buildResult.success) exit(1);
 	});
 
-await command.parse(Deno.args);
+await command.parse(argv.slice(2));

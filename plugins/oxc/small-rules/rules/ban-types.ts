@@ -1,4 +1,4 @@
-import { isRecord, isStringArray, isStringRecord } from "@oxlint-utilities/type-utilities.ts";
+import { isRecord, isStringArray, isStringRecord } from "@oxlint-utilities/type-utilities";
 import { defineRule } from "oxlint-plugin-utilities";
 
 import type { ESTree, Visitor } from "oxlint-plugin-utilities";

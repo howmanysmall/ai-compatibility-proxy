@@ -1,4 +1,4 @@
-import { TYPESCRIPT_RESERVED_WORDS } from "./constants.ts";
+import { TYPESCRIPT_RESERVED_WORDS } from "./constants";
 
 function isAsciiIdentifierStart(codePoint: number): boolean {
 	return (

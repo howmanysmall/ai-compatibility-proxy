@@ -1,11 +1,11 @@
-import { unwrapExpression } from "@oxlint-utilities/ast-utilities.ts";
-import { isIdentifierNamed, isUseMemoCall } from "@oxlint-utilities/oxc-utilities.ts";
-import { classifyDependencies, DependenciesKind } from "@oxlint-utilities/react-hook-utilities.ts";
-import { getEnvironment, getReactSources, isReactImport } from "@oxlint-utilities/react-utilities.ts";
-import { isRecord } from "@oxlint-utilities/type-utilities.ts";
+import { unwrapExpression } from "@oxlint-utilities/ast-utilities";
+import { isIdentifierNamed, isUseMemoCall } from "@oxlint-utilities/oxc-utilities";
+import { classifyDependencies, DependenciesKind } from "@oxlint-utilities/react-hook-utilities";
+import { getEnvironment, getReactSources, isReactImport } from "@oxlint-utilities/react-utilities";
+import { isRecord } from "@oxlint-utilities/type-utilities";
 import { defineRule } from "oxlint-plugin-utilities";
 
-import type { Environment } from "@oxlint-utilities/react-utilities.ts";
+import type { Environment } from "@oxlint-utilities/react-utilities";
 import type { ESTree, Scope, SourceCode, Visitor } from "oxlint-plugin-utilities";
 
 type ScopeVariable = Scope["set"] extends Map<string, infer VariableType> ? VariableType : never;

@@ -7,13 +7,13 @@ import {
 	isStringLiteral,
 	isTsQualifiedName,
 	isVariableDeclarator,
-} from "@oxlint-utilities/oxc-utilities.ts";
+} from "@oxlint-utilities/oxc-utilities";
 import {
 	ANOTHER_NAME_MESSAGE,
 	MESSAGE_ID_REPLACE,
 	MESSAGE_ID_SUGGESTION,
-} from "@oxlint-utilities/prevent-abbreviations/constants.ts";
-import { isValidIdentifier } from "@oxlint-utilities/prevent-abbreviations/identifier.ts";
+} from "@oxlint-utilities/prevent-abbreviations/constants";
+import { isValidIdentifier } from "@oxlint-utilities/prevent-abbreviations/identifier";
 import {
 	getMessage,
 	getNameReplacements,
@@ -23,7 +23,7 @@ import {
 	isShorthandIgnored,
 	isUpperFirst,
 	prepareOptions,
-} from "@oxlint-utilities/prevent-abbreviations/replacements.ts";
+} from "@oxlint-utilities/prevent-abbreviations/replacements";
 import {
 	getAvailableVariableName,
 	getScopes,
@@ -36,7 +36,7 @@ import {
 	shouldCheckImport,
 	shouldFix,
 	shouldReportIdentifierAsProperty,
-} from "@oxlint-utilities/prevent-abbreviations/scope.ts";
+} from "@oxlint-utilities/prevent-abbreviations/scope";
 import { defineRule } from "oxlint-plugin-utilities";
 
 import type {
@@ -44,7 +44,7 @@ import type {
 	MessageIds,
 	PreparedOptions,
 	VariableLike,
-} from "@oxlint-utilities/prevent-abbreviations/types.ts";
+} from "@oxlint-utilities/prevent-abbreviations/types";
 import type { Definition, Diagnostic, ESTree, Fix, Fixer, Scope, Variable, Visitor } from "oxlint-plugin-utilities";
 
 const PREVENT_ABBREVIATIONS_SCHEMA = [

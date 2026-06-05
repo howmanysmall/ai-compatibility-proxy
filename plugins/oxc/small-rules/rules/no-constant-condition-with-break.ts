@@ -1,5 +1,5 @@
-import { getMemberPropertyName, unwrapExpression } from "@oxlint-utilities/ast-utilities.ts";
-import { isNonEmptyString } from "@oxlint-utilities/type-utilities.ts";
+import { getMemberPropertyName, unwrapExpression } from "@oxlint-utilities/ast-utilities";
+import { isNonEmptyString } from "@oxlint-utilities/type-utilities";
 import { defineRule } from "oxlint-plugin-utilities";
 
 import type { ESTree, Visitor } from "oxlint-plugin-utilities";

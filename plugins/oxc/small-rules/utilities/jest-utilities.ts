@@ -1,8 +1,8 @@
-import { getMemberPropertyName } from "@oxlint-utilities/ast-utilities.ts";
-import { isFunctionNode } from "@oxlint-utilities/oxc-utilities.ts";
-import { walkAst } from "@oxlint-utilities/react-hook-utilities.ts";
+import { getMemberPropertyName } from "@oxlint-utilities/ast-utilities";
+import { isFunctionNode } from "@oxlint-utilities/oxc-utilities";
+import { walkAst } from "@oxlint-utilities/react-hook-utilities";
 
-import type { CallbackFunction } from "@oxlint-types/missing-types.ts";
+import type { CallbackFunction } from "@oxlint-types/missing-types";
 import type { ESTree } from "oxlint-plugin-utilities";
 
 export interface ExpectCallCount {

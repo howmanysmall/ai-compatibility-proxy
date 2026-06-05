@@ -1,5 +1,5 @@
-import { isNode } from "@oxlint-utilities/oxc-utilities.ts";
-import { isRecord } from "@oxlint-utilities/type-utilities.ts";
+import { isNode } from "@oxlint-utilities/oxc-utilities";
+import { isRecord } from "@oxlint-utilities/type-utilities";
 import { defineRule } from "oxlint-plugin-utilities";
 
 import type { ESTree, Visitor } from "oxlint-plugin-utilities";

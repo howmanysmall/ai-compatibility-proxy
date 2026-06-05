@@ -1,5 +1,5 @@
-import { isMemoCall } from "@oxlint-utilities/component-utilities.ts";
-import { isJsxOpeningExpression } from "@oxlint-utilities/oxc-utilities.ts";
+import { isMemoCall } from "@oxlint-utilities/component-utilities";
+import { isJsxOpeningExpression } from "@oxlint-utilities/oxc-utilities";
 import { defineRule } from "oxlint-plugin-utilities";
 
 import type { ESTree, Visitor } from "oxlint-plugin-utilities";

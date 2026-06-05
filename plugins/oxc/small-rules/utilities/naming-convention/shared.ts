@@ -1,6 +1,6 @@
-import { MetaSelectors } from "./enums.ts";
+import { MetaSelectors } from "./enums";
 
-import type { IndividualAndMetaSelectorsString, MetaSelectorsString } from "./enums.ts";
+import type { IndividualAndMetaSelectorsString, MetaSelectorsString } from "./enums";
 
 const ALPHABETICAL = /([A-Z])/gu;
 

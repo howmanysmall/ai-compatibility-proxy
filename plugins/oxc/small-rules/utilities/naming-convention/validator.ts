@@ -1,8 +1,8 @@
-import { PredefinedFormatToCheckFunction } from "./format.ts";
-import { selectorTypeToMessageString } from "./shared.ts";
+import { PredefinedFormatToCheckFunction } from "./format";
+import { selectorTypeToMessageString } from "./shared";
 
-import type { ModifiersString, SelectorsString } from "./enums.ts";
-import type { Context, NameNode, NormalizedSelector, ValidatorFunction } from "./types.ts";
+import type { ModifiersString, SelectorsString } from "./enums";
+import type { Context, NameNode, NormalizedSelector, ValidatorFunction } from "./types";
 
 export function createValidator(
 	type: SelectorsString,
