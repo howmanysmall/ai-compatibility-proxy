@@ -18,7 +18,7 @@
 		"src/logging/sanitizer.ts",
 		".tsbuildinfo*",
 		"skills-lock.json",
-		"aube-lock.yaml"
+		"{aube,pnpm}-lock.yaml"
 	],
 	"insertFinalNewline": true,
 	"jsdoc": {
