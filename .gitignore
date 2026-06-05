@@ -82,3 +82,8 @@ hk.local.pkl
 .agents/skills/improve-codebase-architecture/
 .agents/skills/hk/
 .agents/skills/mise-tasks/
+.agents/skills/bun/
+.agents/skills/bun-development/
+.agents/skills/bun-runtime/
+.agents/skills/pnpm/
+.agents/skills/tsdown/
