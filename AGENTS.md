@@ -12,7 +12,7 @@ A self-hosted Bun proxy that exposes an OpenAI-compatible API (`/v1/chat/complet
 
 ## Commands
 
-`nr` (from `@antfu/ni`, installed via `package.json`) is a shorthand for `pnpm run`. If a command depends on something from mise.toml, run it through `mise x`. The `@antfu/ni` package provides several shorthands.
+`nr` (from `@antfu/ni`, installed via `package.json`) is a shorthand for `pnpm run`. If a command depends on something from mise.toml, run it through `mise x` with the exception of anything from `@antfu/ni`. The `@antfu/ni` package provides several shorthands.
 
 ```sh
 mise x -- nr test                             # run all tests (coverage, parallel, fail-fast)
