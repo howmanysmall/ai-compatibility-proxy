@@ -7,6 +7,9 @@
 	},
 	"colorize_brackets": true,
 	"context_servers": {
+		"bun-docs": {
+			"url": "https://bun.com/docs/mcp"
+		},
 		"jsr": {
 			"args": ["x", "--", "jsr-cli", "mcp"],
 			"command": "mise"
@@ -108,7 +111,6 @@
 			"hard_tabs": true,
 			"language_servers": [
 				"biome",
-				"deno",
 				"codebook",
 				"dependi",
 				"deputy",
@@ -153,7 +155,6 @@
 			"hard_tabs": true,
 			"language_servers": [
 				"biome",
-				"deno",
 				"dependi",
 				"deputy",
 				"json-language-server",
@@ -247,13 +248,10 @@
 				},
 				{
 					"language_server": { "name": "oxfmt" }
-				},
-				{
-					"language_server": { "name": "deno" }
 				}
 			],
 			"hard_tabs": true,
-			"language_servers": ["biome", "oxfmt", "oxlint", "deno", "harper-ls", "codebook", "wakatime"],
+			"language_servers": ["biome", "oxfmt", "oxlint", "tsgo", "vtsls", "harper-ls", "codebook", "wakatime"],
 			"prettier": { "allowed": false },
 			"tab_size": 4
 		},
@@ -270,13 +268,10 @@
 				},
 				{
 					"language_server": { "name": "oxfmt" }
-				},
-				{
-					"language_server": { "name": "deno" }
 				}
 			],
 			"hard_tabs": true,
-			"language_servers": ["biome", "oxfmt", "oxlint", "deno", "harper-ls", "codebook", "wakatime"],
+			"language_servers": ["biome", "oxfmt", "oxlint", "tsgo", "vtsls", "harper-ls", "codebook", "wakatime"],
 			"prettier": { "allowed": false },
 			"tab_size": 4
 		},
@@ -317,21 +312,12 @@
 			}
 		},
 		"biome": {
-			"binary": {
-				"arguments": ["--quiet", "task", "biome", "lsp-proxy"],
-				"path": "deno"
-			},
 			"settings": {
 				"biome": {
 					"configurationPath": "./biome.jsonc",
 					"rename": true,
 					"requireConfiguration": true
 				}
-			}
-		},
-		"deno": {
-			"settings": {
-				"deno": { "enable": true }
 			}
 		},
 		"dependi": {
@@ -356,34 +342,40 @@
 				"json": {
 					"schemas": [
 						{
-							"fileMatch": ["deno.json", "deno.jsonc"],
+							"fileMatch": ["**/deno.json", "**/deno.jsonc"],
 							"url": "https://raw.githubusercontent.com/denoland/deno/refs/heads/main/cli/schemas/config-file.v1.json"
 						},
 						{
-							"fileMatch": ["package.json"],
+							"fileMatch": ["**/package.json"],
 							"url": "https://www.schemastore.org/package"
 						},
 						{
-							"fileMatch": [".oxfmtrc.json"],
+							"fileMatch": ["**/.oxfmtrc.json"],
 							"url": "https://raw.githubusercontent.com/oxc-project/oxc/refs/heads/main/npm/oxfmt/configuration_schema.json"
 						},
 						{
-							"fileMatch": [".lefthook.json", "lefthook.json"],
+							"fileMatch": [
+								"**/.lefthook.json",
+								"**/lefthook.json",
+								"**/.lefthook.jsonc",
+								"**/lefthook.jsonc"
+							],
 							"url": "https://raw.githubusercontent.com/evilmartians/lefthook/master/schema.json"
 						},
 						{
-							"fileMatch": [".oxlintrc.json"],
+							"fileMatch": ["**/.oxlintrc.json"],
 							"url": "https://raw.githubusercontent.com/oxc-project/oxc/refs/heads/main/npm/oxlint/configuration_schema.json"
+						},
+						{
+							"fileMatch": ["**/tsconfig*.json"],
+							"name": "tsconfig.json",
+							"url": "https://www.schemastore.org/tsconfig.json"
 						}
 					]
 				}
 			}
 		},
 		"oxfmt": {
-			"binary": {
-				"arguments": ["--quiet", "task", "oxfmt", "--lsp"],
-				"path": "deno"
-			},
 			"initialization_options": {
 				"settings": {
 					"configPath": "./.oxfmtrc.json",
@@ -392,10 +384,6 @@
 			}
 		},
 		"oxlint": {
-			"binary": {
-				"arguments": ["--quiet", "task", "oxlint", "--lsp"],
-				"path": "deno"
-			},
 			"initialization_options": {
 				"settings": {
 					"disableNestedConfig": false,

@@ -3,7 +3,8 @@
 import { Command } from "@cliffy/command";
 // oxlint-disable-next-line import/no-namespace -- Number conflicts with Number
 import * as Prompt from "@cliffy/prompt";
-import { bgGreen, bgRed, black, bold, cyan, dim, green, magenta, red, yellow } from "@std/fmt/colors";
+import { argv } from "bun";
+import { bgGreen, bgRed, black, bold, cyan, dim, green, magenta, red, yellow } from "colorette";
 import { Effect, Predicate } from "effect";
 import prettyMilliseconds from "pretty-ms";
 
@@ -111,7 +112,7 @@ if (import.meta.main) {
 			const exitCode = await Effect.runPromise(runCommandEffect(options));
 			if (exitCode !== 0) Deno.exit(exitCode);
 		})
-		.parse(Deno.args);
+		.parse(argv.slice(2));
 }
 
 function runCommandEffect(commandOptions: LiveSmokeCommandOptions): Effect.Effect<number, Error> {

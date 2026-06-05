@@ -202,6 +202,10 @@
 		}
 	},
 	"mcp": {
+		"bun-docs": {
+			"type": "remote",
+			"url": "https://bun.com/docs/mcp"
+		},
 		"chrome-dev-tools": {
 			"command": ["bash", "./scripts/get-chrome-path.sh", "--serve"],
 			"enabled": true,

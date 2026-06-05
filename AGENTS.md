@@ -4,7 +4,7 @@ This file provides guidance to agents when working with code in this repository.
 
 ## Project
 
-A self-hosted Deno proxy that exposes an OpenAI-compatible API (`/v1/chat/completions`, `/v1/models`, `/health`) and translates requests to upstream providers that are not natively OpenAI-compatible. Two upstream protocols are supported: Anthropic Messages (default, via OpenCode Go) and Cerebras OpenAI-compatible.
+A self-hosted Bun proxy that exposes an OpenAI-compatible API (`/v1/chat/completions`, `/v1/models`, `/health`) and translates requests to upstream providers that are not natively OpenAI-compatible. Two upstream protocols are supported: Anthropic Messages (default, via OpenCode Go) and Cerebras OpenAI-compatible.
 
 ## Rules
 
@@ -12,24 +12,28 @@ A self-hosted Deno proxy that exposes an OpenAI-compatible API (`/v1/chat/comple
 
 ## Commands
 
-`nr` (from `@antfu/ni`, installed via `deno.json`) is a shorthand for `deno task`. If a command depends on something from mise.toml, run it through `mise x`.
+`nr` (from `@antfu/ni`, installed via `package.json`) is a shorthand for `pnpm run`. If a command depends on something from mise.toml, run it through `mise x`. The `@antfu/ni` package provides several shorthands.
 
 ```sh
 mise x -- nr test                             # run all tests (coverage, parallel, fail-fast)
 mise x -- nr test tests/proxy/proxy.test.ts   # run a single test file
 mise x -- nr type-check                       # type-check the whole project
-mise x -- nr lint                             # lint: oxlint + biome + deno lint
+mise x -- nr lint                             # lint: oxlint + biome
 mise x -- nr lint src/proxy/app.ts            # lint specific files/paths
-mise x -- nr format:check                     # check formatting (biome + oxfmt + deno fmt)
+mise x -- nr format:check                     # check formatting (biome + oxfmt)
 mise x -- nr format                           # auto-fix formatting
 mise x -- nr dev                              # run the server locally
 mise x -- nr bench                            # run HTTP benchmarks locally
 mise x -- hk run check                        # run all pre-push checks manually
 ```
 
-Tests use `Deno.test()` with manual assertions (no test framework). Tests live in `tests/` mirroring `src/` structure. Test utilities in `tests/utilities/test-utilities.ts`.
+Tests use Vitest. Tests live in `tests/` mirroring `src/` structure. Test utilities in `tests/utilities/test-utilities.ts`.
 
 Git hooks are managed by `hk` (configured in `hk.pkl`). Install with `mise x -- hk install`.
+
+### `@antfu/ni` Commands
+
+You have a skill for this.
 
 ## Architecture
 
@@ -102,3 +106,7 @@ hk manages pre-commit, commit-msg, pre-push, and post-merge hooks:
 - **Commits**: Conventional commits (`feat`, `fix`, `refactor`, `docs`, `style`, `test`, `chore`, `perf`) via commitlint. Header max length: 72.
 - **Tool management**: `mise` manages Deno, hk, and other CLI tools. JS/TS deps via `deno.json` imports.
 - **Oxlint disable comments**: Use `// oxlint-disable <rule-name>` syntax (not eslint-style). Custom rule names from `plugins/`.
+
+## Bun
+
+You have `bun-docs` as an MCP.

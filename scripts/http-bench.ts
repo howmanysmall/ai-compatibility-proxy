@@ -1,9 +1,9 @@
 import { setTimeout as delayAsync } from "node:timers/promises";
 import { Command } from "@cliffy/command";
 import $ from "@david/dax";
-import { logger, parseLevel } from "@logging/logger.ts";
-import { createFetchHandler } from "@proxy/app.ts";
-import { loadConfiguration } from "@proxy/config.ts";
+import { logger, parseLevel } from "@logging/logger";
+import { createFetchHandler } from "@proxy/app";
+import { loadConfiguration } from "@proxy/config";
 import { html as renderHtml, raw, tag } from "@sander/html";
 import { join } from "@std/path";
 import { type } from "arktype";

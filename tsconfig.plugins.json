@@ -1,7 +1,7 @@
 {
 	"compilerOptions": {
 		"allowImportingTsExtensions": false,
-		"noEmit": false,
+		"noEmit": true,
 		"noEmitOnError": true,
 		"outDir": "./plugins/oxc",
 		"paths": {

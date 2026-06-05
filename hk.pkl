@@ -35,39 +35,25 @@ hooks {
       }
       ["check-merge-conflict"] = (Builtins.check_merge_conflict) {}
 
-      // JS/TS pipeline — oxlint + biome + deno lint + oxfmt + deno fmt
+      // JS/TS pipeline — oxlint + biome + oxfmt
       ["oxlint"] = (Builtins.ox_lint) {
         glob = List("*.js", "*.jsx", "*.ts", "*.tsx", "*.mjs", "*.cjs", "*.mts", "*.cts")
-        check = "mise x -- deno task oxlint --no-error-on-unmatched-pattern {{files}}"
-        fix = "mise x -- deno task oxlint --no-error-on-unmatched-pattern --fix {{files}}"
+        check = "mise x -- nr oxlint --no-error-on-unmatched-pattern {{files}}"
+        fix = "mise x -- nr oxlint --no-error-on-unmatched-pattern --fix {{files}}"
         check_first = true
         batch = true
       }
       ["biome-js"] {
         glob = List("*.js", "*.jsx", "*.ts", "*.tsx")
-        check = "mise x -- deno task biome lint --no-errors-on-unmatched {{files}}"
-        fix = "mise x -- deno task biome lint --write --no-errors-on-unmatched {{files}}"
-        check_first = true
-        batch = true
-      }
-      ["deno-lint"] {
-        glob = List("*.js", "*.jsx", "*.ts", "*.tsx")
-        check = "mise x -- deno lint --permit-no-files {{files}}"
-        fix = "mise x -- deno lint --fix --permit-no-files {{files}}"
+        check = "mise x -- nr biome lint --no-errors-on-unmatched {{files}}"
+        fix = "mise x -- nr biome lint --write --no-errors-on-unmatched {{files}}"
         check_first = true
         batch = true
       }
       ["oxfmt-js"] {
         glob = List("*.js", "*.jsx", "*.ts", "*.tsx")
-        check = "mise x -- deno task oxfmt --no-error-on-unmatched-pattern --check {{files}}"
-        fix = "mise x -- deno task oxfmt --no-error-on-unmatched-pattern {{files}}"
-        check_first = true
-        batch = true
-      }
-      ["deno-fmt-js"] {
-        glob = List("*.js", "*.jsx", "*.ts", "*.tsx")
-        check = "mise x -- deno fmt --permit-no-files --check {{files}}"
-        fix = "mise x -- deno fmt --permit-no-files {{files}}"
+        check = "mise x -- nr oxfmt --no-error-on-unmatched-pattern --check {{files}}"
+        fix = "mise x -- nr oxfmt --no-error-on-unmatched-pattern {{files}}"
         check_first = true
         batch = true
       }
@@ -76,8 +62,8 @@ hooks {
       ["biome-non-js"] {
         glob = List("*.css", "*.html", "*.json", "*.jsonc", "*.grit", "*.code-workspace")
         exclude = List("package.json")
-        check = "mise x -- deno task biome check --no-errors-on-unmatched {{files}}"
-        fix = "mise x -- deno task biome check --write --no-errors-on-unmatched {{files}}"
+        check = "mise x -- nr biome check --no-errors-on-unmatched {{files}}"
+        fix = "mise x -- nr biome check --write --no-errors-on-unmatched {{files}}"
         check_first = true
         batch = true
       }
@@ -85,8 +71,8 @@ hooks {
       // oxfmt for json5 and mdx
       ["oxfmt-json5-mdx"] {
         glob = List("*.json5", "*.mdx")
-        check = "mise x -- deno task oxfmt --no-error-on-unmatched-pattern --check {{files}}"
-        fix = "mise x -- deno task oxfmt --no-error-on-unmatched-pattern {{files}}"
+        check = "mise x -- nr oxfmt --no-error-on-unmatched-pattern --check {{files}}"
+        fix = "mise x -- nr oxfmt --no-error-on-unmatched-pattern {{files}}"
         check_first = true
         batch = true
       }
@@ -124,7 +110,7 @@ hooks {
     steps {
       ["commitlint"] {
         check =
-          "mise x -- deno task commitlint --strict --config commitlint.config.ts --edit {{commit_msg_file}}"
+          "mise x -- nr commitlint --strict --config commitlint.config.ts --edit {{commit_msg_file}}"
       }
     }
   }
@@ -132,10 +118,10 @@ hooks {
   ["pre-push"] {
     steps {
       ["lint"] {
-        check = "scripts/quiet-on-success.sh mise x -- deno task lint"
+        check = "scripts/quiet-on-success.sh mise x -- nr lint"
       }
       ["type-check"] {
-        check = "scripts/quiet-on-success.sh mise x -- deno check"
+        check = "scripts/quiet-on-success.sh mise x -- nr type-check"
       }
     }
   }
@@ -160,7 +146,7 @@ hooks {
       ["check-merge-conflict"] = (Builtins.check_merge_conflict) {}
       ["oxlint"] {
         glob = List("*.js", "*.jsx", "*.ts", "*.tsx", "*.mjs", "*.cjs", "*.mts", "*.cts")
-        check = "mise x -- deno task oxlint --no-error-on-unmatched-pattern {{files}}"
+        check = "mise x -- nr oxlint --no-error-on-unmatched-pattern {{files}}"
       }
       ["biome"] {
         glob =
@@ -176,19 +162,11 @@ hooks {
             "*.grit",
             "*.code-workspace",
           )
-        check = "mise x -- deno task biome check --no-errors-on-unmatched {{files}}"
-      }
-      ["deno-lint"] {
-        glob = List("*.js", "*.jsx", "*.ts", "*.tsx")
-        check = "mise x -- deno lint --permit-no-files {{files}}"
+        check = "mise x -- nr biome check --no-errors-on-unmatched {{files}}"
       }
       ["oxfmt"] {
         glob = List("*.js", "*.jsx", "*.ts", "*.tsx", "*.json5", "*.mdx")
-        check = "mise x -- deno task oxfmt --no-error-on-unmatched-pattern --check {{files}}"
-      }
-      ["deno-fmt"] {
-        glob = List("*.js", "*.jsx", "*.ts", "*.tsx")
-        check = "mise x -- deno fmt --permit-no-files --check {{files}}"
+        check = "mise x -- nr oxfmt --no-error-on-unmatched-pattern --check {{files}}"
       }
       ["rumdl"] {
         glob = List("*.md")
@@ -214,7 +192,7 @@ hooks {
       }
       ["oxlint"] {
         glob = List("*.js", "*.jsx", "*.ts", "*.tsx", "*.mjs", "*.cjs", "*.mts", "*.cts")
-        fix = "mise x -- deno task oxlint --no-error-on-unmatched-pattern --fix {{files}}"
+        fix = "mise x -- nr oxlint --no-error-on-unmatched-pattern --fix {{files}}"
       }
       ["biome"] {
         glob =
@@ -230,19 +208,11 @@ hooks {
             "*.grit",
             "*.code-workspace",
           )
-        fix = "mise x -- deno task biome check --write --no-errors-on-unmatched {{files}}"
-      }
-      ["deno-lint"] {
-        glob = List("*.js", "*.jsx", "*.ts", "*.tsx")
-        fix = "mise x -- deno lint --fix --permit-no-files {{files}}"
+        fix = "mise x -- nr biome check --write --no-errors-on-unmatched {{files}}"
       }
       ["oxfmt"] {
         glob = List("*.js", "*.jsx", "*.ts", "*.tsx", "*.json5", "*.mdx")
-        fix = "mise x -- deno task oxfmt --no-error-on-unmatched-pattern {{files}}"
-      }
-      ["deno-fmt"] {
-        glob = List("*.js", "*.jsx", "*.ts", "*.tsx")
-        fix = "mise x -- deno fmt --permit-no-files {{files}}"
+        fix = "mise x -- nr oxfmt --no-error-on-unmatched-pattern {{files}}"
       }
       ["rumdl"] {
         glob = List("*.md")

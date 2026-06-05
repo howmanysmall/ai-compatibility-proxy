@@ -6,15 +6,18 @@ HK_MISE = 1
 [tools]
 "github:howmanysmall/npm-registry-mcp" = "latest"
 "github:howmanysmall/pullhook" = "latest"
+aube = "latest"
+bun = "latest"
 deno = "2.8.1"
 gum = "latest"
 hk = "latest"
+jq = "latest"
 ni = "latest"
 pkl = "latest"
 rumdl = "latest"
 shfmt = "latest"
 tombi = "latest"
-jq = "latest"
+pnpm = "latest"
 
 [settings]
 auto_install = false
