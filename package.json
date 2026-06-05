@@ -30,7 +30,7 @@
 		"skills": "skills",
 		"start": "bun src/index.ts",
 		"test": "deno run -A npm:vitest run",
-		"type-check": "tsgo -p tsconfig.json --noEmit && tsgo -p tsconfig.scripts.json --noEmit"
+		"type-check": "tsgo --noEmit"
 	},
 	"dependencies": {
 		"arkenv": "^0.11.1",
