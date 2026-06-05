@@ -37,9 +37,17 @@ function createMetadataResponse(npm: string): Response {
 	});
 }
 
+const rawCerebrasStreamFetcherAsync: Fetcher = async () =>
+	new Response("data: raw\n\n", {
+		headers: { "content-type": "text/event-stream", "x-test-stream": "raw" },
+		status: 202,
+	});
+
+const cerebrasModelsFetcherAsync: Fetcher = async () => Response.json({ data: ["gpt-oss-120b"] });
+
 test("anthropic target converts Anthropic streaming responses to OpenAI SSE", async () => {
 	clearOpenCodeModelRoutingCache();
-	const fetcher: Fetcher = async (input) => {
+	const anthropicStreamFetcherAsync: Fetcher = async (input) => {
 		const url = String(input);
 		if (url === "https://models.test/api.json") return createMetadataResponse("@ai-sdk/anthropic");
 		expect(url, "Expected Anthropic messages endpoint.").toBe("https://upstream.test/v1/messages");
@@ -47,7 +55,7 @@ test("anthropic target converts Anthropic streaming responses to OpenAI SSE", as
 	};
 
 	const response = await anthropicTarget.createChatCompletionAsync({
-		fetcher,
+		fetcher: anthropicStreamFetcherAsync,
 		headers: new Headers({ "x-api-key": "token" }),
 		proxyConfiguration: baseConfiguration,
 		request: {
@@ -67,7 +75,7 @@ test("anthropic target forwards OpenAI-compatible requests and maps x-api-key to
 	clearOpenCodeModelRoutingCache();
 	let seenAuthorization = "";
 	let seenXApiKey = "";
-	const fetcher: Fetcher = async (input, init) => {
+	const openAiCompatibleFetcherAsync: Fetcher = async (input, init) => {
 		const url = String(input);
 		if (url === "https://models.test/api.json") return createMetadataResponse("@ai-sdk/openai-compatible");
 		expect(url, "Expected OpenAI-compatible endpoint.").toBe("https://upstream.test/v1/chat/completions");
@@ -77,7 +85,7 @@ test("anthropic target forwards OpenAI-compatible requests and maps x-api-key to
 	};
 
 	const response = await anthropicTarget.createChatCompletionAsync({
-		fetcher,
+		fetcher: openAiCompatibleFetcherAsync,
 		headers: new Headers({ "x-api-key": "token" }),
 		proxyConfiguration: baseConfiguration,
 		request: {
@@ -93,14 +101,8 @@ test("anthropic target forwards OpenAI-compatible requests and maps x-api-key to
 });
 
 test("cerebras target passes streaming responses through raw", async () => {
-	const fetcher: Fetcher = async () =>
-		new Response("data: raw\n\n", {
-			headers: { "content-type": "text/event-stream", "x-test-stream": "raw" },
-			status: 202,
-		});
-
 	const response = await cerebrasTarget.createChatCompletionAsync({
-		fetcher,
+		fetcher: rawCerebrasStreamFetcherAsync,
 		headers: new Headers({ authorization: "Bearer token" }),
 		proxyConfiguration: {
 			...baseConfiguration,
@@ -120,7 +122,7 @@ test("cerebras target passes streaming responses through raw", async () => {
 
 test("cerebras target lists models with Cerebras owner fallback", async () => {
 	const models = await cerebrasTarget.listModelsAsync({
-		fetcher: async () => Response.json({ data: ["gpt-oss-120b"] }),
+		fetcher: cerebrasModelsFetcherAsync,
 		headers: new Headers(),
 		proxyConfiguration: {
 			...baseConfiguration,

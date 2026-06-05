@@ -37,9 +37,7 @@
 			"tsconfig*.json",
 			"*.code-snippets"
 		],
-		"Shell Script": ["zsh", "zshrc", "zprofile", "zshenv", "bashrc", "bash_profile"],
-		"TOML": ["toml"],
-		"YAML": ["*.yml", "*.yaml", ".github/workflows/*.yml", ".github/workflows/*.yaml"]
+		"Shell Script": ["zsh", "zshrc", "zprofile", "zshenv", "bashrc", "bash_profile"]
 	},
 	"format_on_save": "on",
 	"hard_tabs": true,
@@ -91,6 +89,26 @@
 			],
 			"hard_tabs": true,
 			"language_servers": ["!eslint", "!biome", "oxfmt", "..."],
+			"prettier": { "allowed": false },
+			"tab_size": 4
+		},
+		"JavaScript": {
+			"code_actions_on_format": {
+				"source.fixAll.biome": true,
+				"source.fixAll.oxc": true,
+				"source.organizeImports.biome": false
+			},
+			"format_on_save": "on",
+			"formatter": [
+				{
+					"language_server": { "name": "biome" }
+				},
+				{
+					"language_server": { "name": "oxfmt" }
+				}
+			],
+			"hard_tabs": true,
+			"language_servers": ["biome", "oxfmt", "oxlint", "tsgo", "vtsls", "harper-ls", "codebook", "wakatime"],
 			"prettier": { "allowed": false },
 			"tab_size": 4
 		},
@@ -337,44 +355,6 @@
 				}
 			}
 		},
-		"json-language-server": {
-			"settings": {
-				"json": {
-					"schemas": [
-						{
-							"fileMatch": ["**/deno.json", "**/deno.jsonc"],
-							"url": "https://raw.githubusercontent.com/denoland/deno/refs/heads/main/cli/schemas/config-file.v1.json"
-						},
-						{
-							"fileMatch": ["**/package.json"],
-							"url": "https://www.schemastore.org/package"
-						},
-						{
-							"fileMatch": ["**/.oxfmtrc.json"],
-							"url": "https://raw.githubusercontent.com/oxc-project/oxc/refs/heads/main/npm/oxfmt/configuration_schema.json"
-						},
-						{
-							"fileMatch": [
-								"**/.lefthook.json",
-								"**/lefthook.json",
-								"**/.lefthook.jsonc",
-								"**/lefthook.jsonc"
-							],
-							"url": "https://raw.githubusercontent.com/evilmartians/lefthook/master/schema.json"
-						},
-						{
-							"fileMatch": ["**/.oxlintrc.json"],
-							"url": "https://raw.githubusercontent.com/oxc-project/oxc/refs/heads/main/npm/oxlint/configuration_schema.json"
-						},
-						{
-							"fileMatch": ["**/tsconfig*.json"],
-							"name": "tsconfig.json",
-							"url": "https://www.schemastore.org/tsconfig.json"
-						}
-					]
-				}
-			}
-		},
 		"oxfmt": {
 			"initialization_options": {
 				"settings": {
@@ -402,7 +382,7 @@
 						"functionLikeReturnTypes": { "enabled": true },
 						"parameterNames": {
 							"enabled": "none",
-							"suppressWhenArgumentMatchesName": false
+							"suppressWhenArgumentMatchesName": true
 						},
 						"parameterTypes": { "enabled": false },
 						"propertyDeclarationTypes": { "enabled": true }
@@ -415,7 +395,7 @@
 						"functionLikeReturnTypes": { "enabled": true },
 						"parameterNames": {
 							"enabled": "none",
-							"suppressWhenArgumentMatchesName": false
+							"suppressWhenArgumentMatchesName": true
 						},
 						"parameterTypes": { "enabled": true },
 						"propertyDeclarationTypes": { "enabled": false },

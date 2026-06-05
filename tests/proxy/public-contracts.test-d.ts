@@ -5,6 +5,8 @@ import type { ProxyConfiguration, UpstreamAuthMode, UpstreamProtocol } from "@pr
 import type { OpenAiChatCompletionRequest, OpenAiErrorBody } from "@proxy/openai-types";
 import type { Fetcher } from "@proxy/upstream";
 
+const fetcherAsync: Fetcher = async (_input, _init) => new Response();
+
 test("proxy configuration keeps literal protocol and auth-mode contracts", () => {
 	expectTypeOf<UpstreamProtocol>().toEqualTypeOf<"anthropic_messages" | "cerebras_openai">();
 	expectTypeOf<UpstreamAuthMode>().toEqualTypeOf<"client_bearer" | "server_key">();
@@ -32,9 +34,7 @@ test("proxy configuration keeps literal protocol and auth-mode contracts", () =>
 });
 
 test("provider target and fetcher contracts stay request-boundary focused", () => {
-	const fetcher: Fetcher = async (_input, _init) => new Response();
-
-	expectTypeOf(fetcher).toMatchTypeOf<Fetcher>();
+	expectTypeOf(fetcherAsync).toMatchTypeOf<Fetcher>();
 
 	expectTypeOf<ProviderTargetDefaults>().toEqualTypeOf<{
 		readonly authHeader: string;

@@ -26,7 +26,7 @@ test("createOpenAIStreamResponseAsync flushes buffered partial SSE events", asyn
 	const response = await createOpenAIStreamResponseAsync(upstream, "fallback-model");
 	const text = await readResponseTextAsync(response);
 
-	expect(text.includes('"content":"hello"'), "Expected buffered content delta to flush.").toBe(true);
+	expect(text).toContain('"content":"hello"');
 	expect(text.endsWith("data: [DONE]\n\n"), "Expected stream done sentinel.").toBe(true);
 });
 
@@ -56,8 +56,8 @@ test("translateAnthropicSseText handles message_start fallbacks and non-text blo
 		"fallback-model",
 	);
 
-	expect(translated.includes('"model":"fallback-model"'), "Expected fallback stream model.").toBe(true);
-	expect(translated.includes('"role":"assistant"'), "Expected assistant role chunk.").toBe(true);
-	expect(translated.includes('"finish_reason":"stop"'), "Expected mapped final chunk.").toBe(true);
-	expect(translated.includes('"usage"'), "Expected final usage chunk.").toBe(true);
+	expect(translated).toContain('"model":"fallback-model"');
+	expect(translated).toContain('"role":"assistant"');
+	expect(translated).toContain('"finish_reason":"stop"');
+	expect(translated).toContain('"usage"');
 });

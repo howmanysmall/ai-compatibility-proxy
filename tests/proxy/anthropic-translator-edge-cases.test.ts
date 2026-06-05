@@ -8,15 +8,21 @@ import { ProxyError } from "@proxy/errors";
 
 import type { OpenAiChatCompletionRequest } from "@proxy/openai-types";
 
-function expectProxyError(callback: () => unknown, param: string): void {
+function captureProxyError(callback: () => unknown): ProxyError {
 	try {
 		callback();
-		throw new Error("Expected ProxyError.");
 	} catch (error) {
-		expect(error instanceof ProxyError, "Expected ProxyError instance.").toBe(true);
-		if (!(error instanceof ProxyError)) return;
-		expect(error.param, "Expected ProxyError param.").toBe(param);
+		if (error instanceof ProxyError) return error;
+		throw error;
 	}
+
+	throw new Error("Expected ProxyError.");
+}
+
+function expectProxyError(callback: () => unknown, param: string): void {
+	const error = captureProxyError(callback);
+
+	expect(error.param, "Expected ProxyError param.").toBe(param);
 }
 
 test("translateOpenAiToAnthropic rejects weird unsupported request fields", () => {
@@ -39,6 +45,7 @@ test("translateOpenAiToAnthropic rejects weird unsupported request fields", () =
 
 test("translateOpenAiToAnthropic rejects invalid choice counts and missing user content", () => {
 	expectProxyError(
+		// oxlint-disable-next-line id-length -- `n` is the OpenAI wire-field name.
 		() => translateOpenAiToAnthropic({ messages: [{ content: "hello", role: "user" }], n: 2 }, "fallback", 10),
 		"n",
 	);

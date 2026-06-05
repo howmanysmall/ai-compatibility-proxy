@@ -28,6 +28,19 @@ const proxyConfiguration: ProxyConfiguration = {
 	upstreamProtocol: "anthropic_messages",
 };
 
+const mixedModelsFetcherAsync: Fetcher = async () =>
+	Response.json({
+		data: [
+			"string-model",
+			{ created: 123, id: "object-model", owned_by: "upstream" },
+			{ created: "bad", id: "created-fallback" },
+			{ id: 123 },
+			null,
+		],
+	});
+
+const invalidModelsFetcherAsync: Fetcher = async () => Response.json({ data: "invalid" });
+
 test("ProxyError serializes OpenAI-compatible error responses", async () => {
 	const proxyError = new ProxyError("bad request", {
 		code: "bad_code",
@@ -82,30 +95,14 @@ test("createUpstreamErrorAsync extracts upstream text and JSON errors", async ()
 });
 
 test("getModelsAsync normalizes string/object models and falls back on invalid payloads", async () => {
-	const fetcher: Fetcher = async () =>
-		Response.json({
-			data: [
-				"string-model",
-				{ created: 123, id: "object-model", owned_by: "upstream" },
-				{ created: "bad", id: "created-fallback" },
-				{ id: 123 },
-				null,
-			],
-		});
-
-	const models = await getModelsAsync(fetcher, new Headers(), proxyConfiguration, "proxy");
+	const models = await getModelsAsync(mixedModelsFetcherAsync, new Headers(), proxyConfiguration, "proxy");
 
 	expect(models.data.length, "Expected invalid model entries to be skipped.").toBe(3);
 	expect(models.data[0]?.id, "Expected string model id.").toBe("string-model");
 	expect(models.data[1]?.owned_by, "Expected upstream owner to be preserved.").toBe("upstream");
 	expect(models.data[2]?.created, "Expected invalid created timestamp fallback.").toBe(0);
 
-	const fallback = await getModelsAsync(
-		async () => Response.json({ data: "invalid" }),
-		new Headers(),
-		proxyConfiguration,
-		"proxy",
-	);
+	const fallback = await getModelsAsync(invalidModelsFetcherAsync, new Headers(), proxyConfiguration, "proxy");
 	expect(fallback.data[0]?.id, "Expected fallback model on invalid model list.").toBe("fallback-model");
 });
 

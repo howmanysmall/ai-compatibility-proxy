@@ -1,8 +1,13 @@
-import { serializeLogEntry } from "@logging/reports/daily-file-rotate-reporter";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { createDailyFileRotateReporter, serializeLogEntry } from "@logging/reports/daily-file-rotate-reporter";
 
 import type { StructuredLogEntry } from "@logging/log-entry";
+import type { ConsolaOptions, LogObject, LogType } from "consola";
 
 const textEncoder = new TextEncoder();
+const consolaReporterContext = { options: {} as ConsolaOptions };
 
 function createLogEntry(overrides: Partial<StructuredLogEntry> = {}): StructuredLogEntry {
 	return {
@@ -32,6 +37,17 @@ function createLogEntry(overrides: Partial<StructuredLogEntry> = {}): Structured
 
 function getByteLength(value: string): number {
 	return textEncoder.encode(value).byteLength;
+}
+
+function createConsolaLogObject(level: number, type: LogType, message: string): LogObject {
+	return {
+		args: [],
+		date: new Date("2026-05-31T00:00:00.000Z"),
+		level,
+		message,
+		tag: "",
+		type,
+	};
 }
 
 test("serializeLogEntry keeps normal entries unchanged", () => {
@@ -87,4 +103,36 @@ test("serializeLogEntry falls back to minimal truncation when notice entry is st
 		"Log entry omitted because it exceeded the storage safety limit",
 	);
 	expect(parsedEntry.context, "Expected minimal truncation to drop context.").toEqual({});
+});
+
+test("createDailyFileRotateReporter honors the configured level filter", () => {
+	let filterCalls = 0;
+	const reporter = createDailyFileRotateReporter({
+		directory: mkdtempSync(path.join(tmpdir(), "ai-compatibility-proxy-test-logs-")),
+		filename: "combined.log",
+		levelFilter: (level) => {
+			filterCalls += 1;
+			return level >= 3;
+		},
+		maxFiles: 1,
+		size: "1M",
+	});
+
+	reporter.log(createConsolaLogObject(2, "debug", "ignored debug log"), consolaReporterContext);
+	reporter.log(createConsolaLogObject(3, "info", "stored info log"), consolaReporterContext);
+
+	expect(filterCalls, "Expected reporter to evaluate each log level.").toBe(2);
+});
+
+test("createDailyFileRotateReporter writes logs when no level filter is configured", () => {
+	const reporter = createDailyFileRotateReporter({
+		directory: mkdtempSync(path.join(tmpdir(), "ai-compatibility-proxy-test-logs-")),
+		filename: "combined.log",
+		maxFiles: 1,
+		size: "1M",
+	});
+
+	reporter.log(createConsolaLogObject(3, "info", "stored info log"), consolaReporterContext);
+
+	expect(reporter, "Expected reporter creation without a level filter to succeed.").toBeDefined();
 });

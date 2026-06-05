@@ -11,6 +11,12 @@ import type { Fetcher } from "@proxy/upstream";
 
 const successFetcher: Fetcher = () => Promise.resolve(Response.json({ ok: true }));
 
+const stringRejectingFetcher: Fetcher = () =>
+	// oxlint-disable-next-line prefer-promise-reject-errors -- Covers upstream normalization of non-Error rejections.
+	Promise.reject("string network failure");
+
+const plainHttp500Fetcher: Fetcher = () => Promise.resolve(new Response("plain upstream failure", { status: 500 }));
+
 function createNeverResolvingFetcher(): Fetcher {
 	const deferred = Promise.withResolvers<Response>();
 	return () => deferred.promise;
@@ -44,6 +50,31 @@ function isUpstreamTimeoutError(error: unknown): error is UpstreamTimeoutError {
 	);
 }
 
+async function captureErrorAsync(callback: () => Promise<unknown>): Promise<Error> {
+	try {
+		await callback();
+	} catch (error) {
+		if (error instanceof Error) return error;
+		throw error;
+	}
+
+	throw new Error("Expected Error.");
+}
+
+async function captureProxyErrorAsync(callback: () => Promise<unknown>): Promise<ProxyError> {
+	const error = await captureErrorAsync(callback);
+	if (error instanceof ProxyError) return error;
+
+	throw error;
+}
+
+async function captureTimeoutErrorAsync(callback: () => Promise<unknown>): Promise<UpstreamTimeoutError> {
+	const error = await captureErrorAsync(callback);
+	if (isUpstreamTimeoutError(error)) return error;
+
+	throw error;
+}
+
 test("Effect upstream POST returns parsed JSON on success", async () => {
 	const response = await fetchUpstreamJsonAsync(
 		successFetcher,
@@ -61,23 +92,18 @@ test("Effect upstream POST returns parsed JSON on success", async () => {
 test("Effect upstream POST timeout throws UpstreamTimeoutError", async () => {
 	const fetcher = createNeverResolvingFetcher();
 
-	try {
-		await fetchUpstreamJsonAsync(
+	const error = await captureTimeoutErrorAsync(() =>
+		fetchUpstreamJsonAsync(
 			fetcher,
 			"https://upstream.example/v1/messages?token=secret",
 			new Headers(),
 			{ message: "safe test body" },
 			createConfig({ requestTimeoutMs: 10 }),
-		);
-	} catch (error) {
-		expect(isUpstreamTimeoutError(error), "Expected an UpstreamTimeoutError.").toBe(true);
-		if (!isUpstreamTimeoutError(error)) return;
-		expect(error.url, "Expected timeout URL.").toBe("https://upstream.example/v1/messages?token=secret");
-		expect(error.timeoutMs, "Expected timeout duration.").toBe(10);
-		return;
-	}
+		),
+	);
 
-	throw new Error("Expected timeout to throw.");
+	expect(error.url, "Expected timeout URL.").toBe("https://upstream.example/v1/messages?token=secret");
+	expect(error.timeoutMs, "Expected timeout duration.").toBe(10);
 });
 
 test("Effect upstream POST retries transient HTTP 500 then succeeds", async () => {
@@ -113,24 +139,19 @@ test("Effect upstream POST does not retry client HTTP 400", async () => {
 		return Promise.resolve(Response.json({ error: { message: "bad upstream request" } }, { status: 400 }));
 	};
 
-	try {
-		await fetchUpstreamJsonAsync(
+	const error = await captureProxyErrorAsync(() =>
+		fetchUpstreamJsonAsync(
 			fetcher,
 			"https://upstream.example/v1/messages?token=secret",
 			new Headers(),
 			{ message: "safe test body" },
 			createConfig(),
-		);
-	} catch (error) {
-		expect(error instanceof ProxyError, "Expected upstream 400 to throw ProxyError.").toBe(true);
-		if (!(error instanceof ProxyError)) return;
-		expect(calls, "Expected no retry for HTTP 400.").toBe(1);
-		expect(error.status, "Expected upstream status to be preserved.").toBe(400);
-		expect(error.message, "Expected upstream message to be preserved.").toBe("bad upstream request");
-		return;
-	}
+		),
+	);
 
-	throw new Error("Expected upstream 400 to throw.");
+	expect(calls, "Expected no retry for HTTP 400.").toBe(1);
+	expect(error.status, "Expected upstream status to be preserved.").toBe(400);
+	expect(error.message, "Expected upstream message to be preserved.").toBe("bad upstream request");
 });
 
 test("Effect upstream POST retries network failures then succeeds", async () => {
@@ -156,65 +177,53 @@ test("Effect upstream POST retries network failures then succeeds", async () => 
 });
 
 test("Effect upstream maps non-Error network failures to Error instances", async () => {
-	const fetcher: Fetcher = () => Promise.reject("string network failure");
-
-	try {
-		await fetchUpstreamJsonAsync(
-			fetcher,
+	const error = await captureErrorAsync(() =>
+		fetchUpstreamJsonAsync(
+			stringRejectingFetcher,
 			"https://upstream.example/v1/messages?token=secret",
 			new Headers(),
 			{ message: "safe test body" },
 			createConfig({ requestTimeoutMs: 2_000 }),
-		);
-		throw new Error("Expected network failure to throw.");
-	} catch (error) {
-		expect(error instanceof Error, "Expected mapped Error instance.").toBe(true);
-		if (!(error instanceof Error)) return;
-		expect(error.message, "Expected string rejection to become Error message.").toBe("string network failure");
-	}
+		),
+	);
+
+	expect(error.message, "Expected string rejection to become Error message.").toBe("string network failure");
 });
 
 test("Effect upstream maps HTTP 500 text bodies without content type", async () => {
-	const fetcher: Fetcher = () => Promise.resolve(new Response("plain upstream failure", { status: 500 }));
-
-	try {
-		await fetchUpstreamJsonAsync(
-			fetcher,
+	const error = await captureProxyErrorAsync(() =>
+		fetchUpstreamJsonAsync(
+			plainHttp500Fetcher,
 			"https://upstream.example/v1/messages?token=secret",
 			new Headers(),
 			{ message: "safe test body" },
 			createConfig(),
-		);
-		throw new Error("Expected HTTP 500 to throw.");
-	} catch (error) {
-		expect(error instanceof ProxyError, "Expected HTTP 500 to become ProxyError.").toBe(true);
-		if (!(error instanceof ProxyError)) return;
-		expect(error.message, "Expected upstream text body message.").toBe("plain upstream failure");
-		expect(error.status, "Expected upstream HTTP status.").toBe(500);
-	}
+		),
+	);
+
+	expect(error.message, "Expected upstream text body message.").toBe("plain upstream failure");
+	expect(error.status, "Expected upstream HTTP status.").toBe(500);
 });
 
 test("Effect upstream maps rejected HTTP error body reads to network errors", async () => {
 	const response = new Response(null, { status: 500 });
 	Object.defineProperty(response, "text", {
+		// oxlint-disable-next-line prefer-promise-reject-errors -- Covers upstream normalization of body-read non-Error rejections.
 		value: () => Promise.reject("body read failed"),
 	});
 	const fetcher: Fetcher = () => Promise.resolve(response);
 
-	try {
-		await fetchUpstreamJsonAsync(
+	const error = await captureErrorAsync(() =>
+		fetchUpstreamJsonAsync(
 			fetcher,
 			"https://upstream.example/v1/messages?token=secret",
 			new Headers(),
 			{ message: "safe test body" },
 			createConfig({ requestTimeoutMs: 2_000 }),
-		);
-		throw new Error("Expected body read failure to throw.");
-	} catch (error) {
-		expect(error instanceof Error, "Expected body read failure to map to Error.").toBe(true);
-		if (!(error instanceof Error)) return;
-		expect(error.message, "Expected body read rejection message.").toBe("body read failed");
-	}
+		),
+	);
+
+	expect(error.message, "Expected body read rejection message.").toBe("body read failed");
 });
 
 test("Effect upstream logs only safe upstream metadata", async () => {
@@ -249,16 +258,16 @@ test("Effect upstream logs only safe upstream metadata", async () => {
 
 	expect(records.length, "Expected call and response logs.").toBe(2);
 	const serializedLogs = JSON.stringify(records);
-	expect(serializedLogs.includes("/v1/messages"), "Expected path-only upstream URL in logs.").toBe(true);
+	expect(serializedLogs).toContain("/v1/messages");
 	expect(!serializedLogs.includes("token=secret"), "Expected query string to be omitted from logs.").toBe(true);
 	expect(!serializedLogs.includes("should-not-log"), "Expected body and token values to be omitted from logs.").toBe(
 		true,
 	);
 	expect(!serializedLogs.includes("role"), "Expected role fields to be omitted from logs.").toBe(true);
 	expect(!serializedLogs.includes("content"), "Expected content fields to be omitted from logs.").toBe(true);
-	expect(serializedLogs.includes("POST"), "Expected method to be logged.").toBe(true);
-	expect(serializedLogs.includes("200"), "Expected status to be logged.").toBe(true);
-	expect(serializedLogs.includes("latencyMs"), "Expected latency to be logged.").toBe(true);
+	expect(serializedLogs).toContain("POST");
+	expect(serializedLogs).toContain("200");
+	expect(serializedLogs).toContain("latencyMs");
 });
 
 interface LogRecord {

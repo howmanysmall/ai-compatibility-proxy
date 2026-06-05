@@ -72,8 +72,10 @@ test("Arkenv config preserves Cerebras protocol-specific defaults", () => {
 test("logger module handles log directory availability before reporters are used", async () => {
 	const { ensureLogDirectory, logger } = await import("@logging/logger.ts");
 
-	expect(typeof ensureLogDirectory(), "Expected log directory availability probe.").toBe("boolean");
+	expect(ensureLogDirectory()).toBeTypeOf("boolean");
 	logger.info("log directory smoke test");
+	logger.withContext({ requestId: "logger-context-smoke" }).info("contextual logger smoke test");
+	logger.withContext({ requestId: "logger-context-error-smoke" }).error("contextual logger error smoke test");
 });
 
 test("LOG_LEVEL=warn maps to consola level mutation", async () => {

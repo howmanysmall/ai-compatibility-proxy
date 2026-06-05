@@ -1,5 +1,6 @@
 allowBuilds:
   "@jsr/sander__html": false
+  "@swc/core": true
 
 enableGlobalVirtualStore: true
 packages: []
@@ -73,6 +74,7 @@ minimumReleaseAgeExclude:
 
 minimumReleaseAgeStrict: true
 resolutionMode: time-based
+strictStorePkgContentCheck: false # Vitiate's Optique dev tarballs declare build metadata Aube normalizes away.
 strictDepBuilds: true # Fail on unreviewed build scripts
 strictPeerDependencies: true
 strictSsl: true # Prevent MITM attacks

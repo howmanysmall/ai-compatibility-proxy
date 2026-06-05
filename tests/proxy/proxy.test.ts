@@ -166,11 +166,11 @@ test("translates Anthropic streaming events to OpenAI SSE", () => {
 		"minimax-m3",
 	);
 
-	expect(output.includes('"object":"chat.completion.chunk"'), "Expected OpenAI chunk object.").toBe(true);
-	expect(output.includes('"role":"assistant"'), "Expected initial assistant role delta.").toBe(true);
-	expect(output.includes('"content":"Hi"'), "Expected text content delta.").toBe(true);
-	expect(output.includes('"finish_reason":"stop"'), "Expected finish chunk.").toBe(true);
-	expect(output.includes('"prompt_tokens":4'), "Expected usage mapping.").toBe(true);
+	expect(output).toContain('"object":"chat.completion.chunk"');
+	expect(output).toContain('"role":"assistant"');
+	expect(output).toContain('"content":"Hi"');
+	expect(output).toContain('"finish_reason":"stop"');
+	expect(output).toContain('"prompt_tokens":4');
 });
 
 test("rejects unsupported Anthropic message content", () => {

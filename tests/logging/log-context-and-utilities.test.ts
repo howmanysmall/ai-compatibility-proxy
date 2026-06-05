@@ -22,11 +22,11 @@ function getRecordValue(record: Readonly<Record<string, unknown>>, key: string):
 	return record[key];
 }
 
-test("sanitize redacts sensitive keys and serializes uncommon values", () => {
-	function namedCallback(): undefined {
-		return undefined;
-	}
+function namedCallback(): undefined {
+	return undefined;
+}
 
+test("sanitize redacts sensitive keys and serializes uncommon values", () => {
 	const circular: Record<string, unknown> = {};
 	circular.self = circular;
 
@@ -105,19 +105,17 @@ test("measure logs success and rethrows failures", () => {
 
 	expect(value, "Expected measured sync value.").toBe(42);
 
-	const error = new Error("expected failure");
-	try {
+	const expectedError = new Error("expected failure");
+
+	expect(() =>
 		measure(
 			"sync-failure",
 			() => {
-				throw error;
+				throw expectedError;
 			},
 			{ logger },
-		);
-		throw new Error("Expected measure to rethrow.");
-	} catch (caught) {
-		expect(caught === error, "Expected original sync error to be rethrown.").toBe(true);
-	}
+		),
+	).toThrow(expectedError);
 });
 
 test("measureAsync logs success and rethrows failures", async () => {
@@ -126,19 +124,17 @@ test("measureAsync logs success and rethrows failures", async () => {
 
 	expect(value, "Expected measured async value.").toBe(42);
 
-	const error = new Error("expected async failure");
-	try {
-		await measureAsync(
+	const expectedError = new Error("expected async failure");
+
+	await expect(
+		measureAsync(
 			"async-failure",
 			async () => {
-				throw error;
+				throw expectedError;
 			},
 			{ logger },
-		);
-		throw new Error("Expected measureAsync to rethrow.");
-	} catch (caught) {
-		expect(caught === error, "Expected original async error to be rethrown.").toBe(true);
-	}
+		),
+	).rejects.toThrow(expectedError);
 });
 
 test("tryGarbageCollection handles missing and exposed collectors", () => {

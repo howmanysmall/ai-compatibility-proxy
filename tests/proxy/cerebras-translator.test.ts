@@ -27,6 +27,17 @@ function withConfiguration(overrides: Partial<ProxyConfiguration>): ProxyConfigu
 	return { ...baseConfiguration, ...overrides };
 }
 
+function captureProxyError(callback: () => unknown): ProxyError {
+	try {
+		callback();
+	} catch (error) {
+		if (error instanceof ProxyError) return error;
+		throw error;
+	}
+
+	throw new Error("Expected ProxyError.");
+}
+
 test("normalizes max_tokens, fallback model, names, and text parts", () => {
 	const request: OpenAiChatCompletionRequest = {
 		max_tokens: 128,
@@ -83,7 +94,7 @@ test("drops unsupported fields when loose dropping is configured", () => {
 });
 
 test("rejects unsupported fields when strict validation is enabled", () => {
-	try {
+	const error = captureProxyError(() =>
 		normalizeCerebrasRequest(
 			{
 				messages: [{ content: "hello", role: "user" }],
@@ -91,13 +102,10 @@ test("rejects unsupported fields when strict validation is enabled", () => {
 				tools: [],
 			},
 			baseConfiguration,
-		);
-		throw new Error("Expected unsupported tools field to fail.");
-	} catch (error) {
-		expect(error instanceof ProxyError, "Expected ProxyError for unsupported field.").toBe(true);
-		if (!(error instanceof ProxyError)) return;
-		expect(error.param, "Expected unsupported field param.").toBe("tools");
-	}
+		),
+	);
+
+	expect(error.param, "Expected unsupported field param.").toBe("tools");
 });
 
 test("rejects invalid Cerebras message roles and tool calls", () => {
@@ -111,12 +119,7 @@ test("rejects invalid Cerebras message roles and tool calls", () => {
 			model: "llama",
 		},
 	] satisfies ReadonlyArray<OpenAiChatCompletionRequest>) {
-		try {
-			normalizeCerebrasRequest(request, baseConfiguration);
-			throw new Error("Expected invalid message to fail.");
-		} catch (error) {
-			expect(error instanceof ProxyError, "Expected ProxyError for invalid Cerebras message.").toBe(true);
-		}
+		expect(captureProxyError(() => normalizeCerebrasRequest(request, baseConfiguration)).status).toBe(400);
 	}
 });
 
@@ -134,11 +137,6 @@ test("rejects empty messages and unsupported content parts", () => {
 			model: "llama",
 		},
 	] satisfies ReadonlyArray<OpenAiChatCompletionRequest>) {
-		try {
-			normalizeCerebrasRequest(request, baseConfiguration);
-			throw new Error("Expected invalid content to fail.");
-		} catch (error) {
-			expect(error instanceof ProxyError, "Expected ProxyError for invalid content.").toBe(true);
-		}
+		expect(captureProxyError(() => normalizeCerebrasRequest(request, baseConfiguration)).status).toBe(400);
 	}
 });

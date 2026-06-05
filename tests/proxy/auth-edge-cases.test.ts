@@ -32,16 +32,22 @@ function createRequest(authorization?: string): Request {
 	return new Request("https://proxy.test/v1/models", { headers });
 }
 
-function expectProxyError(callback: () => unknown, status: number, type: string): void {
+function captureProxyError(callback: () => unknown): ProxyError {
 	try {
 		callback();
-		throw new Error("Expected ProxyError.");
 	} catch (error) {
-		expect(error instanceof ProxyError, "Expected ProxyError instance.").toBe(true);
-		if (!(error instanceof ProxyError)) return;
-		expect(error.status, "Expected ProxyError status.").toBe(status);
-		expect(error.type, "Expected ProxyError type.").toBe(type);
+		if (error instanceof ProxyError) return error;
+		throw error;
 	}
+
+	throw new Error("Expected ProxyError.");
+}
+
+function expectProxyError(callback: () => unknown, status: number, type: string): void {
+	const error = captureProxyError(callback);
+
+	expect(error.status, "Expected ProxyError status.").toBe(status);
+	expect(error.type, "Expected ProxyError type.").toBe(type);
 }
 
 test("client_bearer mode accepts mixed-case bearer tokens and x-api-key upstream auth", () => {
