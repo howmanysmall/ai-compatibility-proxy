@@ -1,6 +1,9 @@
+import { expect, test } from "vitest";
+
 import { translateAnthropicToOpenAi } from "@proxy/anthropic-translator";
 
 test("translates a valid Anthropic message response", () => {
+	expect.hasAssertions();
 	const openAiResponse = translateAnthropicToOpenAi(
 		{
 			content: [
@@ -37,6 +40,7 @@ test("translates a valid Anthropic message response", () => {
 });
 
 test("falls through to the fallback for Anthropic message responses missing type", () => {
+	expect.hasAssertions();
 	const openAiResponse = translateAnthropicToOpenAi(
 		{
 			content: [{ text: "Hello", type: "text" }],
@@ -54,6 +58,7 @@ test("falls through to the fallback for Anthropic message responses missing type
 });
 
 test("falls through to the fallback for Anthropic message responses with wrong type", () => {
+	expect.hasAssertions();
 	const openAiResponse = translateAnthropicToOpenAi(
 		{
 			content: [{ text: "Hello", type: "text" }],
@@ -72,6 +77,7 @@ test("falls through to the fallback for Anthropic message responses with wrong t
 });
 
 test("falls through to the fallback for Anthropic error responses", () => {
+	expect.hasAssertions();
 	const openAiResponse = translateAnthropicToOpenAi(
 		{ error: { message: "bad request", type: "error" }, type: "error" },
 		"fallback-model",
@@ -84,6 +90,7 @@ test("falls through to the fallback for Anthropic error responses", () => {
 });
 
 test("falls through to the fallback for empty Anthropic payloads", () => {
+	expect.hasAssertions();
 	const openAiResponse = translateAnthropicToOpenAi({}, "fallback-model");
 
 	expect(openAiResponse.model === "fallback-model", "Expected request model fallback.").toBe(true);

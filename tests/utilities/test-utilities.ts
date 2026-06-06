@@ -27,3 +27,12 @@ export function getInitHeader(init: RequestInit | undefined, name: string): stri
 export function expectRecord(value: unknown, message: string): asserts value is Record<string, unknown> {
 	expect(Predicate.isRecord(value), message).toBe(true);
 }
+
+export function expectArray(value: unknown, message: string): asserts value is ReadonlyArray<unknown> {
+	expect(Array.isArray(value), message).toBe(true);
+}
+
+export function expectPresent<T>(value: T | null | undefined, message: string): asserts value is T {
+	expect(value, message).not.toBeNull();
+	expect(value, message).not.toBeUndefined();
+}

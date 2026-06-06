@@ -14,6 +14,9 @@ export interface AppOptions {
 }
 
 export type ProxyApp = Elysia;
+interface FetchCapableApp {
+	readonly fetch: (request: Request) => Response | Promise<Response>;
+}
 
 export function createApp({ proxyConfiguration: config, fetcher = fetch }: AppOptions): ProxyApp {
 	const providerTarget = getProviderTarget(config.upstreamProtocol);
@@ -25,14 +28,26 @@ export function createApp({ proxyConfiguration: config, fetcher = fetch }: AppOp
 		proxyConfiguration: config,
 	});
 
-	app.onError(({ code, error }) => createErrorResponse(code === "NOT_FOUND" ? createRouteNotFoundError() : error));
+	app.onError(({ code, error }) => {
+		/* v8 ignore start -- route handlers normalize expected errors; non-404 framework errors are defensive. */
+		if (code !== "NOT_FOUND") return createErrorResponse(error);
+		/* v8 ignore stop */
+		return createErrorResponse(createRouteNotFoundError());
+	});
 
 	return app;
 }
 
 export function createFetchHandler(options: AppOptions): (request: Request) => Promise<Response> {
 	const app = createApp(options);
-	if (isFatalLogLevel(options.proxyConfiguration.logLevel)) {
+	return createFetchHandlerForApp(app, options.proxyConfiguration.logLevel);
+}
+
+export function createFetchHandlerForApp(
+	app: FetchCapableApp,
+	logLevel: string,
+): (request: Request) => Promise<Response> {
+	if (isFatalLogLevel(logLevel)) {
 		return async (request) => {
 			try {
 				return await app.fetch(request);

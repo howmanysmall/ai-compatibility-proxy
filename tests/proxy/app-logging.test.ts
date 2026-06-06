@@ -1,4 +1,6 @@
-import { createFetchHandler } from "@proxy/app";
+import { expect, test } from "vitest";
+
+import { createFetchHandler, createFetchHandlerForApp } from "@proxy/app";
 
 import type { ProxyConfiguration } from "@proxy/config";
 
@@ -22,6 +24,7 @@ const configuration: ProxyConfiguration = {
 };
 
 test("createFetchHandler logs non-fatal successful requests", async () => {
+	expect.hasAssertions();
 	const handler = createFetchHandler({ proxyConfiguration: configuration });
 	const response = await handler(new Request("https://proxy.test/health"));
 	const body = await response.json();
@@ -30,5 +33,51 @@ test("createFetchHandler logs non-fatal successful requests", async () => {
 	expect(body, "Expected health response body.").toEqual({
 		status: "ok",
 		upstream_protocol: "anthropic_messages",
+	});
+});
+
+test("createFetchHandlerForApp maps thrown fetch errors in fatal mode", async () => {
+	expect.hasAssertions();
+	const handler = createFetchHandlerForApp(
+		{
+			fetch: () => {
+				throw new Error("unexpected fatal fetch failure");
+			},
+		},
+		"fatal",
+	);
+
+	const response = await handler(new Request("https://proxy.test/health"));
+	const body = await response.json();
+
+	expect(response.status, "Expected thrown fatal fetch errors to become 500 responses.").toBe(500);
+	expect(body).toMatchObject({
+		error: {
+			message: "Internal server error",
+			type: "server_error",
+		},
+	});
+});
+
+test("createFetchHandlerForApp logs and maps thrown fetch errors in non-fatal mode", async () => {
+	expect.hasAssertions();
+	const handler = createFetchHandlerForApp(
+		{
+			fetch: () => {
+				throw new Error("unexpected logged fetch failure");
+			},
+		},
+		"info",
+	);
+
+	const response = await handler(new Request("https://proxy.test/health"));
+	const body = await response.json();
+
+	expect(response.status, "Expected thrown non-fatal fetch errors to become 500 responses.").toBe(500);
+	expect(body).toMatchObject({
+		error: {
+			message: "Internal server error",
+			type: "server_error",
+		},
 	});
 });

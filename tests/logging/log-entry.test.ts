@@ -1,3 +1,5 @@
+import { expect, test } from "vitest";
+
 import { runWithLogContext } from "@logging/log-context";
 import { normalizeLogEntry } from "@logging/log-entry";
 
@@ -19,7 +21,17 @@ function createLogObject(overrides: Partial<LogObject> = {}): LogObject {
 	};
 }
 
+function restoreGlobalBun(previousBun: unknown): void {
+	if (previousBun === undefined) {
+		Reflect.deleteProperty(globalThis, "Bun");
+		return;
+	}
+
+	Reflect.set(globalThis, "Bun", previousBun);
+}
+
 test("normalizeLogEntry builds fallback messages from sanitized args", () => {
+	expect.hasAssertions();
 	const entry = normalizeLogEntry(
 		createLogObject({
 			args: ["hello", { token: "secret" }],
@@ -31,7 +43,30 @@ test("normalizeLogEntry builds fallback messages from sanitized args", () => {
 	expect(entry.payload, "Expected multi-arg payload.").toEqual(["hello", { token: "[REDACTED]" }]);
 });
 
+test("normalizeLogEntry uses explicit additional strings and arrays before fallback args", () => {
+	expect.hasAssertions();
+	const stringAdditionalEntry = normalizeLogEntry(
+		createLogObject({
+			additional: "additional message",
+			args: ["ignored fallback"],
+			message: "primary message",
+		}),
+	);
+	const arrayAdditionalEntry = normalizeLogEntry(
+		createLogObject({
+			additional: ["first", "", "second"],
+			args: ["ignored fallback"],
+		}),
+	);
+
+	expect(stringAdditionalEntry.message, "Expected string additional message to join with primary message.").toBe(
+		"primary message additional message",
+	);
+	expect(arrayAdditionalEntry.message, "Expected additional array to skip empty messages.").toBe("first second");
+});
+
 test("normalizeLogEntry merges active and object context and extracts custom properties", () => {
+	expect.hasAssertions();
 	const entry = runWithLogContext({ requestId: "req-1" }, () =>
 		normalizeLogEntry(
 			createLogObject({
@@ -53,6 +88,7 @@ test("normalizeLogEntry merges active and object context and extracts custom pro
 });
 
 test("normalizeLogEntry extracts primary and secondary errors", () => {
+	expect.hasAssertions();
 	const primaryError = new Error("primary");
 	const secondaryError = new Error("secondary");
 	const entry = normalizeLogEntry(
@@ -72,11 +108,56 @@ test("normalizeLogEntry extracts primary and secondary errors", () => {
 });
 
 test("normalizeLogEntry maps severity from level when type is generic", () => {
+	expect.hasAssertions();
 	const debugEntry = normalizeLogEntry(createLogObject({ level: 4, type: "log" }));
 	const errorEntry = normalizeLogEntry(createLogObject({ level: 1, type: "log" }));
+	const warnEntry = normalizeLogEntry(createLogObject({ level: 2, type: "log" }));
 	const fallbackMessageEntry = normalizeLogEntry(createLogObject({ level: 3, type: "log" }));
+	const debugTypeEntry = normalizeLogEntry(createLogObject({ level: 3, type: "debug" }));
+	const traceTypeEntry = normalizeLogEntry(createLogObject({ level: 3, type: "trace" }));
+	const verboseTypeEntry = normalizeLogEntry(createLogObject({ level: 3, type: "verbose" }));
 
 	expect(debugEntry.level, "Expected debug level fallback.").toBe("debug");
 	expect(errorEntry.level, "Expected error level fallback.").toBe("error");
+	expect(warnEntry.level, "Expected warn level fallback.").toBe("warn");
+	expect(debugTypeEntry.level, "Expected debug type severity.").toBe("debug");
+	expect(traceTypeEntry.level, "Expected trace type severity.").toBe("trace");
+	expect(verboseTypeEntry.level, "Expected verbose type severity.").toBe("verbose");
 	expect(fallbackMessageEntry.message, "Expected no-args fallback message.").toBe("logger.log");
+});
+
+test("normalizeLogEntry wraps scalar custom properties and non-array args", () => {
+	expect.hasAssertions();
+	const logObject = createLogObject({
+		args: "not-array" as unknown as [],
+		context: "not-context" as unknown as {},
+		valueOf: () => 42,
+	});
+	Object.defineProperty(logObject, "custom", {
+		enumerable: true,
+		value: 1n,
+	});
+
+	const entry = normalizeLogEntry(logObject);
+
+	expect(entry.payload, "Expected non-array args to produce no payload.").toBeUndefined();
+	expect(entry.context, "Expected non-record context to be ignored.").toEqual({});
+	expect(entry.customProperties, "Expected scalar sanitized custom property to be wrapped as a record.").toEqual({
+		custom: "1",
+		valueOf: "[Function valueOf]",
+	});
+});
+
+test("normalizeLogEntry records Bun runtime version when Bun is available", () => {
+	expect.hasAssertions();
+	const previousBun = Reflect.get(globalThis, "Bun");
+	Reflect.set(globalThis, "Bun", { version: "1.2.3-test" });
+
+	try {
+		const entry = normalizeLogEntry(createLogObject({ message: "runtime version", type: "info" }));
+
+		expect(entry.process.version, "Expected Bun runtime version in process metadata.").toContain("1.2.3-test");
+	} finally {
+		restoreGlobalBun(previousBun);
+	}
 });

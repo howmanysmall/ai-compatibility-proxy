@@ -1,6 +1,9 @@
+import { expect, test } from "vitest";
+
 import { loadConfiguration } from "@proxy/config";
 
 test("Arkenv config parses all env vars and preserves ProxyConfig field names", () => {
+	expect.hasAssertions();
 	const config = loadConfiguration({
 		CEREBRAS_DROP_UNSUPPORTED_FIELDS: "false",
 		CEREBRAS_STRICT_REQUEST_VALIDATION: "false",
@@ -40,6 +43,7 @@ test("Arkenv config parses all env vars and preserves ProxyConfig field names", 
 });
 
 test("Arkenv config applies defaults for all optional env vars", () => {
+	expect.hasAssertions();
 	const config = loadConfiguration({});
 
 	expect(config.cerebrasDropUnsupportedFields, "Expected Cerebras drop default.").toBe(true);
@@ -61,6 +65,7 @@ test("Arkenv config applies defaults for all optional env vars", () => {
 });
 
 test("Arkenv config preserves Cerebras protocol-specific defaults", () => {
+	expect.hasAssertions();
 	const config = loadConfiguration({ UPSTREAM_PROTOCOL: "cerebras_openai" });
 
 	expect(config.upstreamProtocol, "Expected Cerebras protocol.").toBe("cerebras_openai");
@@ -69,7 +74,21 @@ test("Arkenv config preserves Cerebras protocol-specific defaults", () => {
 	expect(config.defaultModel, "Expected Cerebras model default.").toBe("gpt-oss-120b");
 });
 
+test("Arkenv config treats blank env values as undefined before applying defaults", () => {
+	expect.hasAssertions();
+	const config = loadConfiguration({
+		DEFAULT_MODEL: "   ",
+		PROXY_API_KEY: "",
+		UPSTREAM_AUTH_HEADER: "\t",
+	});
+
+	expect(config.defaultModel, "Expected blank model env to fall back to default.").toBe("minimax-m3");
+	expect(config.proxyApiKey, "Expected blank proxy key env to become undefined.").toBeUndefined();
+	expect(config.upstreamAuthHeader, "Expected blank auth header env to fall back to default.").toBe("x-api-key");
+});
+
 test("logger module handles log directory availability before reporters are used", async () => {
+	expect.hasAssertions();
 	const { ensureLogDirectory, logger } = await import("@logging/logger.ts");
 
 	expect(ensureLogDirectory()).toBeTypeOf("boolean");
@@ -79,9 +98,29 @@ test("logger module handles log directory availability before reporters are used
 });
 
 test("LOG_LEVEL=warn maps to consola level mutation", async () => {
+	expect.hasAssertions();
 	const { logger, parseLevel } = await import("@logging/logger.ts");
 
 	logger.level = parseLevel("warn");
 
 	expect(logger.level, "Expected warn to map to consola level 2.").toBe(2);
+});
+
+test("parseLevel maps numeric and named consola levels", async () => {
+	expect.hasAssertions();
+	const { parseLevel } = await import("@logging/logger.ts");
+
+	expect(parseLevel("0"), "Expected fatal numeric level.").toBe(0);
+	expect(parseLevel(" fatal "), "Expected fatal named level.").toBe(0);
+	expect(parseLevel("1"), "Expected error numeric level.").toBe(1);
+	expect(parseLevel("ERROR"), "Expected case-insensitive error named level.").toBe(1);
+	expect(parseLevel("2"), "Expected warn numeric level.").toBe(2);
+	expect(parseLevel("warn"), "Expected warn named level.").toBe(2);
+	expect(parseLevel("3"), "Expected info numeric fallback level.").toBe(3);
+	expect(parseLevel("info"), "Expected info named fallback level.").toBe(3);
+	expect(parseLevel("4"), "Expected debug numeric level.").toBe(4);
+	expect(parseLevel("debug"), "Expected debug named level.").toBe(4);
+	expect(parseLevel("5"), "Expected trace numeric level.").toBe(5);
+	expect(parseLevel("trace"), "Expected trace named level.").toBe(5);
+	expect(parseLevel("not-a-level"), "Expected unknown level to default to info.").toBe(3);
 });

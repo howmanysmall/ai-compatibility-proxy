@@ -1,6 +1,5 @@
 import { AsyncLocalStorage } from "node:async_hooks";
-import { sanitize } from "@logging/sanitizer";
-import { Predicate } from "effect";
+import { sanitizeRecord } from "@logging/sanitizer";
 
 import type { ReadonlyRecord } from "@ts-types/utility-types";
 
@@ -21,8 +20,7 @@ function removeUndefinedValues(context: Readonly<LogContext>): Record<string, un
 export function sanitizeLogContext(context?: Readonly<LogContext>): Readonly<LogContext> {
 	if (context === undefined) return {};
 
-	const sanitizedContext = sanitize(removeUndefinedValues(context));
-	return Predicate.isRecord(sanitizedContext) ? sanitizedContext : {};
+	return sanitizeRecord(removeUndefinedValues(context));
 }
 
 export function mergeLogContexts(...contexts: ReadonlyArray<Readonly<LogContext> | undefined>): Readonly<LogContext> {

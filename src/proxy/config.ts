@@ -103,7 +103,8 @@ function removeEmptyValues(environment: Record<string, string | undefined>): Rec
 	const normalizedEnvironment: Record<string, string | undefined> = {};
 
 	for (const [key, value] of Object.entries(environment)) {
-		normalizedEnvironment[key] = value?.trim() || undefined;
+		const trimmedValue = value?.trim();
+		if (trimmedValue) normalizedEnvironment[key] = trimmedValue;
 	}
 
 	return normalizedEnvironment;

@@ -1,3 +1,5 @@
+import { expect, test } from "vitest";
+
 import { createFetchHandler } from "@proxy/app";
 import { Predicate } from "effect";
 
@@ -59,6 +61,7 @@ function getRecord(value: Record<string, unknown>, key: string): Record<string, 
 }
 
 test("fetch handler returns health status", async () => {
+	expect.hasAssertions();
 	const handler = createFetchHandler({
 		fetcher: () => Promise.reject(new Error("fetch should not be called")),
 		proxyConfiguration: createConfiguration(),
@@ -73,6 +76,7 @@ test("fetch handler returns health status", async () => {
 });
 
 test("fetch handler proxies model list", async () => {
+	expect.hasAssertions();
 	let seenUrl = "";
 	let seenAuthorization = "";
 	const handler = createFetchHandler({
@@ -105,6 +109,7 @@ test("fetch handler proxies model list", async () => {
 });
 
 test("fetch handler proxies chat completions", async () => {
+	expect.hasAssertions();
 	let seenUrl = "";
 	const handler = createFetchHandler({
 		fetcher: (input) => {
@@ -147,6 +152,7 @@ test("fetch handler proxies chat completions", async () => {
 });
 
 test("fetch handler returns OpenAI-compatible not found errors", async () => {
+	expect.hasAssertions();
 	const handler = createFetchHandler({
 		fetcher: () => Promise.reject(new Error("fetch should not be called")),
 		proxyConfiguration: createConfiguration(),
@@ -162,6 +168,7 @@ test("fetch handler returns OpenAI-compatible not found errors", async () => {
 });
 
 test("fetch handler maps thrown errors", async () => {
+	expect.hasAssertions();
 	const handler = createFetchHandler({
 		fetcher: () => Promise.reject(new Error("upstream exploded")),
 		proxyConfiguration: createConfiguration(),
@@ -181,6 +188,7 @@ test("fetch handler maps thrown errors", async () => {
 });
 
 test("fetch handler passes streaming responses through without buffering", async () => {
+	expect.hasAssertions();
 	const streamText = 'data: {"choices":[{"delta":{"content":"Hi"},"index":0}]}\n\n';
 	const handler = createFetchHandler({
 		fetcher: () =>

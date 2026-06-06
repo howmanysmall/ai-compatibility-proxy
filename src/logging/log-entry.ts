@@ -4,7 +4,7 @@ import nodeProcess from "node:process";
 import { inspect } from "node:util";
 import { name, version } from "@constants/package-json";
 import { getActiveLogContext, mergeLogContexts, sanitizeLogContext } from "@logging/log-context";
-import { sanitize } from "@logging/sanitizer";
+import { sanitize, sanitizeRecord } from "@logging/sanitizer";
 import { Predicate } from "effect";
 
 import type { LogObject, LogType } from "consola";
@@ -45,9 +45,11 @@ export interface StructuredLogEntry {
 function getHostName(): string {
 	try {
 		return hostname();
+		/* v8 ignore start -- hostname() failure is platform defensive and not reproducible through public API. */
 	} catch {
 		return UNKNOWN_HOST_NAME;
 	}
+	/* v8 ignore stop */
 }
 
 function getSeverityName(level: number, type: LogType): string {
@@ -92,9 +94,7 @@ function extractCustomProperties(logObject: LogObject): Readonly<Record<string, 
 
 	if (Object.keys(customProperties).length === 0) return undefined;
 
-	const sanitizedCustomProperties = sanitize(customProperties);
-	if (Predicate.isRecord(sanitizedCustomProperties)) return sanitizedCustomProperties;
-	return { value: sanitizedCustomProperties };
+	return sanitizeRecord(customProperties);
 }
 
 function getLogParameters(logObject: LogObject): Array<unknown> {

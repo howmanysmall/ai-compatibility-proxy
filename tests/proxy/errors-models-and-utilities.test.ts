@@ -1,3 +1,5 @@
+import { expect, test } from "vitest";
+
 import { createErrorBody, createErrorResponse, createUpstreamErrorAsync, ProxyError } from "@proxy/errors";
 import { getModelsAsync } from "@proxy/models";
 import { isOpenAiErrorBody } from "@proxy/openai-types";
@@ -42,6 +44,7 @@ const mixedModelsFetcherAsync: Fetcher = async () =>
 const invalidModelsFetcherAsync: Fetcher = async () => Response.json({ data: "invalid" });
 
 test("ProxyError serializes OpenAI-compatible error responses", async () => {
+	expect.hasAssertions();
 	const proxyError = new ProxyError("bad request", {
 		code: "bad_code",
 		param: "model",
@@ -62,6 +65,7 @@ test("ProxyError serializes OpenAI-compatible error responses", async () => {
 });
 
 test("createErrorResponse maps unknown failures to server errors", async () => {
+	expect.hasAssertions();
 	const response = createErrorResponse(new Error("boom"));
 	const body: unknown = await response.json();
 
@@ -72,9 +76,20 @@ test("createErrorResponse maps unknown failures to server errors", async () => {
 });
 
 test("createUpstreamErrorAsync extracts upstream text and JSON errors", async () => {
+	expect.hasAssertions();
 	const textError = await createUpstreamErrorAsync(new Response(" upstream down ", { status: 502 }));
 	expect(textError.message, "Expected text upstream error message.").toBe("upstream down");
 	expect(textError.type, "Expected 5xx upstream error type.").toBe("upstream_error");
+
+	const emptyTextError = await createUpstreamErrorAsync(new Response("   ", { status: 503 }));
+	expect(emptyTextError.message, "Expected empty text upstream fallback message.").toBe(
+		"Upstream request failed with HTTP 503.",
+	);
+
+	const noContentTypeError = await createUpstreamErrorAsync(new Response(null, { status: 502 }));
+	expect(noContentTypeError.message, "Expected missing content type fallback message.").toBe(
+		"Upstream request failed with HTTP 502.",
+	);
 
 	const jsonError = await createUpstreamErrorAsync(
 		Response.json(
@@ -92,9 +107,37 @@ test("createUpstreamErrorAsync extracts upstream text and JSON errors", async ()
 	expect(jsonError.message, "Expected nested JSON upstream message.").toBe("missing model");
 	expect(jsonError.code, "Expected nested JSON code.").toBe("invalid_model");
 	expect(jsonError.param, "Expected nested JSON param.").toBe("model");
+
+	const stringJsonError = await createUpstreamErrorAsync(
+		Response.json({ error: "plain JSON error" }, { status: 500 }),
+	);
+	expect(stringJsonError.message, "Expected string JSON error.").toBe("plain JSON error");
+	expect(stringJsonError.type, "Expected 5xx JSON error type.").toBe("upstream_error");
+
+	const topLevelJsonError = await createUpstreamErrorAsync(
+		Response.json({ code: "bad_code", message: "top-level message", param: "body" }, { status: 400 }),
+	);
+	expect(topLevelJsonError.message, "Expected top-level JSON message.").toBe("top-level message");
+	expect(topLevelJsonError.code, "Expected top-level JSON code.").toBe("bad_code");
+	expect(topLevelJsonError.param, "Expected top-level JSON param.").toBe("body");
+
+	const fallbackJsonError = await createUpstreamErrorAsync(Response.json(1, { status: 418 }));
+	expect(fallbackJsonError.message, "Expected non-object JSON fallback message.").toBe(
+		"Upstream request failed with HTTP 418.",
+	);
+	expect(fallbackJsonError.code, "Expected missing JSON code to map to null.").toBeNull();
+
+	const nestedErrorWithoutMessage = await createUpstreamErrorAsync(
+		Response.json({ error: { message: 123 }, message: "top-level fallback" }, { status: 400 }),
+	);
+	expect(
+		nestedErrorWithoutMessage.message,
+		"Expected top-level message when nested error message is not string.",
+	).toBe("top-level fallback");
 });
 
 test("getModelsAsync normalizes string/object models and falls back on invalid payloads", async () => {
+	expect.hasAssertions();
 	const models = await getModelsAsync(mixedModelsFetcherAsync, new Headers(), proxyConfiguration, "proxy");
 
 	expect(models.data.length, "Expected invalid model entries to be skipped.").toBe(3);
@@ -107,6 +150,7 @@ test("getModelsAsync normalizes string/object models and falls back on invalid p
 });
 
 test("utility validators and numeric helpers cover edge values", () => {
+	expect.hasAssertions();
 	expect(getNumber(1), "Expected number passthrough.").toBe(1);
 	expect(getNumber("1"), "Expected non-number fallback.").toBe(0);
 	expect(getFiniteNumber(Number.POSITIVE_INFINITY), "Expected infinite number fallback.").toBe(0);
@@ -121,6 +165,7 @@ test("utility validators and numeric helpers cover edge values", () => {
 });
 
 test("upstream tagged errors expose structured fields", () => {
+	expect.hasAssertions();
 	const timeout = new UpstreamTimeoutError({ timeoutMs: 100, url: "https://example.test" });
 	const http = new UpstreamHttpError({
 		body: "bad",

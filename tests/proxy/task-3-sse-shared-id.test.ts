@@ -1,3 +1,5 @@
+import { expect, test } from "vitest";
+
 import { translateAnthropicSseText } from "@proxy/sse";
 import { Predicate } from "effect";
 
@@ -74,6 +76,7 @@ test("stream id is taken from message_start, not generated per-chunk", () => {
 });
 
 test("falls back to generated UUID and configured model when message_start is absent", () => {
+	expect.hasAssertions();
 	const input = [
 		'data: {"type":"content_block_delta","delta":{"type":"text_delta","text":"Hi"}}',
 		"",

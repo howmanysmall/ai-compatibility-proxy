@@ -1,10 +1,14 @@
+import { expect, test } from "vitest";
+
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import nodeProcess from "node:process";
 import { createDailyFileRotateReporter, serializeLogEntry } from "@logging/reports/daily-file-rotate-reporter";
 
 import type { StructuredLogEntry } from "@logging/log-entry";
 import type { ConsolaOptions, LogObject, LogType } from "consola";
+import type { createStream } from "rotating-file-stream";
 
 const textEncoder = new TextEncoder();
 const consolaReporterContext = { options: {} as ConsolaOptions };
@@ -50,7 +54,10 @@ function createConsolaLogObject(level: number, type: LogType, message: string): 
 	};
 }
 
+type StreamHandler = (error: Error) => void;
+
 test("serializeLogEntry keeps normal entries unchanged", () => {
+	expect.hasAssertions();
 	const entry = createLogEntry({ payload: { id: "small-payload" } });
 	const serializedEntry = serializeLogEntry(entry, 4096);
 
@@ -60,15 +67,22 @@ test("serializeLogEntry keeps normal entries unchanged", () => {
 });
 
 test("serializeLogEntry truncates oversized entries", () => {
+	expect.hasAssertions();
 	const entry = createLogEntry({
 		context: {
+			booleanValue: true,
+			nullValue: null,
+			numberValue: 42,
+			objectValue: { nested: ["visible"] },
 			requestId: "test-request",
 			scope: "oversized-entry-test",
 		},
+		error: "Error: sensitive stack".repeat(100),
 		message: "m".repeat(100_000),
 		payload: {
 			largeValue: "x".repeat(100_000),
 		},
+		tag: "oversized-test",
 	});
 	const maxEntryBytes = 4_096;
 	const serializedEntry = serializeLogEntry(entry, maxEntryBytes);
@@ -85,10 +99,21 @@ test("serializeLogEntry truncates oversized entries", () => {
 		parsedEntry.payload === "[Truncated: log entry exceeded storage limit]",
 		"Expected payload to be omitted.",
 	).toBe(true);
+	expect(parsedEntry.error, "Expected oversized error details to be omitted.").toBe(
+		"[Truncated: log entry exceeded storage limit]",
+	);
+	expect(parsedEntry.tag, "Expected tag to survive truncation.").toBe("oversized-test");
+	expect(parsedEntry.context.numberValue, "Expected numeric context to be preserved.").toBe(42);
+	expect(parsedEntry.context.booleanValue, "Expected boolean context to be preserved.").toBe(true);
+	expect(parsedEntry.context.nullValue, "Expected null context to be preserved.").toBeNull();
+	expect(`${parsedEntry.context.objectValue}`, "Expected object context to be stringified safely.").toContain(
+		"visible",
+	);
 	expect(parsedEntry.message.length < entry.message.length, "Expected message to be shortened.").toBe(true);
 });
 
 test("serializeLogEntry falls back to minimal truncation when notice entry is still too large", () => {
+	expect.hasAssertions();
 	const entry = createLogEntry({
 		context: Object.fromEntries(Array.from({ length: 30 }, (_, index) => [`key-${index}`, "x".repeat(1000)])),
 		message: "m".repeat(100_000),
@@ -105,7 +130,28 @@ test("serializeLogEntry falls back to minimal truncation when notice entry is st
 	expect(parsedEntry.context, "Expected minimal truncation to drop context.").toEqual({});
 });
 
+test("serializeLogEntry records omitted context key counts for storage-safe truncation notices", () => {
+	expect.hasAssertions();
+	const entry = createLogEntry({
+		context: Object.fromEntries(Array.from({ length: 25 }, (_, index) => [`key-${index}`, index])),
+		message: "m".repeat(100_000),
+		payload: {
+			largeValue: "x".repeat(100_000),
+		},
+	});
+
+	const parsedEntry = JSON.parse(serializeLogEntry(entry, 8_192)) as StructuredLogEntry;
+
+	expect(parsedEntry.customProperties?.logEntryTruncated, "Expected truncation metadata.").toBe(true);
+	expect(parsedEntry.context.truncatedContextKeys, "Expected omitted context key count.").toBe(5);
+	expect(
+		Object.keys(parsedEntry.context),
+		"Expected storage-safe context to include 20 keys plus omission count.",
+	).toHaveLength(21);
+});
+
 test("createDailyFileRotateReporter honors the configured level filter", () => {
+	expect.hasAssertions();
 	let filterCalls = 0;
 	const reporter = createDailyFileRotateReporter({
 		directory: mkdtempSync(path.join(tmpdir(), "ai-compatibility-proxy-test-logs-")),
@@ -125,6 +171,7 @@ test("createDailyFileRotateReporter honors the configured level filter", () => {
 });
 
 test("createDailyFileRotateReporter writes logs when no level filter is configured", () => {
+	expect.hasAssertions();
 	const reporter = createDailyFileRotateReporter({
 		directory: mkdtempSync(path.join(tmpdir(), "ai-compatibility-proxy-test-logs-")),
 		filename: "combined.log",
@@ -135,4 +182,43 @@ test("createDailyFileRotateReporter writes logs when no level filter is configur
 	reporter.log(createConsolaLogObject(3, "info", "stored info log"), consolaReporterContext);
 
 	expect(reporter, "Expected reporter creation without a level filter to succeed.").toBeDefined();
+});
+
+test("createDailyFileRotateReporter writes file stream warnings to stderr", () => {
+	expect.hasAssertions();
+	const stderrMessages: Array<string> = [];
+	const handlers = new Map<string, StreamHandler>();
+	const originalWrite = nodeProcess.stderr.write;
+	Object.defineProperty(nodeProcess.stderr, "write", {
+		configurable: true,
+		value: (message: string) => {
+			stderrMessages.push(message);
+			return true;
+		},
+	});
+
+	try {
+		createDailyFileRotateReporter({
+			directory: mkdtempSync(path.join(tmpdir(), "ai-compatibility-proxy-test-logs-")),
+			filename: "combined.log",
+			maxFiles: 1,
+			size: "1M",
+			streamFactory: ((_filename: string, _options: Parameters<typeof createStream>[1]) => ({
+				on: (event: string, handler: StreamHandler) => {
+					handlers.set(event, handler);
+				},
+				write: () => true,
+			})) as unknown as typeof createStream,
+		});
+
+		handlers.get("error")?.(new Error("stream error"));
+		handlers.get("warning")?.(new Error("stream warning"));
+	} finally {
+		Object.defineProperty(nodeProcess.stderr, "write", { configurable: true, value: originalWrite });
+	}
+
+	expect(stderrMessages, "Expected stream error and warning messages to be written to stderr.").toEqual([
+		"[logging] stream error\n",
+		"[logging] stream warning\n",
+	]);
 });

@@ -15,6 +15,11 @@ interface OpenCodeModelsCacheEntry {
 	metadataByModel: Record<string, string> | undefined;
 }
 
+interface OpenCodeMetadataResult {
+	readonly metadataByModel: Record<string, string>;
+	readonly source: OpenCodeRouteDecision["source"];
+}
+
 let cacheByFetcher = new WeakMap<Fetcher, Map<string, OpenCodeModelsCacheEntry>>();
 
 export async function resolveOpenCodeModelRouteAsync(
@@ -22,18 +27,18 @@ export async function resolveOpenCodeModelRouteAsync(
 	proxyConfiguration: ProxyConfiguration,
 	model: string,
 ): Promise<OpenCodeRouteDecision> {
-	const metadataByModel = await getOpenCodeMetadataByModelAsync(fetcher, proxyConfiguration);
-	if (!metadataByModel) return { model, route: "unknown", source: "unknown" };
+	const metadataResult = await getOpenCodeMetadataByModelAsync(fetcher, proxyConfiguration);
+	if (!metadataResult) return { model, route: "unknown", source: "unknown" };
 
-	const npm = metadataByModel[model];
+	const npm = metadataResult.metadataByModel[model];
 	if (typeof npm !== "string") {
-		return { model, route: "unknown", source: getMetadataSource(fetcher, proxyConfiguration) };
+		return { model, route: "unknown", source: metadataResult.source };
 	}
 
 	return {
 		model,
 		route: getRouteFromNpm(npm),
-		source: getMetadataSource(fetcher, proxyConfiguration),
+		source: metadataResult.source,
 	};
 }
 
@@ -44,12 +49,16 @@ export function clearOpenCodeModelRoutingCache(): void {
 async function getOpenCodeMetadataByModelAsync(
 	fetcher: Fetcher,
 	{ opencodeModelsCacheTtlMs, opencodeModelsFetchTimeoutMs, opencodeModelsUrl }: ProxyConfiguration,
-): Promise<Record<string, string> | undefined> {
+): Promise<OpenCodeMetadataResult | undefined> {
 	const cacheEntry = getCacheEntry(fetcher, opencodeModelsUrl);
 	const now = Date.now();
 
-	if (cacheEntry.metadataByModel && cacheEntry.expiresAt > now) return cacheEntry.metadataByModel;
-	if (cacheEntry.inFlight) return await getMetadataWithStaleFallbackAsync(cacheEntry);
+	if (cacheEntry.metadataByModel && cacheEntry.expiresAt > now) {
+		return { metadataByModel: cacheEntry.metadataByModel, source: "metadata" };
+	}
+	if (cacheEntry.inFlight) {
+		return await getMetadataWithStaleFallbackAsync(cacheEntry.inFlight, cacheEntry.metadataByModel);
+	}
 
 	cacheEntry.inFlight = fetchOpenCodeMetadataByModelAsync(fetcher, opencodeModelsUrl, opencodeModelsFetchTimeoutMs);
 
@@ -57,9 +66,11 @@ async function getOpenCodeMetadataByModelAsync(
 		const metadataByModel = await cacheEntry.inFlight;
 		cacheEntry.metadataByModel = metadataByModel;
 		cacheEntry.expiresAt = now + opencodeModelsCacheTtlMs;
-		return metadataByModel;
+		return { metadataByModel, source: "metadata" };
 	} catch {
-		if (cacheEntry.metadataByModel) return cacheEntry.metadataByModel;
+		if (cacheEntry.metadataByModel) {
+			return { metadataByModel: cacheEntry.metadataByModel, source: "stale_metadata" };
+		}
 		return undefined;
 	} finally {
 		cacheEntry.inFlight = undefined;
@@ -67,12 +78,15 @@ async function getOpenCodeMetadataByModelAsync(
 }
 
 async function getMetadataWithStaleFallbackAsync(
-	cacheEntry: OpenCodeModelsCacheEntry,
-): Promise<Record<string, string> | undefined> {
+	inFlight: Promise<Record<string, string>>,
+	staleMetadataByModel: Record<string, string> | undefined,
+): Promise<OpenCodeMetadataResult | undefined> {
 	try {
-		return await cacheEntry.inFlight;
+		const metadataByModel = await inFlight;
+		return { metadataByModel, source: "metadata" };
 	} catch {
-		return cacheEntry.metadataByModel;
+		if (staleMetadataByModel) return { metadataByModel: staleMetadataByModel, source: "stale_metadata" };
+		return undefined;
 	}
 }
 
@@ -131,15 +145,6 @@ function getOpenCodeMetadataByModel(body: unknown): Record<string, string> {
 	}
 
 	return metadataByModel;
-}
-
-function getMetadataSource(
-	fetcher: Fetcher,
-	{ opencodeModelsUrl }: ProxyConfiguration,
-): OpenCodeRouteDecision["source"] {
-	const cacheEntry = cacheByFetcher.get(fetcher)?.get(opencodeModelsUrl);
-	if (!cacheEntry?.metadataByModel) return "unknown";
-	return cacheEntry.expiresAt > Date.now() ? "metadata" : "stale_metadata";
 }
 
 function getRouteFromNpm(npm: string): OpenCodeRoute {

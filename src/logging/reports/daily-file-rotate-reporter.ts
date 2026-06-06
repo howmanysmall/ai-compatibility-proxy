@@ -8,6 +8,8 @@ import type { StructuredLogEntry } from "@logging/log-entry";
 import type { ConsolaReporter, LogObject } from "consola";
 import type { FileSize, Interval } from "rotating-file-stream";
 
+type RotatingLogStreamFactory = typeof createStream;
+
 const DEFAULT_MAX_ENTRY_BYTES = 256 * 1024;
 const DEFAULT_MAX_ROTATED_LOG_SIZE: FileSize = "100M";
 const LOG_ENTRY_TRUNCATED_PLACEHOLDER = "[Truncated: log entry exceeded storage limit]";
@@ -112,6 +114,7 @@ export interface DailyFileRotateReporterOptions {
 	readonly maxFiles?: number;
 	readonly maxSize?: FileSize;
 	readonly size?: FileSize;
+	readonly streamFactory?: RotatingLogStreamFactory;
 }
 
 export function serializeLogEntry(entry: StructuredLogEntry, maxEntryBytes: number = DEFAULT_MAX_ENTRY_BYTES): string {
@@ -135,8 +138,9 @@ export function createDailyFileRotateReporter({
 	maxFiles = 14,
 	maxSize = DEFAULT_MAX_ROTATED_LOG_SIZE,
 	size = "20M",
+	streamFactory = createStream,
 }: DailyFileRotateReporterOptions): ConsolaReporter {
-	const stream = createStream(filename, {
+	const stream = streamFactory(filename, {
 		compress: "gzip",
 		initialRotation: true,
 		interval,

@@ -1,3 +1,5 @@
+import { expect, test } from "vitest";
+
 import { createApp } from "@proxy/app";
 
 import { getInitHeader } from "../utilities/test-utilities";
@@ -27,6 +29,7 @@ function createConfiguration(overrides: Partial<ProxyConfiguration> = {}): Proxy
 }
 
 test("server_key mode rejects same-length wrong token", async () => {
+	expect.hasAssertions();
 	const app = createApp({
 		fetcher: (_input, init) => {
 			expect(
@@ -48,6 +51,7 @@ test("server_key mode rejects same-length wrong token", async () => {
 });
 
 test("server_key mode rejects different-length wrong token", async () => {
+	expect.hasAssertions();
 	const app = createApp({
 		fetcher: () => Promise.resolve(Response.json({ data: [], object: "list" })),
 		proxyConfiguration: createConfiguration(),
@@ -63,6 +67,7 @@ test("server_key mode rejects different-length wrong token", async () => {
 });
 
 test("server_key mode accepts correct token", async () => {
+	expect.hasAssertions();
 	const app = createApp({
 		fetcher: (_input, init) => {
 			expect(

@@ -1,3 +1,5 @@
+import { expect, test } from "vitest";
+
 import { normalizeCerebrasRequest } from "@proxy/cerebras-translator";
 import { ProxyError } from "@proxy/errors";
 
@@ -40,9 +42,12 @@ function captureProxyError(callback: () => unknown): ProxyError {
 
 test("normalizes max_tokens, fallback model, names, and text parts", () => {
 	const request: OpenAiChatCompletionRequest = {
+		frequency_penalty: 0,
+		logprobs: true,
 		max_tokens: 128,
 		messages: [
 			{ content: "system", role: "system" },
+			{ content: "developer", role: "developer" },
 			{
 				content: [
 					{ text: "hello ", type: "text" },
@@ -53,17 +58,39 @@ test("normalizes max_tokens, fallback model, names, and text parts", () => {
 			},
 		],
 		model: "   ",
+		presence_penalty: 0,
+		seed: 42,
+		stop: "END",
+		stream: false,
+		temperature: 0,
+		top_logprobs: 0,
+		top_p: 1,
+		user: "customer-123",
 	};
 
 	const normalized = normalizeCerebrasRequest(request, baseConfiguration);
 
 	expect(normalized.model, "Expected default model fallback.").toBe("llama-test");
 	expect(normalized.max_completion_tokens, "Expected max_tokens to normalize.").toBe(128);
-	expect(normalized.messages?.[1]?.content, "Expected text parts to concatenate.").toBe("hello world");
-	expect(normalized.messages?.[1]?.name, "Expected message name to be preserved.").toBe("logan");
+	expect(normalized.messages?.[1]?.content, "Expected developer messages to be preserved.").toBe("developer");
+	expect(normalized.messages?.[2]?.content, "Expected text parts to concatenate.").toBe("hello world");
+	expect(normalized.messages?.[2]?.name, "Expected message name to be preserved.").toBe("logan");
+	expect(normalized, "Expected allowed Cerebras passthrough fields to be preserved.").toMatchObject({
+		frequency_penalty: 0,
+		logprobs: true,
+		presence_penalty: 0,
+		seed: 42,
+		stop: "END",
+		stream: false,
+		temperature: 0,
+		top_logprobs: 0,
+		top_p: 1,
+		user: "customer-123",
+	});
 });
 
 test("prefers existing max_completion_tokens over max_tokens", () => {
+	expect.hasAssertions();
 	const normalized = normalizeCerebrasRequest(
 		{
 			max_completion_tokens: 256,
@@ -78,10 +105,14 @@ test("prefers existing max_completion_tokens over max_tokens", () => {
 });
 
 test("drops unsupported fields when loose dropping is configured", () => {
+	expect.hasAssertions();
 	const normalized = normalizeCerebrasRequest(
 		{
+			experimental_passthrough: "drop-me",
 			messages: [{ content: "hello", role: "user" }],
 			model: "llama",
+			// oxlint-disable-next-line id-length -- `n` is the OpenAI wire-field name.
+			n: 2,
 			response_format: { type: "json_object" },
 		},
 		withConfiguration({
@@ -91,9 +122,12 @@ test("drops unsupported fields when loose dropping is configured", () => {
 	);
 
 	expect(!("response_format" in normalized), "Expected unsupported field to be dropped.").toBe(true);
+	expect(!("experimental_passthrough" in normalized), "Expected unknown loose field to be dropped.").toBe(true);
+	expect(!("n" in normalized), "Expected unsupported n field to be dropped in loose mode.").toBe(true);
 });
 
 test("rejects unsupported fields when strict validation is enabled", () => {
+	expect.hasAssertions();
 	const error = captureProxyError(() =>
 		normalizeCerebrasRequest(
 			{
@@ -106,9 +140,37 @@ test("rejects unsupported fields when strict validation is enabled", () => {
 	);
 
 	expect(error.param, "Expected unsupported field param.").toBe("tools");
+
+	const unknownFieldError = captureProxyError(() =>
+		normalizeCerebrasRequest(
+			{
+				experimental_passthrough: "reject-me",
+				messages: [{ content: "hello", role: "user" }],
+				model: "llama",
+			},
+			baseConfiguration,
+		),
+	);
+
+	expect(unknownFieldError.param, "Expected strict unknown field param.").toBe("experimental_passthrough");
+
+	const choiceCountError = captureProxyError(() =>
+		normalizeCerebrasRequest(
+			{
+				messages: [{ content: "hello", role: "user" }],
+				model: "llama",
+				// oxlint-disable-next-line id-length -- `n` is the OpenAI wire-field name.
+				n: 2,
+			},
+			baseConfiguration,
+		),
+	);
+
+	expect(choiceCountError.param, "Expected invalid choice count param.").toBe("n");
 });
 
 test("rejects invalid Cerebras message roles and tool calls", () => {
+	expect.hasAssertions();
 	for (const request of [
 		{
 			messages: [{ content: "hello", role: "tool" }],
@@ -124,6 +186,7 @@ test("rejects invalid Cerebras message roles and tool calls", () => {
 });
 
 test("rejects empty messages and unsupported content parts", () => {
+	expect.hasAssertions();
 	const imageContentPart: Record<string, unknown> = {
 		image_url: { url: "https://example.test/image.png" },
 		type: "image_url",
@@ -132,6 +195,7 @@ test("rejects empty messages and unsupported content parts", () => {
 	for (const request of [
 		{ messages: [], model: "llama" },
 		{ messages: [{ role: "user" }], model: "llama" },
+		{ messages: [{ content: null, role: "user" }], model: "llama" },
 		{
 			messages: [{ content: [imageContentPart], role: "user" }],
 			model: "llama",

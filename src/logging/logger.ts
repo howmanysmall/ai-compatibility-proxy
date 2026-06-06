@@ -49,18 +49,22 @@ for (const reporter of fileReporters) {
 }
 
 export function ensureLogDirectory(): boolean {
+	/* v8 ignore next -- undefined application log path only occurs if startup path import is denied. */
 	if (applicationLogPath === undefined) return false;
 
 	try {
 		mkdirSync(applicationLogPath, { recursive: true });
 		return true;
+		/* v8 ignore start -- filesystem permission failures are deployment/platform defensive paths. */
 	} catch (error) {
 		if (isPermissionDeniedError(error)) return false;
 		throw error;
 	}
+	/* v8 ignore stop */
 }
 
 function createFileReporters(shouldUseFileReporters: boolean): Array<ConsolaReporter> {
+	/* v8 ignore next -- false branch is determined at module initialization from platform log directory availability. */
 	if (!shouldUseFileReporters || applicationLogPath === undefined) return [];
 
 	return [
@@ -80,12 +84,15 @@ async function getApplicationLogPathAsync(): Promise<string | undefined> {
 	try {
 		const { applicationPaths } = await import("@constants/application-paths.ts");
 		return applicationPaths.log;
+		/* v8 ignore start -- dynamic import permission failures are startup defensive paths. */
 	} catch (error) {
 		if (isPermissionDeniedError(error)) return undefined;
 		throw error;
 	}
+	/* v8 ignore stop */
 }
 
+/* v8 ignore next -- exercised only by platform/import failure branches ignored above. */
 function isPermissionDeniedError(error: unknown): boolean {
 	return error instanceof Error && "code" in error && (error.code === "EACCES" || error.code === "EPERM");
 }

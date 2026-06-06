@@ -77,8 +77,7 @@ function getBearerToken(request: Request): string | undefined {
 	const trimmedAuthorization = authorization.trim();
 	if (!trimmedAuthorization.toLowerCase().startsWith(BEARER_PREFIX)) return undefined;
 
-	const token = trimmedAuthorization.slice(BEARER_PREFIX.length).trim();
-	return token.length === 0 ? undefined : token;
+	return trimmedAuthorization.slice(BEARER_PREFIX.length).trim();
 }
 
 function setUpstreamAuthHeader(headers: Headers, headerName: string, token: string): void {

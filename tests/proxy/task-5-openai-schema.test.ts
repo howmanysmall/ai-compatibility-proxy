@@ -1,3 +1,5 @@
+import { expect, test } from "vitest";
+
 import { createApp } from "@proxy/app";
 import { Predicate } from "effect";
 
@@ -57,6 +59,7 @@ function getRecord(value: Record<string, unknown>, key: string): Record<string, 
 }
 
 test("rejects request bodies missing messages", async () => {
+	expect.hasAssertions();
 	const app = createApp({
 		fetcher: () => Promise.reject(new Error("fetch should not be called")),
 		proxyConfiguration: createConfiguration(),
@@ -70,6 +73,7 @@ test("rejects request bodies missing messages", async () => {
 });
 
 test("rejects request bodies with non-array messages", async () => {
+	expect.hasAssertions();
 	const app = createApp({
 		fetcher: () => Promise.reject(new Error("fetch should not be called")),
 		proxyConfiguration: createConfiguration(),
@@ -83,6 +87,7 @@ test("rejects request bodies with non-array messages", async () => {
 });
 
 test("rejects request bodies with empty messages arrays", async () => {
+	expect.hasAssertions();
 	const app = createApp({
 		fetcher: () => Promise.reject(new Error("fetch should not be called")),
 		proxyConfiguration: createConfiguration(),
@@ -96,6 +101,7 @@ test("rejects request bodies with empty messages arrays", async () => {
 });
 
 test("rejects empty request bodies", async () => {
+	expect.hasAssertions();
 	const app = createApp({
 		fetcher: () => Promise.reject(new Error("fetch should not be called")),
 		proxyConfiguration: createConfiguration(),

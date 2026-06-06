@@ -1,3 +1,5 @@
+import { expect, test } from "vitest";
+
 import { translateAnthropicToOpenAi, translateOpenAiToAnthropic } from "@proxy/anthropic-translator";
 import { createApp } from "@proxy/app";
 import { normalizeCerebrasRequest } from "@proxy/cerebras-translator";
@@ -73,6 +75,7 @@ function getArray(value: Record<string, unknown>, key: string): ReadonlyArray<un
 }
 
 test("translates OpenAI request to OpenCode Go Anthropic request", () => {
+	expect.hasAssertions();
 	const anthropicRequest = translateOpenAiToAnthropic(
 		{
 			max_completion_tokens: 128,
@@ -105,6 +108,7 @@ test("translates OpenAI request to OpenCode Go Anthropic request", () => {
 });
 
 test("uses default token limit when OpenAI request omits one", () => {
+	expect.hasAssertions();
 	const anthropicRequest = translateOpenAiToAnthropic(
 		{
 			messages: [{ content: "Hello", role: "user" }],
@@ -117,6 +121,7 @@ test("uses default token limit when OpenAI request omits one", () => {
 });
 
 test("translates Anthropic response to OpenAI response with cache usage", () => {
+	expect.hasAssertions();
 	const openAIResponse = translateAnthropicToOpenAi(
 		{
 			base_resp: { status_code: 0, status_msg: "success" },
@@ -154,6 +159,7 @@ test("translates Anthropic response to OpenAI response with cache usage", () => 
 });
 
 test("translates Anthropic streaming events to OpenAI SSE", () => {
+	expect.hasAssertions();
 	const output = translateAnthropicSseText(
 		[
 			'data: {"type":"message_start","message":{"id":"msg_1","model":"minimax-m3"}}',
@@ -174,6 +180,7 @@ test("translates Anthropic streaming events to OpenAI SSE", () => {
 });
 
 test("rejects unsupported Anthropic message content", () => {
+	expect.hasAssertions();
 	let didThrow = false;
 
 	try {
@@ -197,6 +204,7 @@ test("rejects unsupported Anthropic message content", () => {
 });
 
 test("rejects missing client bearer auth", async () => {
+	expect.hasAssertions();
 	const app = createApp({
 		fetcher: () => Promise.reject(new Error("fetch should not be called")),
 		proxyConfiguration: createConfiguration(),
@@ -211,6 +219,7 @@ test("rejects missing client bearer auth", async () => {
 });
 
 test("returns health status through Elysia route", async () => {
+	expect.hasAssertions();
 	const app = createApp({
 		fetcher: () => Promise.reject(new Error("fetch should not be called")),
 		proxyConfiguration: createConfiguration(),
@@ -225,6 +234,7 @@ test("returns health status through Elysia route", async () => {
 });
 
 test("returns OpenAI-compatible not found errors", async () => {
+	expect.hasAssertions();
 	const app = createApp({
 		fetcher: () => Promise.reject(new Error("fetch should not be called")),
 		proxyConfiguration: createConfiguration(),
@@ -240,6 +250,7 @@ test("returns OpenAI-compatible not found errors", async () => {
 });
 
 test("rejects chat requests without JSON content type", async () => {
+	expect.hasAssertions();
 	const app = createApp({
 		fetcher: () => Promise.reject(new Error("fetch should not be called")),
 		proxyConfiguration: createConfiguration(),
@@ -263,7 +274,59 @@ test("rejects chat requests without JSON content type", async () => {
 	expect(error.param === "content-type", "Expected content-type param.").toBe(true);
 });
 
+test("rejects chat requests with missing content type before reading the body", async () => {
+	expect.hasAssertions();
+	const app = createApp({
+		fetcher: () => Promise.reject(new Error("fetch should not be called")),
+		proxyConfiguration: createConfiguration(),
+	});
+
+	const response = await app.fetch(
+		new Request("http://localhost/v1/chat/completions", {
+			headers: {
+				authorization: "Bearer test-token",
+			},
+			method: "POST",
+		}),
+	);
+	const body = await readRecordAsync(response);
+	const error = getRecord(body, "error");
+
+	expect(response.status, "Expected missing content-type to fail.").toBe(415);
+	expect(error.message, "Expected content type error.").toBe("Content-Type must be application/json.");
+	expect(error.param, "Expected content-type param.").toBe("content-type");
+});
+
+test("rejects chat requests with non-object JSON bodies", async () => {
+	expect.hasAssertions();
+	const app = createApp({
+		fetcher: () => Promise.reject(new Error("fetch should not be called")),
+		proxyConfiguration: createConfiguration(),
+	});
+
+	await Promise.all(
+		["null", "[]"].map(async (requestBody) => {
+			const response = await app.fetch(
+				new Request("http://localhost/v1/chat/completions", {
+					body: requestBody,
+					headers: {
+						authorization: "Bearer test-token",
+						"content-type": "application/json",
+					},
+					method: "POST",
+				}),
+			);
+			const body = await readRecordAsync(response);
+			const error = getRecord(body, "error");
+
+			expect(response.status, "Expected non-object JSON body to fail.").toBe(400);
+			expect(error.message, "Expected non-object body error.").toBe("Request body must be a JSON object.");
+		}),
+	);
+});
+
 test("proxies model list from OpenCode Go model endpoint", async () => {
+	expect.hasAssertions();
 	let seenUrl = "";
 	let seenAuthorization = "";
 	const app = createApp({
@@ -295,6 +358,7 @@ test("proxies model list from OpenCode Go model endpoint", async () => {
 });
 
 test("probes OpenCode Go passthrough dynamically without hardcoded model ids", async () => {
+	expect.hasAssertions();
 	let seenAuthorization = "";
 	let seenBody: Record<string, unknown> = {};
 	let seenXApiKey = "";
@@ -365,6 +429,7 @@ test("probes OpenCode Go passthrough dynamically without hardcoded model ids", a
 });
 
 test("falls back to Anthropic translation when passthrough returns a client error", async () => {
+	expect.hasAssertions();
 	const seenUrls: Array<string> = [];
 	const app = createApp({
 		fetcher: (input, init) => {
@@ -429,6 +494,7 @@ test("falls back to Anthropic translation when passthrough returns a client erro
 });
 
 test("maps upstream 400 errors to OpenAI-compatible errors", async () => {
+	expect.hasAssertions();
 	const app = createApp({
 		fetcher: () =>
 			Promise.resolve(
@@ -458,6 +524,7 @@ test("maps upstream 400 errors to OpenAI-compatible errors", async () => {
 });
 
 test("passes OpenAI-compatible streaming responses through without buffering", async () => {
+	expect.hasAssertions();
 	const streamText = 'data: {"choices":[{"delta":{"content":"Hi"},"index":0}]}\n\n';
 	const app = createApp({
 		fetcher: () =>
@@ -492,6 +559,7 @@ test("passes OpenAI-compatible streaming responses through without buffering", a
 });
 
 test("normalizes Cerebras max_tokens and rejects unsupported fields", () => {
+	expect.hasAssertions();
 	const config = createConfiguration({
 		defaultModel: "gpt-oss-120b",
 		upstreamBaseUrl: "https://api.cerebras.ai/v1",
@@ -530,6 +598,7 @@ test("normalizes Cerebras max_tokens and rejects unsupported fields", () => {
 });
 
 test("server_key mode requires proxy token and uses upstream key", async () => {
+	expect.hasAssertions();
 	let seenAuthorization = "";
 	const app = createApp({
 		fetcher: (_input, init) => {
@@ -560,6 +629,7 @@ test("server_key mode requires proxy token and uses upstream key", async () => {
 });
 
 test("loads OpenCode Go MiniMax M3 defaults", () => {
+	expect.hasAssertions();
 	const config = loadConfiguration({});
 
 	expect(config.upstreamProtocol === "anthropic_messages", "Expected Anthropic protocol default.").toBe(true);
@@ -570,6 +640,7 @@ test("loads OpenCode Go MiniMax M3 defaults", () => {
 });
 
 test("loads Cerebras defaults", () => {
+	expect.hasAssertions();
 	const config = loadConfiguration({ UPSTREAM_PROTOCOL: "cerebras_openai" });
 
 	expect(config.upstreamProtocol === "cerebras_openai", "Expected Cerebras protocol.").toBe(true);

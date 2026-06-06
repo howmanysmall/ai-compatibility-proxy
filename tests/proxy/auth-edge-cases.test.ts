@@ -1,3 +1,5 @@
+import { expect, test } from "vitest";
+
 import { createAuthContext } from "@proxy/auth";
 import { ProxyError } from "@proxy/errors";
 
@@ -51,6 +53,7 @@ function expectProxyError(callback: () => unknown, status: number, type: string)
 }
 
 test("client_bearer mode accepts mixed-case bearer tokens and x-api-key upstream auth", () => {
+	expect.hasAssertions();
 	const context = createAuthContext(createRequest("  BeArEr client-token  "), baseConfiguration);
 
 	expect(context.upstreamHeaders.get("content-type"), "Expected JSON content type.").toBe("application/json");
@@ -68,6 +71,7 @@ test("client_bearer mode rejects missing, empty, and non-bearer authorization", 
 });
 
 test("server_key mode validates required proxy and upstream keys", () => {
+	expect.hasAssertions();
 	expectProxyError(
 		() =>
 			createAuthContext(
@@ -94,7 +98,23 @@ test("server_key mode validates required proxy and upstream keys", () => {
 	);
 });
 
+test("server_key mode rejects missing bearer token before timing-safe comparison", () => {
+	expect.hasAssertions();
+	expectProxyError(
+		() =>
+			createAuthContext(
+				createRequest(),
+				createConfiguration({
+					upstreamAuthMode: "server_key",
+				}),
+			),
+		401,
+		"authentication_error",
+	);
+});
+
 test("server_key mode emits Authorization bearer header when configured", () => {
+	expect.hasAssertions();
 	const context = createAuthContext(
 		createRequest("Bearer proxy-key"),
 		createConfiguration({

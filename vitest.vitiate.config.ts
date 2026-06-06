@@ -3,7 +3,7 @@ import { defineConfig, mergeConfig } from "vitest/config";
 
 import baseConfiguration from "./vitest.config.ts";
 
-export default mergeConfig(
+const configuration = mergeConfig(
 	baseConfiguration,
 	defineConfig({
 		plugins: [vitiatePlugin()],
@@ -18,3 +18,5 @@ export default mergeConfig(
 		},
 	}),
 );
+
+export default configuration;
