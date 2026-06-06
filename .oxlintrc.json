@@ -15,19 +15,17 @@
 	},
 	"extends": [],
 	"globals": {
-		"Bun": "readonly",
-		"beforeEach": "readonly",
-		"describe": "readonly",
-		"expect": "readonly",
-		"test": "readonly",
-		"vi": "readonly"
+		"Bun": "readonly"
 	},
 	"ignorePatterns": [
 		"**/dist/**",
 		"**/do-not-sync-ever/**",
 		"**/node_modules/**",
 		"plugins/oxc/**/*.js",
-		"benchmarks/**/*.js"
+		"benchmarks/**/*.js",
+		"vitest.config.ts",
+		"vitest.mutation.config.ts",
+		"vitest.vitiate.config.ts"
 	],
 	"jsPlugins": [
 		"./plugins/oxc/small-rules.js",
@@ -42,7 +40,7 @@
 		"reportUnusedDisableDirectives": "error",
 		"respectEslintDisableDirectives": true,
 		"typeAware": true,
-		"typeCheck": false
+		"typeCheck": true
 	},
 	"overrides": [
 		{
@@ -105,6 +103,16 @@
 		},
 		{
 			"files": ["tests/**/*.test.{tsx,ts}"],
+			"globals": {
+				"afterAll": "readonly",
+				"afterEach": "readonly",
+				"beforeAll": "readonly",
+				"beforeEach": "readonly",
+				"describe": "readonly",
+				"expect": "readonly",
+				"test": "readonly",
+				"vi": "readonly"
+			},
 			"plugins": [
 				"eslint",
 				"import",
@@ -131,14 +139,14 @@
 				"vitest/consistent-test-filename": "error",
 				"vitest/consistent-test-it": "error",
 				"vitest/consistent-vitest-vi": "error",
-				"vitest/expect-expect": "off",
+				"vitest/expect-expect": "error",
 				"vitest/hoisted-apis-on-top": "error",
 				"vitest/max-expects": "off",
 				"vitest/max-nested-describe": "error",
 				"vitest/no-alias-methods": "error",
 				"vitest/no-commented-out-tests": "error",
 				"vitest/no-conditional-expect": "error",
-				"vitest/no-conditional-in-test": "off",
+				"vitest/no-conditional-in-test": "error",
 				"vitest/no-conditional-tests": "error",
 				"vitest/no-disabled-tests": "error",
 				"vitest/no-duplicate-hooks": "error",
@@ -154,10 +162,10 @@
 				"vitest/prefer-called-once": "error",
 				"vitest/prefer-called-times": "error",
 				"vitest/prefer-describe-function-title": "off",
-				"vitest/prefer-expect-assertions": "off",
+				"vitest/prefer-expect-assertions": "error",
 				"vitest/prefer-expect-type-of": "error",
 				"vitest/prefer-import-in-mock": "error",
-				"vitest/prefer-importing-vitest-globals": "off",
+				"vitest/prefer-importing-vitest-globals": "error",
 				"vitest/prefer-strict-boolean-matchers": "error",
 				"vitest/prefer-to-be-falsy": "off",
 				"vitest/prefer-to-be-object": "error",
@@ -180,9 +188,7 @@
 		},
 		{
 			"files": ["vitest*.config.ts"],
-			"rules": {
-				"unicorn/no-null": "off"
-			}
+			"rules": { "unicorn/no-null": "off" }
 		}
 	],
 	"plugins": ["eslint", "import", "jsdoc", "jsx-a11y", "node", "oxc", "promise", "react-perf", "react", "unicorn"],
