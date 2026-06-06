@@ -1,5 +1,4 @@
 import { expect, test } from "vitest";
-
 import { clearOpenCodeModelRoutingCache, resolveOpenCodeModelRouteAsync } from "@providers/opencode-model-routing";
 
 import type { ProxyConfiguration } from "@proxy/config";
@@ -65,6 +64,36 @@ function createPendingResponseRejecter(): {
 	return {
 		promise,
 		reject,
+	};
+}
+
+function createStaleRefreshFailureFetcher(): { readonly fetcher: Fetcher; getFetchCount(): number } {
+	let fetchCount = 0;
+	const fetcherAsync: Fetcher = async () => {
+		fetchCount += 1;
+		if (fetchCount === 1) return createMetadataResponse();
+		throw new Error("metadata down");
+	};
+
+	return {
+		fetcher: fetcherAsync,
+		getFetchCount: () => fetchCount,
+	};
+}
+
+function createSharedRefreshFailureFetcher(
+	initialMetadata: Readonly<{ readonly promise: Promise<Response> }>,
+	refreshFailure: Readonly<{ readonly promise: Promise<Response> }>,
+): { readonly fetcher: Fetcher; getFetchCount(): number } {
+	let fetchCount = 0;
+	const fetcher: Fetcher = () => {
+		fetchCount += 1;
+		return fetchCount === 1 ? initialMetadata.promise : refreshFailure.promise;
+	};
+
+	return {
+		fetcher,
+		getFetchCount: () => fetchCount,
 	};
 }
 
@@ -138,20 +167,15 @@ test("reuses cached metadata before TTL expires", async () => {
 test("uses stale cache when metadata refresh fails", async () => {
 	expect.hasAssertions();
 	clearOpenCodeModelRoutingCache();
-	let fetchCount = 0;
-	const fetchMetadataAsync: Fetcher = async () => {
-		fetchCount += 1;
-		if (fetchCount === 1) return createMetadataResponse();
-		throw new Error("metadata down");
-	};
+	const metadataFetcher = createStaleRefreshFailureFetcher();
 	const configuration = createConfiguration({ opencodeModelsCacheTtlMs: 0 });
 
-	await resolveOpenCodeModelRouteAsync(fetchMetadataAsync, configuration, "deepseek-v4-flash");
-	const decision = await resolveOpenCodeModelRouteAsync(fetchMetadataAsync, configuration, "deepseek-v4-flash");
+	await resolveOpenCodeModelRouteAsync(metadataFetcher.fetcher, configuration, "deepseek-v4-flash");
+	const decision = await resolveOpenCodeModelRouteAsync(metadataFetcher.fetcher, configuration, "deepseek-v4-flash");
 
 	expect(decision.route, "Expected stale cache to preserve last known route.").toBe("chat_completions");
 	expect(decision.source, "Expected stale metadata source after refresh failure.").toBe("stale_metadata");
-	expect(fetchCount >= 2, "Expected refresh attempt after TTL expiry.").toBe(true);
+	expect(metadataFetcher.getFetchCount(), "Expected refresh attempt after TTL expiry.").toBe(2);
 });
 
 test("returns unknown on cold metadata failure", async () => {
@@ -215,23 +239,38 @@ test("shares in-flight metadata requests and falls back to stale metadata when i
 	clearOpenCodeModelRoutingCache();
 	const initialMetadata = createPendingResponseResolver();
 	const refreshFailure = createPendingResponseRejecter();
-	let fetchCount = 0;
-	const fetcher: Fetcher = () => {
-		fetchCount += 1;
-		return fetchCount === 1 ? initialMetadata.promise : refreshFailure.promise;
-	};
+	const metadataFetcher = createSharedRefreshFailureFetcher(initialMetadata, refreshFailure);
 	const configuration = createConfiguration({ opencodeModelsCacheTtlMs: 0 });
 
-	const firstDecisionPromise = resolveOpenCodeModelRouteAsync(fetcher, configuration, "deepseek-v4-flash");
-	const secondDecisionPromise = resolveOpenCodeModelRouteAsync(fetcher, configuration, "claude-sonnet-4");
+	const firstDecisionPromise = resolveOpenCodeModelRouteAsync(
+		metadataFetcher.fetcher,
+		configuration,
+		"deepseek-v4-flash",
+	);
+	const secondDecisionPromise = resolveOpenCodeModelRouteAsync(
+		metadataFetcher.fetcher,
+		configuration,
+		"claude-sonnet-4",
+	);
 	initialMetadata.resolve(createMetadataResponse());
 	const [firstDecision, secondDecision] = await Promise.all([firstDecisionPromise, secondDecisionPromise]);
-	const staleDecisionPromise = resolveOpenCodeModelRouteAsync(fetcher, configuration, "deepseek-v4-flash");
-	const sharedStaleDecisionPromise = resolveOpenCodeModelRouteAsync(fetcher, configuration, "claude-sonnet-4");
+	const staleDecisionPromise = resolveOpenCodeModelRouteAsync(
+		metadataFetcher.fetcher,
+		configuration,
+		"deepseek-v4-flash",
+	);
+	const sharedStaleDecisionPromise = resolveOpenCodeModelRouteAsync(
+		metadataFetcher.fetcher,
+		configuration,
+		"claude-sonnet-4",
+	);
 	refreshFailure.reject(new Error("metadata refresh failed"));
 	const [staleDecision, sharedStaleDecision] = await Promise.all([staleDecisionPromise, sharedStaleDecisionPromise]);
 
-	expect(fetchCount, "Expected concurrent requests to share the first metadata fetch and one stale refresh.").toBe(2);
+	expect(
+		metadataFetcher.getFetchCount(),
+		"Expected concurrent requests to share the first metadata fetch and one stale refresh.",
+	).toBe(2);
 	expect(firstDecision.route, "Expected first in-flight decision.").toBe("chat_completions");
 	expect(secondDecision.route, "Expected shared in-flight decision.").toBe("messages");
 	expect(staleDecision.route, "Expected stale fallback after failed refresh.").toBe("chat_completions");

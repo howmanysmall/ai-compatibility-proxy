@@ -1,5 +1,4 @@
 import { expect, test } from "vitest";
-
 import { translateAnthropicToOpenAi, translateOpenAiToAnthropic } from "@proxy/anthropic-translator";
 import { createApp } from "@proxy/app";
 import { normalizeCerebrasRequest } from "@proxy/cerebras-translator";
@@ -10,6 +9,7 @@ import { Predicate } from "effect";
 import { expectRecord, getInitHeader } from "../utilities/test-utilities";
 
 import type { ProxyConfiguration } from "@proxy/config";
+import type { Fetcher } from "@proxy/upstream";
 
 function createConfiguration(overrides: Partial<ProxyConfiguration> = {}): ProxyConfiguration {
 	return {
@@ -72,6 +72,115 @@ function getArray(value: Record<string, unknown>, key: string): ReadonlyArray<un
 		throw error;
 	}
 	return childValue;
+}
+
+function getInitHeaderOrEmpty(init: RequestInit | undefined, name: string): string {
+	return getInitHeader(init, name) ?? "";
+}
+
+function getRecordBody(init: RequestInit | undefined): Record<string, unknown> {
+	const body = init?.body;
+	if (typeof body !== "string") return {};
+
+	const parsedBody = JSON.parse(body);
+	if (!Predicate.isRecord(parsedBody)) return {};
+
+	return parsedBody;
+}
+
+function getRequestModel(init: RequestInit | undefined, fallbackModel: string): string {
+	const parsedModel = getRecordBody(init).model;
+	return typeof parsedModel === "string" ? parsedModel : fallbackModel;
+}
+
+function createModelListFetcher(capture: { authorization: string; url: string }): Fetcher {
+	return (input, init) => {
+		capture.url = String(input);
+		capture.authorization = getInitHeaderOrEmpty(init, "authorization");
+		return Promise.resolve(
+			Response.json({
+				data: [{ created: 0, id: "minimax-m3", object: "model", owned_by: "opencode" }],
+				object: "list",
+			}),
+		);
+	};
+}
+
+function createOpenAiCompatibleProbeFetcher(capture: {
+	authorization: string;
+	body: Record<string, unknown>;
+	url: string;
+	xApiKey: string;
+}): Fetcher {
+	return (input, init) => {
+		const url = String(input);
+		if (url === "https://models.dev/api.json") {
+			return Promise.resolve(
+				Response.json({
+					opencode: {
+						models: {
+							"future-openai-model": { provider: { npm: "@ai-sdk/openai-compatible" } },
+						},
+						npm: "@ai-sdk/openai-compatible",
+					},
+				}),
+			);
+		}
+
+		capture.authorization = getInitHeaderOrEmpty(init, "authorization");
+		capture.url = url;
+		capture.xApiKey = getInitHeaderOrEmpty(init, "x-api-key");
+		capture.body = getRecordBody(init);
+		return Promise.resolve(
+			Response.json({
+				choices: [
+					{
+						finish_reason: "stop",
+						index: 0,
+						message: { content: "pong", role: "assistant" },
+					},
+				],
+				created: 0,
+				id: "chatcmpl_1",
+				model: "deepseek-v4-flash",
+				object: "chat.completion",
+			}),
+		);
+	};
+}
+
+function createAnthropicFallbackFetcher(seenUrls: Array<string>): Fetcher {
+	return (input, init) => {
+		const url = String(input);
+		if (url === "https://models.dev/api.json") {
+			return Promise.resolve(
+				Response.json({
+					opencode: {
+						models: {},
+						npm: "@ai-sdk/openai-compatible",
+					},
+				}),
+			);
+		}
+
+		seenUrls.push(url);
+		if (url.endsWith("/chat/completions")) {
+			return Promise.resolve(Response.json({ error: { message: "unsupported route" } }, { status: 404 }));
+		}
+
+		const model = getRequestModel(init, "minimax-m3");
+		return Promise.resolve(
+			Response.json({
+				content: [{ text: `fallback:${model}`, type: "text" }],
+				id: "msg_fallback",
+				model,
+				role: "assistant",
+				stop_reason: "end_turn",
+				type: "message",
+				usage: { input_tokens: 1, output_tokens: 1 },
+			}),
+		);
+	};
 }
 
 test("translates OpenAI request to OpenCode Go Anthropic request", () => {
@@ -327,19 +436,9 @@ test("rejects chat requests with non-object JSON bodies", async () => {
 
 test("proxies model list from OpenCode Go model endpoint", async () => {
 	expect.hasAssertions();
-	let seenUrl = "";
-	let seenAuthorization = "";
+	const capture = { authorization: "", url: "" };
 	const app = createApp({
-		fetcher: (input, init) => {
-			seenUrl = String(input);
-			seenAuthorization = getInitHeader(init, "authorization") ?? "";
-			return Promise.resolve(
-				Response.json({
-					data: [{ created: 0, id: "minimax-m3", object: "model", owned_by: "opencode" }],
-					object: "list",
-				}),
-			);
-		},
+		fetcher: createModelListFetcher(capture),
 		proxyConfiguration: createConfiguration(),
 	});
 
@@ -352,55 +451,22 @@ test("proxies model list from OpenCode Go model endpoint", async () => {
 	const data = getArray(body, "data");
 	const [firstModel] = data;
 
-	expect(seenUrl === "https://opencode.ai/zen/go/v1/models", "Expected /models upstream URL.").toBe(true);
-	expect(seenAuthorization === "Bearer upstream-key", "Expected client bearer forwarding.").toBe(true);
-	expect(Predicate.isRecord(firstModel) && firstModel.id === "minimax-m3", "Expected model id.").toBe(true);
+	expect(capture.url === "https://opencode.ai/zen/go/v1/models", "Expected /models upstream URL.").toBe(true);
+	expect(capture.authorization === "Bearer upstream-key", "Expected client bearer forwarding.").toBe(true);
+	expectRecord(firstModel, "Expected first model record.");
+	expect(firstModel.id, "Expected model id.").toBe("minimax-m3");
 });
 
 test("probes OpenCode Go passthrough dynamically without hardcoded model ids", async () => {
 	expect.hasAssertions();
-	let seenAuthorization = "";
-	let seenBody: Record<string, unknown> = {};
-	let seenXApiKey = "";
-	let seenUrl = "";
+	const capture: { authorization: string; body: Record<string, unknown>; url: string; xApiKey: string } = {
+		authorization: "",
+		body: {},
+		url: "",
+		xApiKey: "",
+	};
 	const app = createApp({
-		fetcher: (input, init) => {
-			if (String(input) === "https://models.dev/api.json") {
-				return Promise.resolve(
-					Response.json({
-						opencode: {
-							models: {
-								"future-openai-model": { provider: { npm: "@ai-sdk/openai-compatible" } },
-							},
-							npm: "@ai-sdk/openai-compatible",
-						},
-					}),
-				);
-			}
-			seenAuthorization = getInitHeader(init, "authorization") ?? "";
-			seenUrl = String(input);
-			seenXApiKey = getInitHeader(init, "x-api-key") ?? "";
-			const body = init?.body;
-			if (typeof body === "string") {
-				const parsedBody = JSON.parse(body);
-				if (Predicate.isRecord(parsedBody)) seenBody = parsedBody;
-			}
-			return Promise.resolve(
-				Response.json({
-					choices: [
-						{
-							finish_reason: "stop",
-							index: 0,
-							message: { content: "pong", role: "assistant" },
-						},
-					],
-					created: 0,
-					id: "chatcmpl_1",
-					model: "deepseek-v4-flash",
-					object: "chat.completion",
-				}),
-			);
-		},
+		fetcher: createOpenAiCompatibleProbeFetcher(capture),
 		proxyConfiguration: createConfiguration(),
 	});
 
@@ -416,15 +482,16 @@ test("probes OpenCode Go passthrough dynamically without hardcoded model ids", a
 
 	expect(response.status === 200, "Expected OpenAI-compatible response to pass through.").toBe(true);
 	expect(
-		seenUrl === "https://opencode.ai/zen/go/v1/chat/completions",
+		capture.url === "https://opencode.ai/zen/go/v1/chat/completions",
 		"Expected OpenAI-compatible upstream URL.",
 	).toBe(true);
-	expect(seenAuthorization === "Bearer test-token", "Expected OpenAI-compatible auth header.").toBe(true);
-	expect(seenXApiKey === "", "Expected Anthropic x-api-key header to be removed.").toBe(true);
-	expect(seenBody.model === "future-openai-model", "Expected model to pass through.").toBe(true);
-	expect(Predicate.isRecord(seenBody.response_format), "Expected Anthropic-unsupported field to pass through.").toBe(
-		true,
-	);
+	expect(capture.authorization === "Bearer test-token", "Expected OpenAI-compatible auth header.").toBe(true);
+	expect(capture.xApiKey === "", "Expected Anthropic x-api-key header to be removed.").toBe(true);
+	expect(capture.body.model === "future-openai-model", "Expected model to pass through.").toBe(true);
+	expect(
+		Predicate.isRecord(capture.body.response_format),
+		"Expected Anthropic-unsupported field to pass through.",
+	).toBe(true);
 	expect(body.model === "deepseek-v4-flash", "Expected upstream response body to pass through.").toBe(true);
 });
 
@@ -432,43 +499,7 @@ test("falls back to Anthropic translation when passthrough returns a client erro
 	expect.hasAssertions();
 	const seenUrls: Array<string> = [];
 	const app = createApp({
-		fetcher: (input, init) => {
-			const url = String(input);
-			if (url === "https://models.dev/api.json") {
-				return Promise.resolve(
-					Response.json({
-						opencode: {
-							models: {},
-							npm: "@ai-sdk/openai-compatible",
-						},
-					}),
-				);
-			}
-			seenUrls.push(url);
-			if (url.endsWith("/chat/completions")) {
-				return Promise.resolve(Response.json({ error: { message: "unsupported route" } }, { status: 404 }));
-			}
-
-			let model = "minimax-m3";
-			if (typeof init?.body === "string") {
-				const parsedBody = JSON.parse(init.body);
-				if (Predicate.isRecord(parsedBody)) {
-					const { model: parsedModel } = parsedBody;
-					if (typeof parsedModel === "string") model = parsedModel;
-				}
-			}
-			return Promise.resolve(
-				Response.json({
-					content: [{ text: `fallback:${model}`, type: "text" }],
-					id: "msg_fallback",
-					model,
-					role: "assistant",
-					stop_reason: "end_turn",
-					type: "message",
-					usage: { input_tokens: 1, output_tokens: 1 },
-				}),
-			);
-		},
+		fetcher: createAnthropicFallbackFetcher(seenUrls),
 		proxyConfiguration: createConfiguration(),
 	});
 
@@ -487,10 +518,8 @@ test("falls back to Anthropic translation when passthrough returns a client erro
 	);
 	expect(seenUrls[1] === "https://opencode.ai/zen/go/v1/messages", "Expected Anthropic fallback second.").toBe(true);
 	expectRecord(firstChoice, "Expected first choice record.");
-	expect(
-		Predicate.isRecord(firstChoice.message) && firstChoice.message.content === "fallback:fallback-model",
-		"Expected Anthropic fallback response.",
-	).toBe(true);
+	expectRecord(firstChoice.message, "Expected first choice message record.");
+	expect(firstChoice.message.content, "Expected Anthropic fallback response.").toBe("fallback:fallback-model");
 });
 
 test("maps upstream 400 errors to OpenAI-compatible errors", async () => {
@@ -602,7 +631,7 @@ test("server_key mode requires proxy token and uses upstream key", async () => {
 	let seenAuthorization = "";
 	const app = createApp({
 		fetcher: (_input, init) => {
-			seenAuthorization = getInitHeader(init, "authorization") ?? "";
+			seenAuthorization = getInitHeaderOrEmpty(init, "authorization");
 			return Promise.resolve(Response.json({ data: [], object: "list" }));
 		},
 		proxyConfiguration: createConfiguration({

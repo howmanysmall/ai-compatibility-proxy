@@ -1,5 +1,4 @@
 import { expect, test } from "vitest";
-
 import { createApp } from "@proxy/app";
 
 import { getInitHeader } from "../utilities/test-utilities";

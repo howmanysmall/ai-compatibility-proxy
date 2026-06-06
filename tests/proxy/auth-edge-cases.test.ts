@@ -1,5 +1,4 @@
 import { expect, test } from "vitest";
-
 import { createAuthContext } from "@proxy/auth";
 import { ProxyError } from "@proxy/errors";
 
@@ -61,6 +60,7 @@ test("client_bearer mode accepts mixed-case bearer tokens and x-api-key upstream
 });
 
 test("client_bearer mode rejects missing, empty, and non-bearer authorization", () => {
+	expect.hasAssertions();
 	for (const authorization of [undefined, "", "Basic abc", "Bearer   "]) {
 		expectProxyError(
 			() => createAuthContext(createRequest(authorization), baseConfiguration),

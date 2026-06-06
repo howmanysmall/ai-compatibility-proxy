@@ -1,5 +1,4 @@
 import { expect, test } from "vitest";
-
 import { mergeLogContexts, sanitizeLogContext } from "@logging/log-context";
 import {
 	getActiveLogContext,
@@ -39,6 +38,15 @@ function namelessFunction(): undefined {
 
 Object.defineProperty(namelessFunction, "name", { value: "" });
 
+function restoreGarbageCollector(previousCollector: unknown): void {
+	if (previousCollector === undefined) {
+		Reflect.deleteProperty(globalThis, "gc");
+		return;
+	}
+
+	Reflect.set(globalThis, "gc", previousCollector);
+}
+
 test("sanitize redacts sensitive keys and serializes uncommon values", () => {
 	expect.hasAssertions();
 	const circular: Record<string, unknown> = {};
@@ -67,7 +75,6 @@ test("sanitize redacts sensitive keys and serializes uncommon values", () => {
 		{ maxDepth: 6 },
 	);
 
-	expect(typeof sanitized === "object" && sanitized !== null, "Expected object sanitization result.").toBe(true);
 	expectRecord(sanitized, "Expected sanitized value to be a record.");
 	expect("error" in sanitized, "Expected serialized error.").toBe(true);
 	expect("map" in sanitized, "Expected serialized map.").toBe(true);
@@ -91,6 +98,7 @@ test("sanitize redacts sensitive keys and serializes uncommon values", () => {
 });
 
 test("sanitize handles depth limits, arrays, error-like records, and non-record objects", () => {
+	expect.hasAssertions();
 	const errorLike = {
 		cause: { password: "secret" },
 		code: { token: "secret" },
@@ -232,12 +240,7 @@ test("tryGarbageCollection handles missing and exposed collectors", () => {
 
 	expect(collectCount, "Expected exposed garbage collector to be called.").toBe(1);
 
-	if (previousCollector === undefined) {
-		Reflect.deleteProperty(globalThis, "gc");
-		return;
-	}
-
-	Reflect.set(globalThis, "gc", previousCollector);
+	restoreGarbageCollector(previousCollector);
 });
 
 test("logSystemStats emits memory and uptime fields", () => {

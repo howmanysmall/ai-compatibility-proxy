@@ -1,5 +1,4 @@
 import { expect, test } from "vitest";
-
 import { loadConfiguration } from "@proxy/config";
 
 test("Arkenv config parses all env vars and preserves ProxyConfig field names", () => {

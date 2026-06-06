@@ -1,5 +1,4 @@
 import { expect, test } from "vitest";
-
 import { runWithLogContext } from "@logging/log-context";
 import { normalizeLogEntry } from "@logging/log-entry";
 

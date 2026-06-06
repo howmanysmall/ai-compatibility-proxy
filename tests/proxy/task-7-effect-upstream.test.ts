@@ -1,5 +1,4 @@
 import { expect, test } from "vitest";
-
 import { logger } from "@logging/logger";
 import { ProxyError } from "@proxy/errors";
 import { fetchUpstreamGetAsync, fetchUpstreamJsonAsync } from "@proxy/upstream";
@@ -22,6 +21,30 @@ const plainHttp500Fetcher: Fetcher = () => Promise.resolve(new Response("plain u
 function createNeverResolvingFetcher(): Fetcher {
 	const deferred = Promise.withResolvers<Response>();
 	return () => deferred.promise;
+}
+
+function createHttp500ThenSuccessFetcher(getCalls: (calls: number) => void): Fetcher {
+	let calls = 0;
+	return () => {
+		calls += 1;
+		getCalls(calls);
+		if (calls === 1) {
+			return Promise.resolve(
+				Response.json({ error: { message: "temporary upstream failure" } }, { status: 500 }),
+			);
+		}
+		return Promise.resolve(Response.json({ ok: true }));
+	};
+}
+
+function createNetworkFailureThenSuccessFetcher(getCalls: (calls: number) => void): Fetcher {
+	let calls = 0;
+	return () => {
+		calls += 1;
+		getCalls(calls);
+		if (calls === 1) return Promise.reject(new TypeError("temporary network failure"));
+		return Promise.resolve(Response.json({ ok: true }));
+	};
 }
 
 function createConfig(overrides: Partial<ProxyConfiguration> = {}): ProxyConfiguration {
@@ -156,15 +179,9 @@ test("Effect upstream POST timeout throws UpstreamTimeoutError", async () => {
 test("Effect upstream POST retries transient HTTP 500 then succeeds", async () => {
 	expect.hasAssertions();
 	let calls = 0;
-	const fetcher: Fetcher = () => {
-		calls += 1;
-		if (calls === 1) {
-			return Promise.resolve(
-				Response.json({ error: { message: "temporary upstream failure" } }, { status: 500 }),
-			);
-		}
-		return Promise.resolve(Response.json({ ok: true }));
-	};
+	const fetcher = createHttp500ThenSuccessFetcher((callCount) => {
+		calls = callCount;
+	});
 
 	const response = await fetchUpstreamJsonAsync(
 		fetcher,
@@ -226,11 +243,9 @@ test("Effect upstream POST maps HTTP 500 JSON errors while preserving content ty
 test("Effect upstream POST retries network failures then succeeds", async () => {
 	expect.hasAssertions();
 	let calls = 0;
-	const fetcher: Fetcher = () => {
-		calls += 1;
-		if (calls === 1) return Promise.reject(new TypeError("temporary network failure"));
-		return Promise.resolve(Response.json({ ok: true }));
-	};
+	const fetcher = createNetworkFailureThenSuccessFetcher((callCount) => {
+		calls = callCount;
+	});
 
 	const response = await fetchUpstreamJsonAsync(
 		fetcher,
@@ -409,6 +424,7 @@ test("Effect upstream logs only safe upstream metadata", async () => {
 });
 
 test("Effect upstream error logs include safe method, path, and status only", async () => {
+	expect.hasAssertions();
 	const records: Array<LogRecord> = [];
 	const originalInfo = logger.info;
 	const originalError = logger.error;

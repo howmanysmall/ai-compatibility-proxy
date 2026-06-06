@@ -1,5 +1,4 @@
 import { expect, test } from "vitest";
-
 import { normalizeCerebrasRequest } from "@proxy/cerebras-translator";
 import { ProxyError } from "@proxy/errors";
 
@@ -41,6 +40,7 @@ function captureProxyError(callback: () => unknown): ProxyError {
 }
 
 test("normalizes max_tokens, fallback model, names, and text parts", () => {
+	expect.hasAssertions();
 	const request: OpenAiChatCompletionRequest = {
 		frequency_penalty: 0,
 		logprobs: true,

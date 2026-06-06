@@ -1,6 +1,17 @@
 import { expect, test } from "vitest";
-
 import { createApp } from "@proxy/app";
+import {
+	isOpenAiChatCompletionChunk,
+	isOpenAiChatCompletionRequest,
+	isOpenAiChatCompletionResponse,
+	isOpenAiChatMessage,
+	isOpenAiChatRole,
+	isOpenAiErrorBody,
+	isOpenAiFinishReason,
+	isOpenAiModelListResponse,
+	isOpenAiTextContentPart,
+	isOpenAiUsage,
+} from "@proxy/openai-types";
 import { Predicate } from "effect";
 
 import type { ProxyConfiguration } from "@proxy/config";
@@ -112,4 +123,118 @@ test("rejects empty request bodies", async () => {
 
 	expect(response.status === 400, "Expected empty body to fail.").toBe(true);
 	expect(typeof error.message === "string", "Expected error message.").toBe(true);
+});
+
+test("OpenAI schemas accept valid wire-format payloads", () => {
+	expect.hasAssertions();
+	const textPart = { text: "hello", type: "text" };
+	const message = { content: [textPart], name: "logan", role: "user" };
+	const usage = { completion_tokens: 2, prompt_tokens: 3, total_tokens: 5 };
+
+	expect(isOpenAiChatRole.allows("developer"), "Expected developer role to be accepted.").toBe(true);
+	expect(isOpenAiFinishReason.allows("tool_calls"), "Expected tool_calls finish reason.").toBe(true);
+	expect(isOpenAiTextContentPart.allows(textPart), "Expected OpenAI text part.").toBe(true);
+	expect(isOpenAiChatMessage.allows(message), "Expected OpenAI chat message.").toBe(true);
+	expect(
+		isOpenAiChatCompletionRequest.allows({
+			max_completion_tokens: 128,
+			max_tokens: 64,
+			messages: [message],
+			model: "gpt-test",
+			stop: ["END"],
+			stream: true,
+			temperature: 0.2,
+			top_p: 0.9,
+			vendor_extension: { passthrough: true },
+		}),
+		"Expected OpenAI request with extension fields.",
+	).toBe(true);
+	expect(isOpenAiUsage.allows(usage), "Expected OpenAI usage.").toBe(true);
+	expect(
+		isOpenAiChatCompletionResponse.allows({
+			choices: [{ finish_reason: "stop", index: 0, message: { content: "hello", role: "assistant" } }],
+			created: 1,
+			id: "chatcmpl_1",
+			model: "gpt-test",
+			object: "chat.completion",
+			usage,
+		}),
+		"Expected OpenAI completion response.",
+	).toBe(true);
+	expect(
+		isOpenAiChatCompletionChunk.allows({
+			choices: [{ delta: { content: "hello", role: "assistant" }, finish_reason: null, index: 0 }],
+			created: 1,
+			id: "chatcmpl_1",
+			model: "gpt-test",
+			object: "chat.completion.chunk",
+			usage,
+		}),
+		"Expected OpenAI streaming chunk.",
+	).toBe(true);
+	expect(
+		isOpenAiErrorBody.allows({
+			error: { code: null, message: "bad request", param: null, type: "invalid_request" },
+		}),
+		"Expected OpenAI error body.",
+	).toBe(true);
+	expect(
+		isOpenAiModelListResponse.allows({
+			data: [{ created: 1, id: "gpt-test", object: "model", owned_by: "proxy" }],
+			object: "list",
+		}),
+		"Expected OpenAI model list.",
+	).toBe(true);
+});
+
+test("OpenAI schemas reject invalid wire-format payloads", () => {
+	expect.hasAssertions();
+
+	expect(isOpenAiChatRole.allows("admin"), "Expected unknown chat role rejection.").toBe(false);
+	expect(isOpenAiFinishReason.allows("cancelled"), "Expected unknown finish reason rejection.").toBe(false);
+	expect(isOpenAiTextContentPart.allows({ text: 1, type: "text" }), "Expected non-string text rejection.").toBe(
+		false,
+	);
+	expect(isOpenAiChatMessage.allows({ content: "hello", role: "admin" }), "Expected invalid role rejection.").toBe(
+		false,
+	);
+	expect(
+		isOpenAiChatCompletionRequest.allows({ max_tokens: 1.5, messages: [{ content: "hello", role: "user" }] }),
+		"Expected integer token constraint.",
+	).toBe(false);
+	expect(
+		isOpenAiChatCompletionRequest.allows({ messages: [], model: "gpt-test" }),
+		"Expected non-empty messages.",
+	).toBe(false);
+	expect(
+		isOpenAiUsage.allows({ completion_tokens: 1, prompt_tokens: 2.5, total_tokens: 3 }),
+		"Expected integer usage tokens.",
+	).toBe(false);
+	expect(
+		isOpenAiChatCompletionResponse.allows({
+			choices: [{ finish_reason: "stop", index: 0, message: { content: "hello", role: "user" } }],
+			created: 1,
+			id: "chatcmpl_1",
+			model: "gpt-test",
+			object: "chat.completion",
+		}),
+		"Expected assistant response role.",
+	).toBe(false);
+	expect(
+		isOpenAiChatCompletionChunk.allows({
+			choices: [{ delta: { role: "user" }, finish_reason: null, index: 0 }],
+			created: 1,
+			id: "chatcmpl_1",
+			model: "gpt-test",
+			object: "chat.completion.chunk",
+		}),
+		"Expected assistant chunk role.",
+	).toBe(false);
+	expect(
+		isOpenAiModelListResponse.allows({
+			data: [{ created: 1, id: "gpt-test", object: "deployment", owned_by: "proxy" }],
+			object: "list",
+		}),
+		"Expected model object literal.",
+	).toBe(false);
 });

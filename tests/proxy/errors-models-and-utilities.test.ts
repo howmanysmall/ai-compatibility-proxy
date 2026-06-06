@@ -1,5 +1,4 @@
 import { expect, test } from "vitest";
-
 import { createErrorBody, createErrorResponse, createUpstreamErrorAsync, ProxyError } from "@proxy/errors";
 import { getModelsAsync } from "@proxy/models";
 import { isOpenAiErrorBody } from "@proxy/openai-types";
@@ -7,6 +6,8 @@ import { UpstreamHttpError, UpstreamTimeoutError } from "@proxy/upstream-errors"
 import { getFiniteNumber, getNumber } from "@utilities/default-utilities";
 import { getUnixSeconds, uptime } from "@utilities/time-utilities";
 import { isArrayOfStrings, isString } from "@validators/simple-types";
+
+import { expectRecord } from "../utilities/test-utilities";
 
 import type { ProxyConfiguration } from "@proxy/config";
 import type { Fetcher } from "@proxy/upstream";
@@ -59,7 +60,8 @@ test("ProxyError serializes OpenAI-compatible error responses", async () => {
 
 	expect(response.status, "Expected proxy error status.").toBe(422);
 	expect(isOpenAiErrorBody.allows(body), "Expected OpenAI-compatible error body.").toBe(true);
-	if (!isOpenAiErrorBody.allows(body)) return;
+	expectRecord(body, "Expected error body record.");
+	expectRecord(body.error, "Expected nested error record.");
 	expect(body.error.param, "Expected serialized param.").toBe("model");
 	expect(response.headers.get("cache-control"), "Expected no-store error response.").toBe("no-store");
 });
@@ -71,7 +73,8 @@ test("createErrorResponse maps unknown failures to server errors", async () => {
 
 	expect(response.status, "Expected unknown errors to map to 500.").toBe(500);
 	expect(isOpenAiErrorBody.allows(body), "Expected OpenAI-compatible error body.").toBe(true);
-	if (!isOpenAiErrorBody.allows(body)) return;
+	expectRecord(body, "Expected error body record.");
+	expectRecord(body.error, "Expected nested error record.");
 	expect(body.error.type, "Expected server error type.").toBe("server_error");
 });
 

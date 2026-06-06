@@ -1,5 +1,4 @@
 import { expect, test } from "vitest";
-
 import { createFetchHandler, createFetchHandlerForApp } from "@proxy/app";
 
 import type { ProxyConfiguration } from "@proxy/config";

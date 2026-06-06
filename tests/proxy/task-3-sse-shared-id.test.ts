@@ -1,5 +1,4 @@
 import { expect, test } from "vitest";
-
 import { translateAnthropicSseText } from "@proxy/sse";
 import { Predicate } from "effect";
 
@@ -21,6 +20,7 @@ function parseChunks(output: string): ReadonlyArray<ReadonlyRecord<string, unkno
 }
 
 test("all chunks in one Anthropic stream share a single id, created, and model", () => {
+	expect.hasAssertions();
 	const input = [
 		'data: {"type":"message_start","message":{"id":"msg_abc123","model":"minimax-m3"}}',
 		"",
@@ -57,6 +57,7 @@ test("all chunks in one Anthropic stream share a single id, created, and model",
 });
 
 test("stream id is taken from message_start, not generated per-chunk", () => {
+	expect.hasAssertions();
 	const input = [
 		'data: {"type":"message_start","message":{"id":"msg_xyz","model":"test-model"}}',
 		"",

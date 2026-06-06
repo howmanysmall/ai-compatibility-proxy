@@ -1,9 +1,8 @@
-import { expect, test } from "vitest";
-
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import nodeProcess from "node:process";
+import { expect, test } from "vitest";
 import { createDailyFileRotateReporter, serializeLogEntry } from "@logging/reports/daily-file-rotate-reporter";
 
 import type { StructuredLogEntry } from "@logging/log-entry";
@@ -64,6 +63,24 @@ test("serializeLogEntry keeps normal entries unchanged", () => {
 	expect(serializedEntry === JSON.stringify(entry), "Expected normal entry to serialize without modification.").toBe(
 		true,
 	);
+});
+
+test("serializeLogEntry default byte limit preserves medium entries", () => {
+	expect.hasAssertions();
+	const entry = createLogEntry({
+		context: { requestId: "default-byte-limit-test" },
+		message: "m".repeat(1024),
+		payload: { value: "x".repeat(1024) },
+	});
+
+	const serializedEntry = serializeLogEntry(entry);
+	const parsedEntry = JSON.parse(serializedEntry) as StructuredLogEntry;
+
+	expect(parsedEntry.customProperties?.logEntryTruncated, "Expected default byte limit to keep medium entries.").toBe(
+		undefined,
+	);
+	expect(parsedEntry.message, "Expected default byte limit to preserve medium messages.").toBe(entry.message);
+	expect(parsedEntry.payload, "Expected default byte limit to preserve medium payloads.").toEqual(entry.payload);
 });
 
 test("serializeLogEntry truncates oversized entries", () => {
@@ -172,16 +189,41 @@ test("createDailyFileRotateReporter honors the configured level filter", () => {
 
 test("createDailyFileRotateReporter writes logs when no level filter is configured", () => {
 	expect.hasAssertions();
+	const writes: Array<string> = [];
+	let streamFilename = "";
+	let streamOptions: Parameters<typeof createStream>[1] | undefined;
 	const reporter = createDailyFileRotateReporter({
 		directory: mkdtempSync(path.join(tmpdir(), "ai-compatibility-proxy-test-logs-")),
 		filename: "combined.log",
 		maxFiles: 1,
 		size: "1M",
+		streamFactory: ((filename: string, options: Parameters<typeof createStream>[1]) => {
+			streamFilename = filename;
+			streamOptions = options;
+			return {
+				on: () => undefined,
+				write: (message: string) => {
+					writes.push(message);
+					return true;
+				},
+			};
+		}) as unknown as typeof createStream,
 	});
 
 	reporter.log(createConsolaLogObject(3, "info", "stored info log"), consolaReporterContext);
 
-	expect(reporter, "Expected reporter creation without a level filter to succeed.").toBeDefined();
+	expect(streamFilename, "Expected configured stream filename.").toBe("combined.log");
+	expect(streamOptions, "Expected rotating file stream options.").toMatchObject({
+		compress: "gzip",
+		initialRotation: true,
+		interval: "1d",
+		intervalBoundary: true,
+		maxFiles: 1,
+		maxSize: "100M",
+		size: "1M",
+	});
+	expect(writes, "Expected default level filter to write info logs.").toHaveLength(1);
+	expect(writes[0], "Expected default level filter to serialize log message.").toContain("stored info log");
 });
 
 test("createDailyFileRotateReporter writes file stream warnings to stderr", () => {

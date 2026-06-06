@@ -1,5 +1,4 @@
 import { expect, test } from "vitest";
-
 import { createOpenAIStreamResponseAsync, translateAnthropicSseText } from "@proxy/sse";
 
 const CHAT_COMPLETION_ID_PATTERN = /^chatcmpl-/u;

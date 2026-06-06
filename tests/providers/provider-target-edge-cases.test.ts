@@ -1,5 +1,4 @@
 import { expect, test } from "vitest";
-
 import { anthropicTarget } from "@providers/anthropic-target";
 import { cerebrasTarget } from "@providers/cerebras-target";
 import { clearOpenCodeModelRoutingCache } from "@providers/opencode-model-routing";
@@ -39,6 +38,10 @@ function createMetadataResponse(npm: string): Response {
 	});
 }
 
+function getInitHeaderOrEmpty(init: RequestInit | undefined, name: string): string {
+	return getInitHeader(init, name) ?? "";
+}
+
 const rawCerebrasStreamFetcherAsync: Fetcher = async () =>
 	new Response("data: raw\n\n", {
 		headers: { "content-type": "text/event-stream", "x-test-stream": "raw" },
@@ -51,24 +54,96 @@ function createOpenAiCompatibleHeaderCaptureFetcher(capture: { authorization: st
 	return async function openAiCompatibleHeaderCaptureFetcherAsync(input, init) {
 		const url = String(input);
 		if (url === "https://models.test/api.json") return createMetadataResponse("@ai-sdk/openai-compatible");
-		capture.authorization = getInitHeader(init, "authorization") ?? "";
-		capture.xApiKey = getInitHeader(init, "x-api-key") ?? "";
+		capture.authorization = getInitHeaderOrEmpty(init, "authorization");
+		capture.xApiKey = getInitHeaderOrEmpty(init, "x-api-key");
 		return Response.json({ id: "chatcmpl_1", model: "upstream-model", object: "chat.completion" });
+	};
+}
+
+function createAnthropicStreamFetcher(capture: { url: string }): Fetcher {
+	return async function anthropicStreamFetcherAsync(input) {
+		const url = String(input);
+		if (url === "https://models.test/api.json") return createMetadataResponse("@ai-sdk/anthropic");
+		capture.url = url;
+		return new Response('data: {"type":"content_block_delta","delta":{"text":"hello"}}\n\n');
+	};
+}
+
+function createOpenAiCompatibleForwardingFetcher(capture: {
+	authorization: string;
+	url: string;
+	xApiKey: string;
+}): Fetcher {
+	return async function openAiCompatibleForwardingFetcherAsync(input, init) {
+		const url = String(input);
+		if (url === "https://models.test/api.json") return createMetadataResponse("@ai-sdk/openai-compatible");
+		capture.url = url;
+		capture.authorization = getInitHeaderOrEmpty(init, "authorization");
+		capture.xApiKey = getInitHeaderOrEmpty(init, "x-api-key");
+		return Response.json({ id: "chatcmpl_1", model: "upstream-model", object: "chat.completion" });
+	};
+}
+
+function createOpenAiCompatibleStreamFetcher(): Fetcher {
+	return async function openAiCompatibleStreamFetcherAsync(input) {
+		const url = String(input);
+		if (url === "https://models.test/api.json") return createMetadataResponse("@ai-sdk/openai-compatible");
+		return new Response("data: raw\n\n", {
+			headers: { "content-type": "text/event-stream", "x-test-stream": "raw" },
+			status: 202,
+		});
+	};
+}
+
+function createUnknownPassthroughFetcher(capture: { chatCompletionCalls: number; messageCalls: number }): Fetcher {
+	return async function unknownPassthroughFetcherAsync(input) {
+		const url = String(input);
+		if (url === "https://models.test/api.json") return createMetadataResponse("@ai-sdk/not-used");
+		if (url.endsWith("/chat/completions")) {
+			capture.chatCompletionCalls += 1;
+			return Response.json({ id: "chatcmpl_1", model: "unknown-model", object: "chat.completion" });
+		}
+		capture.messageCalls += 1;
+		return Response.json({ id: "msg_1", model: "unknown-model", type: "message" });
+	};
+}
+
+function createNonFallbackFetcher(): Fetcher {
+	return async function nonFallbackFetcherAsync(input) {
+		const url = String(input);
+		if (url === "https://models.test/api.json") return createMetadataResponse("@ai-sdk/not-used");
+		throw new Error("network failure");
+	};
+}
+
+function createUnknownFallbackFetcher(capture: { chatCompletionCalls: number; messageCalls: number }): Fetcher {
+	return async function unknownFallbackFetcherAsync(input) {
+		const url = String(input);
+		if (url === "https://models.test/api.json") return createMetadataResponse("@ai-sdk/not-used");
+		if (url.endsWith("/chat/completions")) {
+			capture.chatCompletionCalls += 1;
+			return Response.json({ error: { message: "not compatible" } }, { status: 400 });
+		}
+		capture.messageCalls += 1;
+		return Response.json({
+			content: [{ text: "translated", type: "text" }],
+			id: "msg_1",
+			model: "unknown-fallback-model",
+			role: "assistant",
+			stop_reason: "end_turn",
+			type: "message",
+			usage: { input_tokens: 1, output_tokens: 1 },
+		});
 	};
 }
 
 test("anthropic target converts Anthropic streaming responses to OpenAI SSE", async () => {
 	expect.hasAssertions();
 	clearOpenCodeModelRoutingCache();
-	const anthropicStreamFetcherAsync: Fetcher = async (input) => {
-		const url = String(input);
-		if (url === "https://models.test/api.json") return createMetadataResponse("@ai-sdk/anthropic");
-		expect(url, "Expected Anthropic messages endpoint.").toBe("https://upstream.test/v1/messages");
-		return new Response('data: {"type":"content_block_delta","delta":{"text":"hello"}}\n\n');
-	};
+	const capture = { url: "" };
 
 	const response = await anthropicTarget.createChatCompletionAsync({
-		fetcher: anthropicStreamFetcherAsync,
+		fetcher: createAnthropicStreamFetcher(capture),
 		headers: new Headers({ "x-api-key": "token" }),
 		proxyConfiguration: baseConfiguration,
 		request: {
@@ -81,25 +156,17 @@ test("anthropic target converts Anthropic streaming responses to OpenAI SSE", as
 	expect(response.headers.get("content-type"), "Expected OpenAI SSE response.").toBe(
 		"text/event-stream; charset=utf-8",
 	);
+	expect(capture.url, "Expected Anthropic messages endpoint.").toBe("https://upstream.test/v1/messages");
 	expect(await response.text(), "Expected translated stream content.").toContain('"content":"hello"');
 });
 
 test("anthropic target forwards OpenAI-compatible requests and maps x-api-key to authorization", async () => {
 	expect.hasAssertions();
 	clearOpenCodeModelRoutingCache();
-	let seenAuthorization = "";
-	let seenXApiKey = "";
-	const openAiCompatibleFetcherAsync: Fetcher = async (input, init) => {
-		const url = String(input);
-		if (url === "https://models.test/api.json") return createMetadataResponse("@ai-sdk/openai-compatible");
-		expect(url, "Expected OpenAI-compatible endpoint.").toBe("https://upstream.test/v1/chat/completions");
-		seenAuthorization = getInitHeader(init, "authorization") ?? "";
-		seenXApiKey = getInitHeader(init, "x-api-key") ?? "";
-		return Response.json({ id: "chatcmpl_1", model: "upstream-model", object: "chat.completion" });
-	};
+	const capture = { authorization: "", url: "", xApiKey: "" };
 
 	const response = await anthropicTarget.createChatCompletionAsync({
-		fetcher: openAiCompatibleFetcherAsync,
+		fetcher: createOpenAiCompatibleForwardingFetcher(capture),
 		headers: new Headers({ "x-api-key": "token" }),
 		proxyConfiguration: baseConfiguration,
 		request: {
@@ -109,8 +176,9 @@ test("anthropic target forwards OpenAI-compatible requests and maps x-api-key to
 	});
 	const body = await response.json();
 
-	expect(seenAuthorization, "Expected Authorization conversion.").toBe("Bearer token");
-	expect(seenXApiKey, "Expected x-api-key removal.").toBe("");
+	expect(capture.url, "Expected OpenAI-compatible endpoint.").toBe("https://upstream.test/v1/chat/completions");
+	expect(capture.authorization, "Expected Authorization conversion.").toBe("Bearer token");
+	expect(capture.xApiKey, "Expected x-api-key removal.").toBe("");
 	expect(body, "Expected upstream response passthrough.").toMatchObject({ model: "upstream-model" });
 });
 
@@ -155,17 +223,9 @@ test("anthropic target forwards OpenAI-compatible requests without auth header r
 test("anthropic target passes OpenAI-compatible streaming responses through raw", async () => {
 	expect.hasAssertions();
 	clearOpenCodeModelRoutingCache();
-	const streamFetcherAsync: Fetcher = async (input) => {
-		const url = String(input);
-		if (url === "https://models.test/api.json") return createMetadataResponse("@ai-sdk/openai-compatible");
-		return new Response("data: raw\n\n", {
-			headers: { "content-type": "text/event-stream", "x-test-stream": "raw" },
-			status: 202,
-		});
-	};
 
 	const response = await anthropicTarget.createChatCompletionAsync({
-		fetcher: streamFetcherAsync,
+		fetcher: createOpenAiCompatibleStreamFetcher(),
 		headers: new Headers({ authorization: "Bearer token" }),
 		proxyConfiguration: baseConfiguration,
 		request: {
@@ -183,18 +243,8 @@ test("anthropic target passes OpenAI-compatible streaming responses through raw"
 test("anthropic target caches unknown model passthrough support and rethrows non-fallback errors", async () => {
 	expect.hasAssertions();
 	clearOpenCodeModelRoutingCache();
-	let chatCompletionCalls = 0;
-	let messageCalls = 0;
-	const passthroughFetcherAsync: Fetcher = async (input) => {
-		const url = String(input);
-		if (url === "https://models.test/api.json") return createMetadataResponse("@ai-sdk/not-used");
-		if (url.endsWith("/chat/completions")) {
-			chatCompletionCalls += 1;
-			return Response.json({ id: "chatcmpl_1", model: "unknown-model", object: "chat.completion" });
-		}
-		messageCalls += 1;
-		return Response.json({ id: "msg_1", model: "unknown-model", type: "message" });
-	};
+	const capture = { chatCompletionCalls: 0, messageCalls: 0 };
+	const passthroughFetcherAsync = createUnknownPassthroughFetcher(capture);
 
 	await anthropicTarget.createChatCompletionAsync({
 		fetcher: passthroughFetcherAsync,
@@ -215,18 +265,12 @@ test("anthropic target caches unknown model passthrough support and rethrows non
 		},
 	});
 
-	expect(chatCompletionCalls, "Expected unknown model passthrough support to be cached as true.").toBe(2);
-	expect(messageCalls, "Expected no Anthropic fallback after passthrough support succeeds.").toBe(0);
-
-	const nonFallbackFetcherAsync: Fetcher = async (input) => {
-		const url = String(input);
-		if (url === "https://models.test/api.json") return createMetadataResponse("@ai-sdk/not-used");
-		throw new Error("network failure");
-	};
+	expect(capture.chatCompletionCalls, "Expected unknown model passthrough support to be cached as true.").toBe(2);
+	expect(capture.messageCalls, "Expected no Anthropic fallback after passthrough support succeeds.").toBe(0);
 
 	await expect(
 		anthropicTarget.createChatCompletionAsync({
-			fetcher: nonFallbackFetcherAsync,
+			fetcher: createNonFallbackFetcher(),
 			headers: new Headers({ authorization: "Bearer token" }),
 			proxyConfiguration: { ...baseConfiguration, opencodeModelsUrl: "https://models.test/other-api.json" },
 			request: {
@@ -240,26 +284,8 @@ test("anthropic target caches unknown model passthrough support and rethrows non
 test("anthropic target skips passthrough probe after an unknown model caches fallback support", async () => {
 	expect.hasAssertions();
 	clearOpenCodeModelRoutingCache();
-	let chatCompletionCalls = 0;
-	let messageCalls = 0;
-	const fallbackFetcherAsync: Fetcher = async (input) => {
-		const url = String(input);
-		if (url === "https://models.test/api.json") return createMetadataResponse("@ai-sdk/not-used");
-		if (url.endsWith("/chat/completions")) {
-			chatCompletionCalls += 1;
-			return Response.json({ error: { message: "not compatible" } }, { status: 400 });
-		}
-		messageCalls += 1;
-		return Response.json({
-			content: [{ text: "translated", type: "text" }],
-			id: "msg_1",
-			model: "unknown-fallback-model",
-			role: "assistant",
-			stop_reason: "end_turn",
-			type: "message",
-			usage: { input_tokens: 1, output_tokens: 1 },
-		});
-	};
+	const capture = { chatCompletionCalls: 0, messageCalls: 0 };
+	const fallbackFetcherAsync = createUnknownFallbackFetcher(capture);
 
 	await anthropicTarget.createChatCompletionAsync({
 		fetcher: fallbackFetcherAsync,
@@ -280,8 +306,8 @@ test("anthropic target skips passthrough probe after an unknown model caches fal
 		},
 	});
 
-	expect(chatCompletionCalls, "Expected only first unknown request to probe passthrough.").toBe(1);
-	expect(messageCalls, "Expected both requests to use Anthropic messages after fallback is cached.").toBe(2);
+	expect(capture.chatCompletionCalls, "Expected only first unknown request to probe passthrough.").toBe(1);
+	expect(capture.messageCalls, "Expected both requests to use Anthropic messages after fallback is cached.").toBe(2);
 });
 
 test("cerebras target passes streaming responses through raw", async () => {

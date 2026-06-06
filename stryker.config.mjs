@@ -17,9 +17,9 @@ const configuration = {
 	reporters: ["clear-text", "progress", "html"],
 	testRunner: "vitest",
 	thresholds: {
-		break: 55,
+		break: 70,
 		high: 85,
-		low: 55,
+		low: 70,
 	},
 	vitest: {
 		configFile: "vitest.mutation.config.ts",

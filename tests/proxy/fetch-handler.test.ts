@@ -1,9 +1,8 @@
 import { expect, test } from "vitest";
-
 import { createFetchHandler } from "@proxy/app";
 import { Predicate } from "effect";
 
-import { getInitHeader } from "../utilities/test-utilities";
+import { expectArray, expectRecord, getInitHeader } from "../utilities/test-utilities";
 
 import type { ProxyConfiguration } from "@proxy/config";
 
@@ -60,6 +59,10 @@ function getRecord(value: Record<string, unknown>, key: string): Record<string, 
 	return childValue;
 }
 
+function getInitHeaderOrEmpty(init: RequestInit | undefined, name: string): string {
+	return getInitHeader(init, name) ?? "";
+}
+
 test("fetch handler returns health status", async () => {
 	expect.hasAssertions();
 	const handler = createFetchHandler({
@@ -82,7 +85,7 @@ test("fetch handler proxies model list", async () => {
 	const handler = createFetchHandler({
 		fetcher: (input, init) => {
 			seenUrl = String(input);
-			seenAuthorization = getInitHeader(init, "authorization") ?? "";
+			seenAuthorization = getInitHeaderOrEmpty(init, "authorization");
 			return Promise.resolve(
 				Response.json({
 					data: [{ created: 0, id: "minimax-m3", object: "model", owned_by: "opencode" }],
@@ -103,9 +106,9 @@ test("fetch handler proxies model list", async () => {
 
 	expect(seenUrl === "https://opencode.ai/zen/go/v1/models", "Expected /models upstream URL.").toBe(true);
 	expect(seenAuthorization === "Bearer upstream-key", "Expected client bearer forwarding.").toBe(true);
-	expect(Array.isArray(data), "Expected model data array.").toBe(true);
-	if (!Array.isArray(data)) return;
-	expect(Predicate.isRecord(data[0]) && data[0].id === "minimax-m3", "Expected model id.").toBe(true);
+	expectArray(data, "Expected model data array.");
+	expectRecord(data[0], "Expected first model record.");
+	expect(data[0].id, "Expected model id.").toBe("minimax-m3");
 });
 
 test("fetch handler proxies chat completions", async () => {

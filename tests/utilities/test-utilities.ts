@@ -32,7 +32,7 @@ export function expectArray(value: unknown, message: string): asserts value is R
 	expect(Array.isArray(value), message).toBe(true);
 }
 
-export function expectPresent<T>(value: T | null | undefined, message: string): asserts value is T {
+export function expectPresent<Value>(value: Value | null | undefined, message: string): asserts value is Value {
 	expect(value, message).not.toBeNull();
 	expect(value, message).not.toBeUndefined();
 }
