@@ -12,3 +12,8 @@ export class UpstreamHttpError extends Data.TaggedError("UpstreamHttpError")<{
 	readonly status: number;
 	readonly url: string;
 }> {}
+
+export class UpstreamNetworkError extends Data.TaggedError("UpstreamNetworkError")<{
+	readonly cause: unknown;
+	readonly url: string;
+}> {}

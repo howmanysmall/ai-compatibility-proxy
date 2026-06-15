@@ -1,16 +1,16 @@
-import { getUnixSeconds } from "@utilities/time-utilities";
-import { Predicate, String } from "effect";
+import { getUnixSeconds } from "$utilities/time-utilities";
+import { Predicate, String as EffectString } from "effect";
 
-import { mapAnthropicFinishReason, mapAnthropicUsage } from "./anthropic-translator.ts";
-import { OPENAI_NULL } from "./openai-constants.ts";
+import { mapAnthropicFinishReason, mapAnthropicUsage } from "./anthropic-translator";
+import { OPENAI_NULL } from "./openai-constants";
 
 import type { Writable } from "type-fest";
 
-import type { OpenAiChatCompletionChunk, OpenAiFinishReason, OpenAiUsage } from "./openai-types.ts";
+import type { OpenAiChatCompletionChunk, OpenAiFinishReason, OpenAiUsage } from "./openai-types";
 
 const SSE_EVENT_SEPARATOR_PATTERN = /\n\n/u;
 
-export async function createOpenAIStreamResponseAsync(upstreamResponse: Response, model: string): Promise<Response> {
+export async function createOpenAiStreamResponseAsync(upstreamResponse: Response, model: string): Promise<Response> {
 	const upstreamBody = upstreamResponse.body;
 	if (!upstreamBody) {
 		return new Response("data: [DONE]\n\n", {
@@ -123,13 +123,13 @@ function createAnthropicEventTranslator(fallbackModel: string): (event: Record<s
 		if (type === "message_delta") {
 			const delta = getRecord(event.delta);
 			const usage = mapAnthropicUsage(getRecordOrUndefined(event.usage));
-			return formatFinalChunk(
-				getSharedId(),
-				getSharedCreated(),
-				getSharedModel(),
-				mapAnthropicFinishReason(getString(delta.stop_reason)),
-				usage,
-			);
+			return formatFinalChunk({
+				created: getSharedCreated(),
+				finishReason: mapAnthropicFinishReason(getString(delta.stop_reason)),
+				id: getSharedId(),
+				model: getSharedModel(),
+				openAiUsage: usage,
+			});
 		}
 
 		return "";
@@ -139,12 +139,12 @@ function createAnthropicEventTranslator(fallbackModel: string): (event: Record<s
 function parseSseEvents(input: string): Array<Record<string, unknown>> {
 	return input
 		.split(SSE_EVENT_SEPARATOR_PATTERN)
-		.map(String.trim)
+		.map(EffectString.trim)
 		.filter(Boolean)
 		.flatMap((eventText) => {
 			const dataLines = eventText
 				.split("\n")
-				.map(String.trim)
+				.map(EffectString.trim)
 				.filter((line) => line.startsWith("data:"))
 				.map((line) => line.slice(5).trim());
 
@@ -178,13 +178,15 @@ function formatContentChunk(content: string, id: string, created: number, model:
 	});
 }
 
-function formatFinalChunk(
-	id: string,
-	created: number,
-	model: string,
-	finishReason: OpenAiFinishReason | null,
-	openAiUsage?: OpenAiUsage,
-): string {
+interface FinalChunkInput {
+	readonly created: number;
+	readonly finishReason: OpenAiFinishReason | null;
+	readonly id: string;
+	readonly model: string;
+	readonly openAiUsage: OpenAiUsage | undefined;
+}
+
+function formatFinalChunk({ created, finishReason, id, model, openAiUsage }: FinalChunkInput): string {
 	const openAiChatCompletionChunk: Writable<OpenAiChatCompletionChunk> = {
 		choices: [
 			{

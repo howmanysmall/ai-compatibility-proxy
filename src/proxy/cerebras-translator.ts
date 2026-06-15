@@ -1,9 +1,9 @@
-import { ProxyError } from "./errors.ts";
+import { ProxyError } from "./errors";
 
 import type { Writable } from "type-fest";
 
-import type { ProxyConfiguration } from "./config.ts";
-import type { OpenAiChatCompletionRequest, OpenAiChatMessage } from "./openai-types.ts";
+import type { ProxyConfiguration } from "./config";
+import type { OpenAiChatCompletionRequest, OpenAiChatMessage } from "./openai-types";
 
 const CEREBRAS_ALLOWED_FIELDS = new Set([
 	"frequency_penalty",

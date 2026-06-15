@@ -1,8 +1,8 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 
-import { ProxyError } from "./errors.ts";
+import { ProxyError } from "./errors";
 
-import type { ProxyConfiguration } from "./config.ts";
+import type { ProxyConfiguration } from "./config";
 
 const BEARER_PREFIX = "bearer ";
 

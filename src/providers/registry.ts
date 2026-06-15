@@ -1,7 +1,7 @@
-import { anthropicTarget } from "./anthropic-target.ts";
+import { anthropicTarget } from "./anthropic-target";
 import { cerebrasTarget } from "./cerebras-target";
 
-import type { UpstreamProtocol } from "@proxy/config";
+import type { UpstreamProtocol } from "$proxy/config";
 
 import type { ProviderTarget, ProviderTargetDefaults } from "./provider-target";
 

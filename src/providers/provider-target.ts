@@ -1,6 +1,6 @@
-import type { ProxyConfiguration, UpstreamProtocol } from "@proxy/config";
-import type { OpenAiChatCompletionRequest, OpenAiModelListResponse } from "@proxy/openai-types";
-import type { Fetcher } from "@proxy/upstream";
+import type { ProxyConfiguration, UpstreamProtocol } from "$proxy/config";
+import type { OpenAiChatCompletionRequest, OpenAiModelListResponse } from "$proxy/openai-types";
+import type { Fetcher } from "$proxy/upstream";
 
 export interface ProviderTargetDefaults {
 	readonly authHeader: string;
@@ -22,6 +22,6 @@ export interface ProviderChatCompletionInput extends ProviderTargetInput {
 export interface ProviderTarget {
 	readonly defaults: ProviderTargetDefaults;
 	readonly protocol: UpstreamProtocol;
-	createChatCompletionAsync(input: ProviderChatCompletionInput): Promise<Response>;
-	listModelsAsync(input: ProviderTargetInput): Promise<OpenAiModelListResponse>;
+	readonly createChatCompletionAsync: (input: ProviderChatCompletionInput) => Promise<Response>;
+	readonly listModelsAsync: (input: ProviderTargetInput) => Promise<OpenAiModelListResponse>;
 }

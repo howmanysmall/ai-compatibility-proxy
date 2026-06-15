@@ -1,5 +1,7 @@
-import type { ProxyConfiguration } from "@proxy/config";
-import type { Fetcher } from "@proxy/upstream";
+import { Predicate } from "effect";
+
+import type { ProxyConfiguration } from "$proxy/config";
+import type { Fetcher } from "$proxy/upstream";
 
 export type OpenCodeRoute = "chat_completions" | "messages" | "unknown";
 
@@ -31,9 +33,7 @@ export async function resolveOpenCodeModelRouteAsync(
 	if (!metadataResult) return { model, route: "unknown", source: "unknown" };
 
 	const npm = metadataResult.metadataByModel[model];
-	if (typeof npm !== "string") {
-		return { model, route: "unknown", source: metadataResult.source };
-	}
+	if (typeof npm !== "string") return { model, route: "unknown", source: metadataResult.source };
 
 	return {
 		model,
@@ -56,8 +56,8 @@ async function getOpenCodeMetadataByModelAsync(
 	if (cacheEntry.metadataByModel && cacheEntry.expiresAt > now) {
 		return { metadataByModel: cacheEntry.metadataByModel, source: "metadata" };
 	}
-	if (cacheEntry.inFlight) {
-		return await getMetadataWithStaleFallbackAsync(cacheEntry.inFlight, cacheEntry.metadataByModel);
+	if (cacheEntry.inFlight !== undefined) {
+		return getMetadataWithStaleFallbackAsync(cacheEntry.inFlight, cacheEntry.metadataByModel);
 	}
 
 	cacheEntry.inFlight = fetchOpenCodeMetadataByModelAsync(fetcher, opencodeModelsUrl, opencodeModelsFetchTimeoutMs);
@@ -119,26 +119,43 @@ async function fetchOpenCodeMetadataByModelAsync(
 		headers: new Headers({ accept: "application/json" }),
 		signal: AbortSignal.timeout(timeoutMs),
 	});
-	if (!response.ok) throw new Error(`Metadata request failed with HTTP ${response.status}.`);
+	if (!response.ok) {
+		const error = new Error(`Metadata request failed with HTTP ${response.status}.`);
+		Error.captureStackTrace(error, fetchOpenCodeMetadataByModelAsync);
+		throw error;
+	}
 
 	const body = await response.json();
 	return getOpenCodeMetadataByModel(body);
 }
 
 function getOpenCodeMetadataByModel(body: unknown): Record<string, string> {
-	if (!isRecord(body)) throw new Error("Metadata payload must be an object.");
+	if (!Predicate.isRecord(body)) {
+		const error = new Error("Metadata payload must be an object.");
+		Error.captureStackTrace(error, getOpenCodeMetadataByModel);
+		throw error;
+	}
 
 	const opencodeProvider = body.opencode;
-	if (!isRecord(opencodeProvider)) throw new Error("Missing opencode metadata provider.");
+	if (!Predicate.isRecord(opencodeProvider)) {
+		const error = new Error("Missing opencode metadata provider.");
+		Error.captureStackTrace(error, getOpenCodeMetadataByModel);
+		throw error;
+	}
 
 	const { models, npm: providerDefaultNpm } = opencodeProvider;
+	if (!Predicate.isRecord(models)) {
+		const error = new Error("Missing opencode models metadata.");
+		Error.captureStackTrace(error, getOpenCodeMetadataByModel);
+		throw error;
+	}
+
 	const defaultNpm = getString(providerDefaultNpm);
-	if (!isRecord(models)) throw new Error("Missing opencode models metadata.");
 
 	const metadataByModel: Record<string, string> = {};
 	for (const [model, metadata] of Object.entries(models)) {
-		if (!isRecord(metadata)) continue;
-		const provider = isRecord(metadata.provider) ? metadata.provider : undefined;
+		if (!Predicate.isRecord(metadata)) continue;
+		const provider = Predicate.isRecord(metadata.provider) ? metadata.provider : undefined;
 		const providerNpm = provider ? getString(provider.npm) : undefined;
 		const resolvedNpm = providerNpm ?? defaultNpm;
 		if (typeof resolvedNpm === "string") metadataByModel[model] = resolvedNpm;
@@ -149,10 +166,6 @@ function getOpenCodeMetadataByModel(body: unknown): Record<string, string> {
 
 function getRouteFromNpm(npm: string): OpenCodeRoute {
 	return npm.includes("anthropic") ? "messages" : "chat_completions";
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-	return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function getString(value: unknown): string | undefined {

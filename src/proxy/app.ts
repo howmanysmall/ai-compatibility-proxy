@@ -1,12 +1,12 @@
-import { logger, parseLevel } from "@logging/logger";
-import { getProviderTarget } from "@providers/registry";
+import { logger, parseLevel } from "$logging/logger";
+import { getProviderTarget } from "$providers/registry";
 import { Elysia } from "elysia";
 
-import { createErrorResponse, ProxyError } from "./errors.ts";
-import { registerRoutes } from "./routes.ts";
+import { createErrorResponse, ProxyError } from "./errors";
+import { registerRoutes } from "./routes";
 
-import type { ProxyConfiguration } from "./config.ts";
-import type { Fetcher } from "./upstream.ts";
+import type { ProxyConfiguration } from "./config";
+import type { Fetcher } from "./upstream";
 
 export interface AppOptions {
 	readonly fetcher?: Fetcher;
