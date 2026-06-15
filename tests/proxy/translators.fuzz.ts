@@ -1,19 +1,22 @@
-import { translateOpenAiToAnthropic } from "@proxy/anthropic-translator";
-import { normalizeCerebrasRequest } from "@proxy/cerebras-translator";
+import { translateOpenAiToAnthropic } from "$proxy/anthropic-translator";
+import { normalizeCerebrasRequest } from "$proxy/cerebras-translator";
 import { fuzz } from "@vitiate/core";
 import { FuzzedDataProvider } from "@vitiate/fuzzed-data-provider";
 
-import type { ProxyConfiguration } from "@proxy/config";
-import type { OpenAiChatCompletionRequest, OpenAiChatMessage } from "@proxy/openai-types";
+import type { ProxyConfiguration } from "$proxy/config";
+import type { OpenAiChatCompletionRequest, OpenAiChatMessage } from "$proxy/openai-types";
+import type { Writable } from "type-fest";
 
 const DEFAULT_MODEL = "fuzz-model";
 const DEFAULT_MAX_TOKENS = 4096;
 const CEREBRAS_CONFIGURATION = {
+	allowedUpstreamHosts: [],
 	cerebrasDropUnsupportedFields: true,
 	cerebrasStrictRequestValidation: false,
 	defaultMaxTokens: DEFAULT_MAX_TOKENS,
 	defaultModel: DEFAULT_MODEL,
 	logLevel: "info",
+	maxRequestBodySizeBytes: 1_048_576,
 	opencodeModelsCacheTtlMs: 300_000,
 	opencodeModelsFetchTimeoutMs: 2000,
 	opencodeModelsUrl: "https://models.dev/api.json",
@@ -24,6 +27,7 @@ const CEREBRAS_CONFIGURATION = {
 	upstreamAuthHeader: "Authorization",
 	upstreamAuthMode: "client_bearer",
 	upstreamBaseUrl: "https://api.cerebras.ai/v1",
+	upstreamErrorTransparency: true,
 	upstreamProtocol: "cerebras_openai",
 } satisfies ProxyConfiguration;
 
@@ -51,7 +55,7 @@ function consumeStop(provider: FuzzedDataProvider): string | ReadonlyArray<strin
 fuzz("Anthropic translator handles structured text request variants", (data) => {
 	const provider = new FuzzedDataProvider(data);
 	const stop = consumeStop(provider);
-	const request: OpenAiChatCompletionRequest = {
+	const openAiChatCompletionRequest: Writable<OpenAiChatCompletionRequest> = {
 		max_tokens: provider.consumeIntegralInRange(1, 8192),
 		messages: [
 			consumeChatMessage(provider, anthropicRoles),
@@ -61,13 +65,13 @@ fuzz("Anthropic translator handles structured text request variants", (data) => 
 			},
 		],
 		model: consumeText(provider),
-		...(stop === undefined ? {} : { stop }),
 		stream: provider.consumeBoolean(),
 		temperature: provider.consumeNumberInRange(0, 2),
 		top_p: provider.consumeNumberInRange(0, 1),
 	};
+	if (stop !== undefined) openAiChatCompletionRequest.stop = stop;
 
-	translateOpenAiToAnthropic(request, DEFAULT_MODEL, DEFAULT_MAX_TOKENS);
+	translateOpenAiToAnthropic(openAiChatCompletionRequest, DEFAULT_MODEL, DEFAULT_MAX_TOKENS);
 });
 
 fuzz("Cerebras normalizer handles structured text request variants", (data) => {
@@ -80,17 +84,17 @@ fuzz("Cerebras normalizer handles structured text request variants", (data) => {
 		messages[index] = consumeChatMessage(provider, cerebrasRoles);
 	}
 
-	const request: OpenAiChatCompletionRequest = {
+	const openAiChatCompletionRequest: Writable<OpenAiChatCompletionRequest> = {
 		max_tokens: provider.consumeIntegralInRange(1, 8192),
 		messages,
 		model: consumeText(provider),
 		// oxlint-disable-next-line id-length -- `n` is the OpenAI wire-field name.
 		n: 1,
-		...(stop === undefined ? {} : { stop }),
 		stream: provider.consumeBoolean(),
 		temperature: provider.consumeNumberInRange(0, 2),
 		top_p: provider.consumeNumberInRange(0, 1),
 	};
+	if (stop !== undefined) openAiChatCompletionRequest.stop = stop;
 
-	normalizeCerebrasRequest(request, CEREBRAS_CONFIGURATION);
+	normalizeCerebrasRequest(openAiChatCompletionRequest, CEREBRAS_CONFIGURATION);
 });

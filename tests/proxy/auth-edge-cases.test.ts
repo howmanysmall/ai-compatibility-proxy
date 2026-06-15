@@ -1,17 +1,19 @@
-import { expect, test } from "vitest";
-import { createAuthContext } from "@proxy/auth";
-import { ProxyError } from "@proxy/errors";
+import { expect, describe, it } from "vitest";
+import { createAuthContext } from "$proxy/auth";
+import { ProxyError } from "$proxy/errors";
 
-import type { ProxyConfiguration } from "@proxy/config";
+import type { ProxyConfiguration } from "$proxy/config";
 
 const baseConfiguration: ProxyConfiguration = {
+	allowedUpstreamHosts: [],
 	cerebrasDropUnsupportedFields: true,
 	cerebrasStrictRequestValidation: true,
 	defaultMaxTokens: 4096,
 	defaultModel: "model",
 	logLevel: "fatal",
+	maxRequestBodySizeBytes: 1_048_576,
 	opencodeModelsCacheTtlMs: 300_000,
-	opencodeModelsFetchTimeoutMs: 2_000,
+	opencodeModelsFetchTimeoutMs: 2000,
 	opencodeModelsUrl: "https://models.test/api.json",
 	port: 8000,
 	proxyApiKey: "proxy-key",
@@ -20,6 +22,7 @@ const baseConfiguration: ProxyConfiguration = {
 	upstreamAuthHeader: "x-api-key",
 	upstreamAuthMode: "client_bearer",
 	upstreamBaseUrl: "https://upstream.test/v1",
+	upstreamErrorTransparency: true,
 	upstreamProtocol: "anthropic_messages",
 };
 
@@ -41,89 +44,95 @@ function captureProxyError(callback: () => unknown): ProxyError {
 		throw error;
 	}
 
-	throw new Error("Expected ProxyError.");
+	const error = new Error("Expected ProxyError.");
+	Error.captureStackTrace(error, captureProxyError);
+	throw error;
 }
 
 function expectProxyError(callback: () => unknown, status: number, type: string): void {
 	const error = captureProxyError(callback);
 
+	// biome-ignore lint/suspicious/noMisplacedAssertion: will be used in a test.
 	expect(error.status, "Expected ProxyError status.").toBe(status);
+	// biome-ignore lint/suspicious/noMisplacedAssertion: will be used in a test.
 	expect(error.type, "Expected ProxyError type.").toBe(type);
 }
 
-test("client_bearer mode accepts mixed-case bearer tokens and x-api-key upstream auth", () => {
-	expect.hasAssertions();
-	const context = createAuthContext(createRequest("  BeArEr client-token  "), baseConfiguration);
+describe("auth edge cases", () => {
+	it("client_bearer mode accepts mixed-case bearer tokens and x-api-key upstream auth", () => {
+		expect.assertions(2);
+		const context = createAuthContext(createRequest("  BeArEr client-token  "), baseConfiguration);
 
-	expect(context.upstreamHeaders.get("content-type"), "Expected JSON content type.").toBe("application/json");
-	expect(context.upstreamHeaders.get("x-api-key"), "Expected client token forwarding.").toBe("client-token");
-});
+		expect(context.upstreamHeaders.get("content-type"), "Expected JSON content type.").toBe("application/json");
+		expect(context.upstreamHeaders.get("x-api-key"), "Expected client token forwarding.").toBe("client-token");
+	});
 
-test("client_bearer mode rejects missing, empty, and non-bearer authorization", () => {
-	expect.hasAssertions();
-	for (const authorization of [undefined, "", "Basic abc", "Bearer   "]) {
+	it("client_bearer mode rejects missing, empty, and non-bearer authorization", () => {
+		expect.hasAssertions();
+		for (const authorization of [undefined, "", "Basic abc", "Bearer   "]) {
+			expectProxyError(
+				() => createAuthContext(createRequest(authorization), baseConfiguration),
+				401,
+				"authentication_error",
+			);
+		}
+	});
+
+	it("server_key mode validates required proxy and upstream keys", () => {
+		expect.hasAssertions();
 		expectProxyError(
-			() => createAuthContext(createRequest(authorization), baseConfiguration),
+			() =>
+				createAuthContext(
+					createRequest("Bearer proxy-key"),
+					createConfiguration({
+						proxyApiKey: undefined,
+						upstreamAuthMode: "server_key",
+					}),
+				),
+			500,
+			"configuration_error",
+		);
+		expectProxyError(
+			() =>
+				createAuthContext(
+					createRequest("Bearer proxy-key"),
+					createConfiguration({
+						upstreamApiKey: undefined,
+						upstreamAuthMode: "server_key",
+					}),
+				),
+			500,
+			"configuration_error",
+		);
+	});
+
+	it("server_key mode rejects missing bearer token before timing-safe comparison", () => {
+		expect.hasAssertions();
+		expectProxyError(
+			() =>
+				createAuthContext(
+					createRequest(),
+					createConfiguration({
+						upstreamAuthMode: "server_key",
+					}),
+				),
 			401,
 			"authentication_error",
 		);
-	}
-});
+	});
 
-test("server_key mode validates required proxy and upstream keys", () => {
-	expect.hasAssertions();
-	expectProxyError(
-		() =>
-			createAuthContext(
-				createRequest("Bearer proxy-key"),
-				createConfiguration({
-					proxyApiKey: undefined,
-					upstreamAuthMode: "server_key",
-				}),
-			),
-		500,
-		"configuration_error",
-	);
-	expectProxyError(
-		() =>
-			createAuthContext(
-				createRequest("Bearer proxy-key"),
-				createConfiguration({
-					upstreamApiKey: undefined,
-					upstreamAuthMode: "server_key",
-				}),
-			),
-		500,
-		"configuration_error",
-	);
-});
+	it("server_key mode emits Authorization bearer header when configured", () => {
+		expect.assertions(1);
+		const context = createAuthContext(
+			createRequest("Bearer proxy-key"),
+			createConfiguration({
+				upstreamAuthHeader: "Authorization",
+				upstreamAuthMode: "server_key",
+			}),
+		);
 
-test("server_key mode rejects missing bearer token before timing-safe comparison", () => {
-	expect.hasAssertions();
-	expectProxyError(
-		() =>
-			createAuthContext(
-				createRequest(),
-				createConfiguration({
-					upstreamAuthMode: "server_key",
-				}),
-			),
-		401,
-		"authentication_error",
-	);
-});
-
-test("server_key mode emits Authorization bearer header when configured", () => {
-	expect.hasAssertions();
-	const context = createAuthContext(
-		createRequest("Bearer proxy-key"),
-		createConfiguration({
-			upstreamAuthHeader: "Authorization",
-			upstreamAuthMode: "server_key",
-		}),
-	);
-
-	expect(context.upstreamHeaders.get("authorization"), "Expected upstream bearer auth header.").toBe(
-		"Bearer upstream-key",
-	);
+		expect(context.upstreamHeaders.get("authorization"), "Expected upstream bearer auth header.").toBe(
+			"Bearer upstream-key",
+		);
+	});
 });
