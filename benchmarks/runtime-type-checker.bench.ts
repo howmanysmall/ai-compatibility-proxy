@@ -1,4 +1,4 @@
-// oxlint-disable import/no-namespace unicorn/no-null sonar/void-use small-rules/no-commented-code
+// oxlint-disable import/no-namespace unicorn/no-null sonar/void-use small-rules/no-commented-code -- it's fine
 import { faker } from "@faker-js/faker";
 import { type } from "arktype";
 import { Schema } from "effect";
@@ -146,7 +146,7 @@ const surySchema = sury.schema({
 const fromSury = sury.parser(surySchema);
 
 function generateData1(): unknown {
-	// oxlint-disable-next-line sonar/pseudo-random
+	// oxlint-disable-next-line sonar/pseudo-random -- this is fine.
 	if (Math.random() < 0.5) return {};
 
 	return {
@@ -173,7 +173,7 @@ function generateData1(): unknown {
 }
 
 function generateData2(): unknown {
-	// oxlint-disable-next-line sonar/pseudo-random
+	// oxlint-disable-next-line sonar/pseudo-random -- this is fine
 	if (Math.random() < 0.5) return {};
 	return {
 		content: Array.from({ length: faker.number.int({ max: 3, min: 1 }) }, () => ({
@@ -199,10 +199,11 @@ function generateData2(): unknown {
 	};
 }
 
-const randomData = new Array<unknown>(10000);
+// oxlint-disable-next-line small-rules/no-array-constructor-elements -- I want to.
+const randomData = new Array<unknown>(10_000);
 
-for (let index = 0; index < 10000; index += 1) {
-	// oxlint-disable-next-line sonar/pseudo-random
+for (let index = 0; index < 10_000; index += 1) {
+	// oxlint-disable-next-line sonar/pseudo-random -- this is fine.
 	randomData[index] = Math.random() < 0.5 ? generateData1() : generateData2();
 }
 

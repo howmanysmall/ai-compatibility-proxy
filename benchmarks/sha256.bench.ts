@@ -5,7 +5,7 @@ import { bench, run } from "mitata";
 function nextPassword(): string {
 	return faker.internet.password({
 		length: faker.number.int({ max: 20, min: 12 }),
-		// oxlint-disable-next-line sonar/pseudo-random
+		// oxlint-disable-next-line sonar/pseudo-random -- using Math.random() for password generation
 		memorable: Math.random() < 0.5,
 	});
 }
@@ -25,6 +25,7 @@ function hasSameTokenNode(clientBearerToken: string, expectedToken: string): boo
 function timingSafeEqualBytes(left: Uint8Array, right: Uint8Array): boolean {
 	if (left.byteLength !== right.byteLength) return false;
 	let result = 0;
+	// biome-ignore lint/suspicious/noBitwiseOperators: lol
 	for (let index = 0; index < left.length; index += 1) result |= left[index]! ^ right[index]!;
 	return result === 0;
 }
@@ -49,7 +50,11 @@ async function hasSameTokenWebCryptoAsync(clientBearerToken: string, expectedTok
 
 for (const password of randomData) {
 	const value = hasSameTokenNode(password, password);
-	if (value !== hasSameTokenBun(password, password)) throw new Error("Hash mismatch");
+	if (value !== hasSameTokenBun(password, password)) {
+		const error = new Error("Hash mismatch");
+		Error.captureStackTrace(error);
+		throw error;
+	}
 }
 
 bench("Node createHash", () => {

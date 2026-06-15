@@ -1,4 +1,4 @@
-// oxlint-disable sonar/void-use
+// oxlint-disable sonar/void-use -- using void to prevent dead code elimination
 import { bench, run } from "mitata";
 
 const ITERATIONS = 100_000;
