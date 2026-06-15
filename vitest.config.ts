@@ -3,6 +3,7 @@ import { argv, env } from "node:process";
 import { vitiatePlugin } from "@vitiate/core";
 import { defineConfig } from "vitest/config";
 
+// biome-ignore lint/style/noProcessEnv: testing environment
 const isVitiateRun = env.VITIATE_FUZZ === "1" || env.VITIATE_SUPERVISOR === "1" || env.VITIATE_OPTIMIZE === "1";
 const isFocusedRun = argv.slice(2).some((argument) => argument.endsWith(".test.ts") || argument.startsWith("tests/"));
 
@@ -17,9 +18,9 @@ const configuration = defineConfig({
 		coverage: {
 			clean: true,
 			cleanOnRerun: false,
-			enabled: !isFocusedRun && !isVitiateRun,
+			enabled: !(isFocusedRun || isVitiateRun),
 			exclude: ["src/**/*.d.ts", "src/index.ts", "src/providers/provider-target.ts", "src/types/**/*.ts"],
-			include: ["src/**/*.ts"],
+			include: ["src/**/*.ts", "plugins/oxc/small-rules/**/*.ts"],
 			provider: "v8",
 			reporter: ["text", "html", "text-summary"],
 			reportOnFailure: false,

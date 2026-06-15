@@ -1,14 +1,14 @@
 {
 	"compilerOptions": {
 		"paths": {
-			"@constants/*": ["./src/constants/*"],
-			"@logging/*": ["./src/logging/*"],
-			"@polyfills/*": ["./src/polyfills/*"],
-			"@providers/*": ["./src/providers/*"],
-			"@proxy/*": ["./src/proxy/*"],
-			"@ts-types/*": ["./src/types/*"],
-			"@utilities/*": ["./src/utilities/*"],
-			"@validators/*": ["./src/validators/*"]
+			"$constants/*": ["./src/constants/*"],
+			"$logging/*": ["./src/logging/*"],
+			"$polyfills/*": ["./src/polyfills/*"],
+			"$providers/*": ["./src/providers/*"],
+			"$proxy/*": ["./src/proxy/*"],
+			"$ts-types/*": ["./src/types/*"],
+			"$utilities/*": ["./src/utilities/*"],
+			"$validators/*": ["./src/validators/*"]
 		},
 		"tsBuildInfoFile": "./node_modules/.tsbuildinfo"
 	},

@@ -5,10 +5,10 @@
 		"noEmitOnError": true,
 		"outDir": "./plugins/oxc",
 		"paths": {
-			"@oxlint-rules/*": ["./plugins/oxc/small-rules/rules/*"],
-			"@oxlint-types/*": ["./plugins/oxc/small-rules/types/*"],
-			"@oxlint-utilities/*": ["./plugins/oxc/small-rules/utilities/*"],
-			"@small-rules": ["./plugins/oxc/small-rules/index.ts"]
+			"$oxlint-rules/*": ["./plugins/oxc/small-rules/rules/*"],
+			"$oxlint-types/*": ["./plugins/oxc/small-rules/types/*"],
+			"$oxlint-utilities/*": ["./plugins/oxc/small-rules/utilities/*"],
+			"$small-rules": ["./plugins/oxc/small-rules/index.ts"]
 		},
 		"rootDir": ".",
 		"sourceMap": false,
