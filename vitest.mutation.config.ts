@@ -6,12 +6,8 @@ export default mergeConfig(
 	baseConfiguration,
 	defineConfig({
 		test: {
-			coverage: {
-				enabled: false,
-			},
-			typecheck: {
-				enabled: false,
-			},
+			coverage: { enabled: false },
+			typecheck: { enabled: false },
 		},
 	}),
 );

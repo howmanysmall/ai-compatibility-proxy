@@ -8,13 +8,9 @@ const configuration = mergeConfig(
 	defineConfig({
 		plugins: [vitiatePlugin()],
 		test: {
-			coverage: {
-				enabled: false,
-			},
+			coverage: { enabled: false },
 			include: ["tests/**/*.fuzz.ts"],
-			typecheck: {
-				enabled: false,
-			},
+			typecheck: { enabled: false },
 		},
 	}),
 );

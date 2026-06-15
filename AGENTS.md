@@ -15,21 +15,21 @@ A self-hosted Bun proxy that exposes an OpenAI-compatible API (`/v1/chat/complet
 `nr` (from `@antfu/ni`, installed via `package.json`) is a shorthand for `pnpm run`. If a command depends on something from mise.toml, run it through `mise x` with the exception of anything from `@antfu/ni`. The `@antfu/ni` package provides several shorthands.
 
 ```sh
-mise x -- nr test                             # run all tests (coverage, parallel, fail-fast)
-mise x -- nr test tests/proxy/proxy.test.ts   # run a single test file
-mise x -- nr type-check                       # type-check the whole project
-mise x -- nr lint                             # lint: oxlint + biome
-mise x -- nr lint src/proxy/app.ts            # lint specific files/paths
-mise x -- nr format:check                     # check formatting (biome + oxfmt)
-mise x -- nr format                           # auto-fix formatting
-mise x -- nr dev                              # run the server locally
-mise x -- nr bench                            # run HTTP benchmarks locally
-mise x -- hk run check                        # run all pre-push checks manually
+nr test                             # run all tests (coverage, parallel, fail-fast)
+nr test tests/proxy/proxy.test.ts   # run a single test file
+nr type-check                       # type-check the whole project
+nr lint:agent                       # lint: oxlint + biome
+nr lint:agent src/proxy/app.ts      # lint specific files/paths
+nr format:check                     # check formatting (biome + oxfmt)
+nr format                           # auto-fix formatting
+nr dev                              # run the server locally
+nr bench                            # run HTTP benchmarks locally
+hk run check                        # run all pre-push checks manually
 ```
 
 Tests use Vitest. Tests live in `tests/` mirroring `src/` structure. Test utilities in `tests/utilities/test-utilities.ts`.
 
-Git hooks are managed by `hk` (configured in `hk.pkl`). Install with `mise x -- hk install`.
+Git hooks are managed by `hk` (configured in `hk.pkl`). Install with `hk install`.
 
 ### `@antfu/ni` Commands
 
@@ -79,11 +79,11 @@ Uses `consola` with daily rotating file reporters (error.log + combined.log) wri
 
 ### Path Aliases
 
-Defined in `tsconfig.json`, `tsconfig.scripts.json`, and `vitest.config.ts`. Key aliases: `@proxy/` → `src/proxy/`, `@logging/` → `src/logging/`, `@constants/` → `src/constants/`, `@utilities/` → `src/utilities/`, `@providers/` → `src/providers/`, `@validators/` → `src/validators/`, `@ts-types/` → `src/types/`. Import paths end with `.ts` extension.
+Defined in `tsconfig.json`, `tsconfig.scripts.json`, and `vitest.config.ts`. Key aliases: `~proxy/` → `src/proxy/`, `~logging/` → `src/logging/`, `~constants/` → `src/constants/`, `~utilities/` → `src/utilities/`, `~providers/` → `src/providers/`, `~validators/` → `src/validators/`, `~ts-types/` → `src/types/`. Import paths end with `.ts` extension.
 
 ### Plugins (`plugins/`)
 
-Custom Oxlint JS rules live under `plugins/oxc/small-rules/`. Built via `mise x -- nr build:oxc`.
+Custom Oxlint JS rules live under `plugins/oxc/small-rules/`. Built via `nr build:oxc`.
 
 ### Git Hooks (`hk.pkl`)
 
@@ -93,7 +93,7 @@ hk manages pre-commit, commit-msg, pre-push, and post-merge hooks:
 - **commit-msg**: commitlint with conventional commits config (`commitlint.config.ts`).
 - **pre-push**: lint + type-check (silent via `scripts/quiet-on-success.sh`).
 - **post-merge**: auto-install packages via `pullhook`.
-- Custom hooks: `mise x -- hk run check` (all checks), `mise x -- hk run fix` (all auto-fixes).
+- Custom hooks: `hk run check` (all checks), `hk run fix` (all auto-fixes).
 
 ## Conventions
 

@@ -77,20 +77,7 @@
 		},
 		{
 			"files": ["tests/**/*.test.{tsx,ts}"],
-			"plugins": [
-				"eslint",
-				"import",
-				"jsdoc",
-				"jsx-a11y",
-				"node",
-				"oxc",
-				"promise",
-				"react",
-				"react-perf",
-				"typescript",
-				"unicorn",
-				"vitest"
-			],
+			"plugins": ["vitest"],
 			"rules": {
 				"max-lines": "off",
 				"max-lines-per-function": "off",
@@ -541,8 +528,7 @@
 					"ComponentProps",
 					"screenProps",
 					"getScreenProps",
-					"PropsWithChildren",
-					"args"
+					"PropsWithChildren"
 				],
 				"ignoreShorthands": ["InferProps", "InstanceProps", "PropsWithoutRef", "ComponentProps"],
 				"shorthands": {

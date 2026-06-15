@@ -17,7 +17,7 @@ const configuration = defineConfig({
 		bail: 1,
 		coverage: {
 			clean: true,
-			cleanOnRerun: false,
+			cleanOnRerun: true,
 			enabled: !(isFocusedRun || isVitiateRun),
 			exclude: ["src/**/*.d.ts", "src/index.ts", "src/providers/provider-target.ts", "src/types/**/*.ts"],
 			include: ["src/**/*.ts", "plugins/oxc/small-rules/**/*.ts"],
