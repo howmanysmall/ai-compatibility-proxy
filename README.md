@@ -21,7 +21,7 @@ The first supported path is OpenCode Go:
 
 ```sh
 cp .env.example .env
-mise x -- ni --frozen-lockfile
+mise x -- aube install --frozen-lockfile
 mise x -- nr dev
 ```
 

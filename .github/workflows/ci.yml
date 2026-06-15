@@ -21,7 +21,7 @@ jobs:
       - uses: jdx/mise-action@v2
         with:
           install: true
-      - run: CI=true mise x -- ni --frozen-lockfile
+      - run: CI=true mise x -- aube install --frozen-lockfile
       - run: mise x -- nr type-check
 
   lint:
@@ -32,7 +32,7 @@ jobs:
       - uses: jdx/mise-action@v2
         with:
           install: true
-      - run: CI=true mise x -- ni --frozen-lockfile
+      - run: CI=true mise x -- aube install --frozen-lockfile
       - run: mise x -- nr oxlint --format github
       - run: mise x -- nr biome ci --reporter github
 
@@ -44,7 +44,7 @@ jobs:
       - uses: jdx/mise-action@v2
         with:
           install: true
-      - run: CI=true mise x -- ni --frozen-lockfile
+      - run: CI=true mise x -- aube install --frozen-lockfile
       - run: mise x -- nr format:check
 
   test:
@@ -55,5 +55,5 @@ jobs:
       - uses: jdx/mise-action@v2
         with:
           install: true
-      - run: CI=true mise x -- ni --frozen-lockfile
+      - run: CI=true mise x -- aube install --frozen-lockfile
       - run: mise x -- nr test
