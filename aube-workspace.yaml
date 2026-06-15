@@ -62,6 +62,7 @@ minimumReleaseAgeExclude:
   - "@oxfmt/binding-win32-arm64-msvc"
   - "@oxfmt/binding-win32-ia32-msvc"
   - "@oxfmt/binding-win32-x64-msvc"
+  - "@pobammer-ts/small-rules"
   - "@typescript/native-preview"
   - "@typescript/native-preview-darwin-arm64"
   - "@typescript/native-preview-darwin-x64"
@@ -76,7 +77,7 @@ minimumReleaseAgeStrict: true
 resolutionMode: time-based
 strictStorePkgContentCheck: false # Vitiate's Optique dev tarballs declare build metadata Aube normalizes away.
 strictDepBuilds: true # Fail on unreviewed build scripts
-strictPeerDependencies: true
+strictPeerDependencies: false
 strictSsl: true # Prevent MITM attacks
 trustPolicy: no-downgrade
 trustPolicyIgnoreAfter: 10080

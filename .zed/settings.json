@@ -108,7 +108,7 @@
 				}
 			],
 			"hard_tabs": true,
-			"language_servers": ["biome", "oxfmt", "oxlint", "tsgo", "vtsls", "harper-ls", "codebook", "wakatime"],
+			"language_servers": ["biome", "oxfmt", "oxlint", "!tsgo", "vtsls", "harper-ls", "codebook", "wakatime"],
 			"prettier": { "allowed": false },
 			"tab_size": 4
 		},
@@ -269,7 +269,7 @@
 				}
 			],
 			"hard_tabs": true,
-			"language_servers": ["biome", "oxfmt", "oxlint", "tsgo", "vtsls", "harper-ls", "codebook", "wakatime"],
+			"language_servers": ["biome", "oxfmt", "oxlint", "!tsgo", "vtsls", "harper-ls", "codebook", "wakatime"],
 			"prettier": { "allowed": false },
 			"tab_size": 4
 		},
@@ -289,7 +289,7 @@
 				}
 			],
 			"hard_tabs": true,
-			"language_servers": ["biome", "oxfmt", "oxlint", "tsgo", "vtsls", "harper-ls", "codebook", "wakatime"],
+			"language_servers": ["biome", "oxfmt", "oxlint", "!tsgo", "vtsls", "harper-ls", "codebook", "wakatime"],
 			"prettier": { "allowed": false },
 			"tab_size": 4
 		},

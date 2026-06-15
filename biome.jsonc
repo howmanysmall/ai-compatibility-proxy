@@ -1,11 +1,11 @@
 {
-	"$schema": "https://biomejs.dev/schemas/latest/schema.json",
+	"$schema": "https://biomejs.dev/schemas/2.5.0/schema.json",
 	"assist": {
 		"actions": {
 			"source": {
 				"noDuplicateClasses": "on",
 				"organizeImports": "off",
-				"recommended": true,
+				"preset": "recommended",
 				"useSortedAttributes": "on",
 				"useSortedInterfaceMembers": "off",
 				"useSortedKeys": "on",
@@ -41,9 +41,9 @@
 	"files": {
 		"includes": [
 			"**",
-			"!.agents/**",
-			"!.omo/**",
-			"!.repos/**",
+			"!.agents",
+			"!.omo",
+			"!.repos",
 			"!skills-lock.json",
 			"!package.json",
 			"!plugins/oxc/small-rules.js"
@@ -132,7 +132,7 @@
 			"semicolons": "always",
 			"trailingCommas": "all"
 		},
-		"globals": [],
+		"globals": ["Bun"],
 		"linter": { "enabled": true }
 	},
 
@@ -154,89 +154,213 @@
 	"linter": {
 		"enabled": true,
 		"includes": [
-			"src/**",
-			"!.agents/**",
-			".husky/**",
-			"tests/**",
-			"!.omo/**",
-			"!.repos/**",
-			"!**/.vscode/**",
-			"!**/*.code-workspace",
-			"!**/dist/**",
-			"!**/do-not-sync-ever/**",
-			"!**/garbage/**",
-			"!**/node_modules/**",
-			"!.context/**"
+			"**",
+			"!**/{.agents,.context,.omo,.repos,.vscode,dist,do-not-sync-ever,garbage,node_modules}/**",
+			"!**/*.code-workspace"
 		],
 		"rules": {
-			// a11y: oxlint has jsx_a11y but biome coverage is better
-			"a11y": { "recommended": true },
-
-			// complexity: most covered by oxlint, keep unique biome rules
+			"a11y": { "preset": "none" },
 			"complexity": {
+				"noDivRegex": "error",
+				"noExcessiveNestedTestSuites": "error",
 				"noForEach": "error",
+				"noImplicitCoercions": "error",
+				"noRedundantDefaultExport": "error",
+				"noUselessCatchBinding": "error",
+				"noUselessReturn": "error",
+				"noUselessStringConcat": "error",
 				"noUselessSwitchCase": "off",
-				"recommended": false,
+				"preset": "none",
+				"useArrayFind": "error",
 				"useArrowFunction": "off",
 				"useDateNow": "error",
 				"useFlatMap": "error",
 				"useLiteralKeys": "error",
+				"useMaxParams": {
+					"level": "error",
+					"options": { "max": 4 }
+				},
 				"useOptionalChain": "error",
-				"useSimplifiedLogicExpression": "error"
+				"useSimpleNumberKeys": "error",
+				"useSimplifiedLogicExpression": "error",
+				"useWhile": "error"
 			},
 
-			// correctness: almost entirely covered by oxlint
 			"correctness": {
-				"noUnusedImports": "off",
-				"noUnusedPrivateClassMembers": "off",
-				"noUnusedVariables": "off",
-				"recommended": false
+				"noGlobalDirnameFilename": "error",
+				"noNodejsModules": "off",
+				"noUndeclaredDependencies": {
+					"level": "error",
+					"options": {}
+				},
+				"noUndeclaredVariables": {
+					"level": "error",
+					"options": { "checkTypes": true }
+				},
+				"noUnresolvedImports": "off",
+				"noUnusedImports": "error",
+				"noUnusedInstantiation": "error",
+				"noUnusedPrivateClassMembers": "error",
+				"noUnusedVariables": "error",
+				"preset": "recommended",
+				"useInlineScriptId": "error",
+				"useJsonImportAttributes": "off",
+				"useSingleJsDocAsterisk": "error"
 			},
 
-			// nursery: experimental rules
-			"nursery": { "recommended": true },
+			"nursery": {
+				"noBaseToString": "error",
+				"noConditionalExpect": "error",
+				"noExcessiveNestedCallbacks": {
+					// temporarily disabled
+					"level": "off",
+					"options": { "max": 5 }
+				},
+				"noFloatingPromises": "error",
+				"noIdenticalTestTitle": "error",
+				"noImpliedEval": "error",
+				"noLoopFunc": "error",
+				"noMisleadingReturnType": "off",
+				"noMisusedPromises": "error",
+				"noUnsafePlusOperands": "error",
+				"noUselessTypeConversion": "off",
+				"preset": "recommended",
+				"useArraySome": "error",
+				"useAwaitThenable": "error",
+				"useConsistentTestIt": "error",
+				"useDisposables": "error",
+				"useDomNodeTextContent": "error",
+				"useDomQuerySelector": "error",
+				"useExhaustiveSwitchCases": "error",
+				"useExpect": "error",
+				"useExplicitReturnType": "error",
+				"useExplicitType": "off",
+				"useIframeSandbox": "error",
+				"useImportsFirst": "error",
+				"useMathMinMax": "error",
+				"useNamedCaptureGroup": "error",
+				"useNullishCoalescing": "error",
+				"useReduceTypeParameter": "error",
+				"useRegexpExec": "error",
+				"useRegexpTest": "error",
+				"useSortedClasses": "error",
+				"useStringStartsEndsWith": "error",
+				"useTestHooksInOrder": "error",
+				"useTestHooksOnTop": "error",
+				"useThisInClassMethods": "error",
+				"useUnicodeRegex": "error",
+				"useVarsOnTop": "error"
+			},
 
-			// performance: some unique to biome
 			"performance": {
 				"noAccumulatingSpread": "error",
+				"noAwaitInLoops": "off",
 				"noDelete": "error",
-				"recommended": false,
+				"noSyncScripts": "error",
+				"preset": "recommended",
+				"useSolidForComponent": "error",
 				"useTopLevelRegex": "error"
 			},
 
-			// security: biome has better coverage
 			"security": {
 				"noDangerouslySetInnerHtml": "off",
-				"recommended": true
+				"noScriptUrl": "error",
+				"preset": "recommended"
 			},
 
-			// style: keep unique biome rules
 			"style": {
+				"noCommonJs": "error",
+				"noDefaultExport": "error",
+				"noDescendingSpecificity": "error",
+				"noDoneCallback": "error",
 				"noEnum": "off",
+				"noExcessiveClassesPerFile": {
+					"level": "error",
+					"options": { "maxClasses": 3 }
+				},
+				"noExcessiveLinesPerFile": {
+					"level": "error",
+					"options": {
+						"maxLines": 200,
+						"skipBlankLines": true
+					}
+				},
+				"noExportedImports": "error",
+				"noHeadElement": "error",
+				"noImplicitBoolean": "error",
+				"noInferrableTypes": "error",
+				"noJsxLiterals": "error",
+				"noMagicNumbers": "off",
+				"noMultiAssign": "error",
+				"noMultilineString": "error",
+				"noNamespace": "error",
+				"noNegationElse": "error",
+				"noNestedTernary": "error",
 				"noNonNullAssertion": "off",
-				"recommended": false,
+				"noParameterAssign": "error",
+				"noParameterProperties": "error",
+				"noProcessEnv": "error",
+				"noRestrictedGlobals": "error",
+				"noRestrictedImports": "error",
+				"noRestrictedTypes": {
+					"level": "error",
+					"options": {
+						"types": {
+							"Omit": {
+								"message": "Use Except from type-fest instead.",
+								"use": "Except"
+							}
+						}
+					}
+				},
+				"preset": "recommended",
 				"useArrayLiterals": "off",
 				"useBlockStatements": "off",
+				"useConsistentEnumValueType": "error",
 				"useConsistentMemberAccessibility": "off",
+				"useConsistentMethodSignatures": "error",
 				"useConst": {
 					"fix": "safe",
 					"level": "error"
 				},
 				"useDefaultParameterLast": "error",
+				"useDestructuring": "error",
+				"useErrorCause": "error",
 				"useFilenamingConvention": {
 					"level": "error",
 					"options": {
 						"filenameCases": ["kebab-case"],
 						"requireAscii": true
 					}
-				}
+				},
+				"useGlobalThis": "error",
+				"useSpreadOverApply": "error"
 			},
 
-			// suspicious: almost entirely covered by oxlint
 			"suspicious": {
+				"noAlert": "error",
+				"noApproximativeNumericConstant": "error",
+				"noArrayIndexKey": "error",
 				"noConstEnum": "off",
+				"noDuplicateEnumValues": "error",
 				"noEmptyBlockStatements": "error",
-				"recommended": false
+				"noEqualsToNull": "error",
+				"noForIn": "error",
+				"noNestedPromises": "error",
+				"noParametersOnlyUsedInRecursion": "error",
+				"noProto": "error",
+				"noReturnAssign": "error",
+				"noShadow": {
+					"level": "off",
+					"options": {
+						"ignoreFunctionTypeParameterNameValueShadow": false,
+						"ignoreTypeValueShadow": false
+					}
+				},
+				"noUndeclaredEnvVars": "error",
+				"noUnnecessaryConditions": "off",
+				"preset": "recommended",
+				"useArraySortCompare": "error"
 			}
 		}
 	},
@@ -292,6 +416,56 @@
 				"parser": {
 					"allowComments": false,
 					"allowTrailingCommas": false
+				}
+			}
+		},
+
+		{
+			"includes": [
+				"tests/small-rules/fixtures/**/*.{ts,tsx}",
+				"plugins/oxc/small-rules/**/*.ts",
+				"*.config.{cjs,mjs,js,cts,mts,ts}",
+				"knip.ts"
+			],
+			"linter": {
+				"rules": {
+					"style": {
+						"noDefaultExport": "off"
+					}
+				}
+			}
+		},
+
+		{
+			"includes": ["plugins/oxc/small-rules/**/*.ts"],
+			"linter": {
+				"rules": {
+					"complexity": {
+						"useMaxParams": "off"
+					}
+				}
+			}
+		},
+
+		{
+			"includes": ["tests/**/*.test.ts", "plugins/oxc/small-rules/rules/*.ts", "benchmarks/**/*.ts"],
+			"linter": {
+				"rules": {
+					"nursery": {},
+					"style": {
+						"noExcessiveLinesPerFile": "off"
+					}
+				}
+			}
+		},
+
+		{
+			"includes": ["scripts/**/*.ts"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noExcessiveLinesPerFile": "off"
+					}
 				}
 			}
 		}

@@ -23,41 +23,6 @@ auto_install = false
 lockfile = true
 
 [tasks]
-[tasks.ignore-skills]
-description = "Ignores skills from the lockfile."
-run = """
-#!/usr/bin/env bash
-
-set -euo pipefail
-
-GITIGNORE_PATH=".gitignore"
-SKILLS_LOCK_PATH="skills-lock.json"
-SKILLS_DIR=".agents/skills"
-
-version=$(jq -r '.version' "$SKILLS_LOCK_PATH")
-if [[ "$version" != "1" ]]; then
-	echo "error: unsupported skills-lock.json version: $version" >&2
-	exit 1
-fi
-
-mapfile -t skill_names < <(jq -r '.skills | keys[]' "$SKILLS_LOCK_PATH")
-
-added=0
-for name in "${skill_names[@]}"; do
-	line="${SKILLS_DIR}/${name}/"
-	if ! grep -qxF "$line" "$GITIGNORE_PATH" 2> /dev/null; then
-		printf '%s\n' "$line" >> "$GITIGNORE_PATH"
-		((added++)) || true
-	fi
-done
-
-if ((added > 0)); then
-	echo "✔ Added ${added} skill(s) to .gitignore"
-else
-	echo "ℹ All skills already in .gitignore"
-fi
-"""
-
 [tasks.live-smoke]
 description = "Run repeatable live smoke tests for OpenCode Go and Cerebras proxy paths"
 run = "mise x -- bun run --bun scripts/live-proxy-smoke.ts"
@@ -109,3 +74,23 @@ fi
 run_windows = """
 cmd /c start "" benchmarks\\results\\latest-report.html
 """
+
+[tasks.health-check]
+alias = "hc"
+description = "Health check the running proxy. Exits 0 if status is ok, 1 otherwise."
+env = { PORT = "8000" }
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+
+port="${PORT:-8000}"
+
+if response=$(curl -sf "http://localhost:${port}/health" 2>/dev/null); then
+	status=$(echo "$response" | jq -r '.status // empty' 2>/dev/null)
+	if [ "$status" = "ok" ]; then
+		exit 0
+	fi
+fi
+
+exit 1
+""""

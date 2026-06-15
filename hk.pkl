@@ -47,14 +47,14 @@ hooks {
         check = "nr oxlint --no-error-on-unmatched-pattern {{files}}"
         fix = "nr oxlint --no-error-on-unmatched-pattern --fix {{files}}"
         check_first = true
-        batch = true
+        batch = false
       }
       ["biome-js"] = (Builtins.biome) {
         glob = List("*.js", "*.jsx", "*.ts", "*.tsx", "*.mjs", "*.cjs", "*.mts", "*.cts")
         check = "nr biome lint --no-errors-on-unmatched {{files}}"
         fix = "nr biome lint --write --no-errors-on-unmatched {{files}}"
         check_first = true
-        batch = true
+        batch = false
       }
       ["oxfmt-js"] = (Builtins.oxfmt) {
         glob = List("*.js", "*.jsx", "*.ts", "*.tsx", "*.mjs", "*.cjs", "*.mts", "*.cts")
@@ -69,7 +69,7 @@ hooks {
         check = "nr biome check --no-errors-on-unmatched {{files}}"
         fix = "nr biome check --write --no-errors-on-unmatched {{files}}"
         check_first = true
-        batch = true
+        batch = false
       }
 
       // oxfmt for json, jsonc, json5, code-workspace, and mdx

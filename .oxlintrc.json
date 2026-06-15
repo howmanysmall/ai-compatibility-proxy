@@ -28,7 +28,7 @@
 		"vitest.vitiate.config.ts"
 	],
 	"jsPlugins": [
-		"./plugins/oxc/small-rules.js",
+		{ "name": "small-rules", "specifier": "@pobammer-ts/small-rules" },
 		{ "name": "antfu", "specifier": "eslint-plugin-antfu" },
 		{ "name": "unused-imports", "specifier": "eslint-plugin-unused-imports" },
 		{ "name": "sonar", "specifier": "eslint-plugin-sonarjs" },
@@ -62,35 +62,9 @@
 			}
 		},
 		{
-			"files": ["common/validators/cliffy/*.ts", "common/validators/cliffy/smart-file-types/*-file-type.ts"],
-			"rules": {
-				"class-methods-use-this": "off"
-			}
-		},
-		{
 			"files": ["**/*.d.ts"],
 			"rules": {
 				"import/unambiguous": "off"
-			}
-		},
-		{
-			"files": ["common/**/*.tsx"],
-			"jsPlugins": ["./plugins/oxc/small-rules.js"],
-			"rules": {
-				"small-rules/require-react-component-keys": [
-					"off",
-					{
-						"allowRootKeys": false,
-						"ignoreCallExpressions": ["render"]
-					}
-				]
-			}
-		},
-		{
-			"files": ["plugins/oxc/small-rules/**/*.ts"],
-			"rules": {
-				"eslint/prefer-named-capture-group": "off",
-				"prefer-named-capture-group": "off"
 			}
 		},
 		{
@@ -103,16 +77,6 @@
 		},
 		{
 			"files": ["tests/**/*.test.{tsx,ts}"],
-			"globals": {
-				"afterAll": "readonly",
-				"afterEach": "readonly",
-				"beforeAll": "readonly",
-				"beforeEach": "readonly",
-				"describe": "readonly",
-				"expect": "readonly",
-				"test": "readonly",
-				"vi": "readonly"
-			},
 			"plugins": [
 				"eslint",
 				"import",
@@ -132,7 +96,18 @@
 				"max-lines-per-function": "off",
 				"no-console": "off",
 				"no-non-null-assertion": "off",
-				"small-rules/prefer-expect-assertions": "off",
+				"small-rules/prefer-expect-assertions": [
+					"error",
+					{
+						"additionalExpectCallNames": ["expectRecord", "expectArray", "expectPresent"]
+					}
+				],
+				"small-rules/prefer-expect-assertions-count": [
+					"error",
+					{
+						"additionalAssertionFunctions": ["expectRecord", "expectArray", "expectPresent"]
+					}
+				],
 				"small-rules/prevent-abbreviations": "off",
 				"unicorn/no-null": "off",
 				"vitest/consistent-each-for": "error",
@@ -183,7 +158,7 @@
 			}
 		},
 		{
-			"files": ["tests/small-rules/fixtures/**/*.{ts,tsx}", "*.config.{cjs,mjs,js,cts,mts,ts}", "knip.ts"],
+			"files": ["*.config.{cjs,mjs,js,cts,mts,ts}", "knip.ts"],
 			"rules": { "import/no-default-export": "off" }
 		},
 		{
@@ -194,14 +169,7 @@
 	"plugins": ["eslint", "import", "jsdoc", "jsx-a11y", "node", "oxc", "promise", "react-perf", "react", "unicorn"],
 	"rules": {
 		"arrow-body-style": ["error", "as-needed"],
-		"capitalized-comments": [
-			"off",
-			{
-				"ignoreConsecutiveComments": true,
-				"ignorePattern": "^biome",
-				"line": { "ignorePattern": "^biome" }
-			}
-		],
+		"capitalized-comments": "off",
 		"complexity": "off",
 		"curly": ["error", "multi-line"],
 		"default-case": "off",
@@ -459,7 +427,9 @@
 		"regexp-js/strict": "error",
 		"regexp-js/use-ignore-case": "error",
 		"require-yield": "error",
+
 		"small-rules/array-type-generic": "error",
+		"small-rules/ban-instances": "error",
 		"small-rules/ban-react-fc": "error",
 		"small-rules/ban-types": [
 			"error",
@@ -469,6 +439,20 @@
 				}
 			}
 		],
+		"small-rules/directive-disable-enable-pair": ["error", { "allowWholeFile": true }],
+		"small-rules/directive-no-aggregating-enable": "error",
+		"small-rules/directive-no-duplicate-disable": "error",
+		"small-rules/directive-no-restricted-disable": "error",
+		"small-rules/directive-no-unlimited-disable": "error",
+		"small-rules/directive-no-unused-enable": "error",
+		"small-rules/directive-no-use": "error",
+		"small-rules/directive-require-description": [
+			"error",
+			{
+				"ignore": ["eslint-enable", "oxlint-enable"]
+			}
+		],
+		"small-rules/enforce-ianitor-check-type": "off",
 		"small-rules/memoized-effect-dependencies": [
 			"error",
 			{
@@ -487,29 +471,64 @@
 		"small-rules/no-array-size-assignment": ["error", { "allowAutofix": false }],
 		"small-rules/no-async-constructor": "error",
 		"small-rules/no-cascading-set-state": "error",
+		"small-rules/no-color3-constructor": "off",
 		"small-rules/no-commented-code": "error",
 		"small-rules/no-constant-condition-with-break": [
 			"error",
 			{
-				"loopExitCalls": ["break", "return", "throw", "coroutine.yield"]
+				"loopExitCalls": ["break", "return", "throw"]
 			}
 		],
+		"small-rules/no-error": "off",
+		"small-rules/no-events-in-events-callback": "off",
 		"small-rules/no-giant-component": "error",
+		"small-rules/no-god-components": "error",
+		"small-rules/no-ianitor-in-function-body": "off",
+		"small-rules/no-ianitor-success-access": "off",
+		"small-rules/no-identity-map": "off",
+		"small-rules/no-increment-decrement": "error",
 		"small-rules/no-inline-property-on-memo-component": "error",
 		"small-rules/no-instance-methods-without-this": "off",
-		"small-rules/no-render-helper-functions": "off",
+		"small-rules/no-native-properties-spread": "off",
+		"small-rules/no-new-instance-in-use-memo": "off",
+		"small-rules/no-print": "off",
+		"small-rules/no-redundant-aspect-ratio-constraint": "off",
+		"small-rules/no-render-helper-functions": "error",
+		"small-rules/no-spec-file-extension": "error",
+		"small-rules/no-static-react-create-element": ["error", { "environment": "standard" }],
+		"small-rules/no-table-create-map": "off",
+		"small-rules/no-task-wait": "off",
 		"small-rules/no-underscore-react-props": "error",
 		"small-rules/no-unused-imports": "error",
 		"small-rules/no-unused-use-memo": "error",
 		"small-rules/no-use-memo-simple-expression": "error",
+		"small-rules/no-useless-constants": "error",
+		"small-rules/no-useless-default": "error",
 		"small-rules/no-useless-use-effect": "error",
 		"small-rules/no-useless-use-memo": "error",
+		"small-rules/no-useless-use-spring": "off",
+		"small-rules/no-warn": "off",
+		"small-rules/only-type-imports": "off",
 		"small-rules/prefer-class-properties": "error",
+		"small-rules/prefer-constant-dispatch": "error",
+		"small-rules/prefer-context-stack": "off",
 		"small-rules/prefer-early-return": "error",
 		"small-rules/prefer-expect-assertions": "off",
+		"small-rules/prefer-expect-assertions-count": "off",
+		"small-rules/prefer-hoisted-jsx-elements": "error",
+		"small-rules/prefer-hoisted-jsx-object-properties": "error",
+		"small-rules/prefer-idiv": "off",
+		"small-rules/prefer-local-portal-component": "off",
+		"small-rules/prefer-math-min-max": "off",
+		"small-rules/prefer-modding-inspect": "off",
+		"small-rules/prefer-module-scope-constants": "error",
+		"small-rules/prefer-padding-components": "off",
 		"small-rules/prefer-pascal-case-enums": "error",
+		"small-rules/prefer-sequence-overloads": "off",
+		"small-rules/prefer-single-world-query": "off",
 		"small-rules/prefer-singular-enums": "error",
 		"small-rules/prefer-ternary-conditional-rendering": "error",
+		"small-rules/prefer-udim2-shorthand": "off",
 		"small-rules/prefer-use-reducer": "error",
 		"small-rules/prevent-abbreviations": [
 			"error",
@@ -563,9 +582,11 @@
 				]
 			}
 		],
-		"small-rules/require-react-component-keys": "off",
+		"small-rules/require-paired-calls": "off",
+		"small-rules/require-react-component-keys": "error",
 		"small-rules/require-react-display-names": "error",
 		"small-rules/require-switch-case-braces": ["error", { "metric": "lines" }],
+		"small-rules/require-throw-error-capture": "error",
 		"small-rules/require-unicode-regex": "error",
 		"small-rules/rerender-memo-with-default-value": "error",
 		"small-rules/strict-component-boundaries": ["error", { "allow": ["../components"] }],
@@ -909,6 +930,14 @@
 		"unicorn/escape-case": "error",
 		"unicorn/explicit-length-check": "error",
 		"unicorn/filename-case": ["error", { "case": "kebabCase" }],
+		"unicorn/import-style": [
+			"error",
+			{
+				"styles": {
+					"node:path": { "named": true }
+				}
+			}
+		],
 		"unicorn/new-for-builtins": "error",
 		"unicorn/no-abusive-eslint-disable": "error",
 		"unicorn/no-accessor-recursion": "error",
