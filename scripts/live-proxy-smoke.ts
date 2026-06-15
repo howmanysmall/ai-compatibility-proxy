@@ -2,11 +2,11 @@
 
 import { spawn } from "node:child_process";
 import { readFile, stat } from "node:fs/promises";
-import { env as processEnvironment, execPath, exit, stdin, stdout } from "node:process";
+import { execPath, exit, stdin, stdout } from "node:process";
 import { Command } from "@cliffy/command";
 // oxlint-disable-next-line import/no-namespace -- Number conflicts with Number
 import * as Prompt from "@cliffy/prompt";
-import { argv } from "bun";
+import { argv, env } from "bun";
 import { bgGreen, bgRed, black, bold, cyan, dim, green, magenta, red, yellow } from "colorette";
 import { Effect, Predicate } from "effect";
 import prettyMilliseconds from "pretty-ms";
@@ -14,7 +14,7 @@ import prettyMilliseconds from "pretty-ms";
 import type { ReadonlyRecord } from "effect/Record";
 import type { ChildProcess } from "node:child_process";
 
-// oxlint-disable-next-line prefer-regex-literals
+// oxlint-disable-next-line prefer-regex-literals -- i don't like this
 const CLEAN_REGEXP = new RegExp(String.raw`\x1b\[[0-9;]*m`, "gu");
 
 interface ProviderConfiguration {
@@ -185,7 +185,7 @@ function promptForSmokeOptionsEffect(commandOptions: LiveSmokeCommandOptions): E
 			const portText = await Prompt.Number.prompt({
 				default: commandOptions.port ?? DEFAULT_PORT,
 				float: false,
-				max: 65535,
+				max: 65_535,
 				message: "Local proxy port",
 				min: 1,
 			});
@@ -327,7 +327,7 @@ function testProviderEffect(
 function startProxyProcess(providerConfiguration: ProviderConfiguration, port: number): ChildProcess {
 	return spawn(execPath, ["src/index.ts"], {
 		env: {
-			...processEnvironment,
+			...env,
 			DEFAULT_MODEL: providerConfiguration.model,
 			LOG_LEVEL: "warn",
 			PORT: String(port),
@@ -465,7 +465,7 @@ function readApiKeyEffect({
 	return Effect.tryPromise({
 		catch: toError,
 		try: async () => {
-			const environmentValue = processEnvironment[keyEnvironmentVariable]?.trim();
+			const environmentValue = env[keyEnvironmentVariable]?.trim();
 			if (environmentValue) return environmentValue;
 
 			try {
@@ -476,7 +476,9 @@ function readApiKeyEffect({
 				if (!isNotFoundError(error)) throw error;
 			}
 
-			throw new Error(`Missing ${name} key. Set ${keyEnvironmentVariable} or create ${keyFilePath}.`);
+			const error = new Error(`Missing ${name} key. Set ${keyEnvironmentVariable} or create ${keyFilePath}.`);
+			Error.captureStackTrace(error);
+			throw error;
 		},
 	});
 }
@@ -488,7 +490,7 @@ function getKeyStatusEffect({
 	return Effect.tryPromise({
 		catch: toError,
 		try: async () => {
-			if (processEnvironment[keyEnvironmentVariable]?.trim()) return `${keyEnvironmentVariable} is set`;
+			if (env[keyEnvironmentVariable]?.trim()) return `${keyEnvironmentVariable} is set`;
 
 			try {
 				const fileInformation = await stat(keyFilePath);
@@ -672,7 +674,7 @@ function printSummary(results: ReadonlyArray<SmokeResult>): void {
 }
 
 function getHomeDirectory(): string {
-	const homeDirectory = processEnvironment.HOME?.trim();
+	const homeDirectory = env.HOME?.trim();
 	if (homeDirectory) return homeDirectory;
 
 	const error = new Error("HOME is required to locate default key files.");
@@ -719,9 +721,9 @@ function visualLength(value: string): number {
 			}
 		}
 
-		if (codePoint > 0xffff || (codePoint >= 0x2600 && codePoint <= 0x27bf)) {
+		if (codePoint > 0xff_ff || (codePoint >= 0x26_00 && codePoint <= 0x27_bf)) {
 			length += 2;
-			index += codePoint > 0xffff ? 2 : 1;
+			index += codePoint > 0xff_ff ? 2 : 1;
 		} else {
 			length += 1;
 			index += 1;

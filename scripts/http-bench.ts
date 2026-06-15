@@ -4,76 +4,68 @@ import net from "node:net";
 import { join } from "node:path";
 import { cwd, env as processEnvironment } from "node:process";
 import { setTimeout as delayAsync } from "node:timers/promises";
+import { logger, parseLevel } from "$logging/logger";
+import { createFetchHandler } from "$proxy/app";
+import { loadConfiguration } from "$proxy/config";
 import { Command } from "@cliffy/command";
-import { logger, parseLevel } from "@logging/logger";
-import { createFetchHandler } from "@proxy/app";
-import { loadConfiguration } from "@proxy/config";
 import { html as renderHtml, raw, tag } from "@sander/html";
-import { type } from "arktype";
+import { regex, type } from "arktype";
 import { Effect } from "effect";
 import prettyBytes from "pretty-bytes";
 import prettyMilliseconds from "pretty-ms";
 
 import type { HtmlNode } from "@sander/html";
 
-const RPS_BODY = [
-	"How many HTTP requests the proxy finished per second on average across the run.",
-	"The proxy is stateless, so this is a clean measure of CPU + I/O capacity on your machine.",
-].join(" ");
-const LATENCY_BODY = [
-	"Response time for the request, including network, parsing, and upstream work.",
-	"P95/P99 are the worst case for most/all users.",
-	"Watch the P99, not the average.",
-].join(" ");
-const SUCCESS_BODY = [
-	"Share of requests that came back with a 2xx status.",
-	"The mock upstream always succeeds, so anything below 100% is the proxy refusing traffic, hitting a timeout, or erroring internally.",
-].join(" ");
-const CONCURRENCY_BODY = [
-	"How many connections oha keeps open in parallel.",
-	"Higher numbers stress the proxy's connection pool and event loop.",
-	"The numbers are not directly comparable across machines.",
-].join(" ");
-const WARMUP_BODY = [
-	"A handful of requests sent before the timer starts.",
-	"These are discarded so the run measures steady-state, not first-request JIT, cache fill, or DNS.",
-].join(" ");
-const VERDICT_BODY = [
-	"A simple score: of {throughput, avg latency, p95 latency}, count the wins (higher is better for the first, lower is better for the rest).",
-	"2+ ⇒ better, 0 ⇒ worse, otherwise mixed.",
-].join(" ");
-const DELTA_BODY = [
-	"Percent change between the current run and the snapshot you selected above.",
-	"The throughput and latency color cues tell you which side of zero is good.",
-].join(" ");
-
 const GLOSSARY_ENTRIES = [
 	{
-		body: RPS_BODY,
+		body: [
+			"How many HTTP requests the proxy finished per second on average across the run.",
+			"The proxy is stateless, so this is a clean measure of CPU + I/O capacity on your machine.",
+		].join(" "),
 		title: "Requests per second",
 	} as const,
 	{
-		body: LATENCY_BODY,
+		body: [
+			"Response time for the request, including network, parsing, and upstream work.",
+			"P95/P99 are the worst case for most/all users.",
+			"Watch the P99, not the average.",
+		].join(" "),
 		title: "Latency (Avg, P95, P99)",
 	} as const,
 	{
-		body: SUCCESS_BODY,
+		body: [
+			"Share of requests that came back with a 2xx status.",
+			"The mock upstream always succeeds, so anything below 100% is the proxy refusing traffic, hitting a timeout, or erroring internally.",
+		].join(" "),
 		title: "Success rate",
 	} as const,
 	{
-		body: CONCURRENCY_BODY,
+		body: [
+			"How many connections oha keeps open in parallel.",
+			"Higher numbers stress the proxy's connection pool and event loop.",
+			"The numbers are not directly comparable across machines.",
+		].join(" "),
 		title: "Concurrency",
 	} as const,
 	{
-		body: WARMUP_BODY,
+		body: [
+			"A handful of requests sent before the timer starts.",
+			"These are discarded so the run measures steady-state, not first-request JIT, cache fill, or DNS.",
+		].join(" "),
 		title: "Warmup",
 	} as const,
 	{
-		body: VERDICT_BODY,
+		body: [
+			"A simple score: of {throughput, avg latency, p95 latency}, count the wins (higher is better for the first, lower is better for the rest).",
+			"2+ ⇒ better, 0 ⇒ worse, otherwise mixed.",
+		].join(" "),
 		title: "Verdict (better / mixed / worse)",
 	} as const,
 	{
-		body: DELTA_BODY,
+		body: [
+			"Percent change between the current run and the snapshot you selected above.",
+			"The throughput and latency color cues tell you which side of zero is good.",
+		].join(" "),
 		title: "Delta vs baseline",
 	} as const,
 ].map((entry) => tag("div", { class: "glossary-item" }, [tag("h4", entry.title), tag("p", entry.body)]));
@@ -1171,9 +1163,9 @@ function createReportHeader(summary: BenchmarkSummary): HtmlNode {
 		]),
 		tag("h1", { class: "hero-title" }, [summary.label, tag("span", { class: "tag" }, "snapshot")]),
 		tag("p", { class: "hero-sub" }, [
-			`Real load against three production endpoints of the proxy using `,
+			"Real load against three production endpoints of the proxy using ",
 			tag("strong", "oha"),
-			`. Warmup traffic is discarded so the numbers reflect steady-state behavior.`,
+			". Warmup traffic is discarded so the numbers reflect steady-state behavior.",
 		]),
 		tag("div", { class: "pill-row" }, [
 			tag("span", { class: "pill" }, ["Generated ", tag("strong", formatReportDate(summary.generatedAt))]),
@@ -1211,7 +1203,7 @@ function createVerdictSection(
 		return computeVerdict(baselineEndpoint, endpoint);
 	});
 	const tally = { better: 0, mixed: 0, worse: 0 };
-	for (const verdict of verdicts) tally[verdict]++;
+	for (const verdict of verdicts) tally[verdict] += 1;
 	let overall: VerdictTone;
 	if (tally.better >= 2) overall = "better";
 	else if (tally.worse >= 2) overall = "worse";
@@ -2257,9 +2249,7 @@ function visibleLength(value: string): number {
 
 function stripAnsi(value: string): string {
 	let strippedValue = value;
-	for (const ansiValue of ANSI_VALUES) {
-		strippedValue = strippedValue.replaceAll(ansiValue, "");
-	}
+	for (const ansiValue of ANSI_VALUES) strippedValue = strippedValue.replaceAll(ansiValue, "");
 	return strippedValue;
 }
 
@@ -2295,11 +2285,14 @@ function formatReportDate(isoString: string): string {
 	return `${datePart} · ${timePart}`;
 }
 
+// oxlint-disable-next-line unicorn/prefer-string-raw -- Not on `regex`
+const DURATION_REGEXP = regex("^(?<value>\\d+(?:\\.\\d+)?)(?<unit>[smh])?", "u");
 function parseDurationToSeconds(duration: string): number {
-	const match = /^(\d+(?:\.\d+)?)([smh])?$/u.exec(duration.trim());
+	const match = DURATION_REGEXP.exec(duration.trim());
 	if (!match) return 0;
-	const value = Number(match[1]);
-	const unit = match[2] ?? "s";
+
+	const value = Number(match.groups.value);
+	const unit = match.groups.unit ?? "s";
 	if (unit === "m") return value * 60;
 	if (unit === "h") return value * 3600;
 	return value;
@@ -2341,13 +2334,15 @@ function getVerdict(previous: EndpointSummary, current: EndpointSummary): string
 	return `${ANSI.red}worse${ANSI.reset}`;
 }
 
+const ALPHA_NUMERIC = /[\dA-Za-z]/u;
+
 function sanitizeLabel(value: string): string {
 	const trimmedValue = value.trim();
 	let sanitizedValue = "";
 	let lastWasSeparator = false;
 
 	for (const character of trimmedValue) {
-		const isAlphaNumeric = /[\dA-Za-z]/u.test(character);
+		const isAlphaNumeric = ALPHA_NUMERIC.test(character);
 		const isAllowedPunctuation = character === "." || character === "_" || character === "-";
 		if (isAlphaNumeric || isAllowedPunctuation) {
 			sanitizedValue += character;
