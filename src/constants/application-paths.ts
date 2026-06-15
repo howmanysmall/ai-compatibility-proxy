@@ -1,4 +1,4 @@
-import { name } from "@constants/package-json";
+import { name } from "$constants/package-json";
 import envPaths from "env-paths";
 
 import type { Paths } from "env-paths";

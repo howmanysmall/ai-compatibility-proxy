@@ -2,9 +2,9 @@ import { hostname } from "node:os";
 import path from "node:path";
 import nodeProcess from "node:process";
 import { inspect } from "node:util";
-import { name, version } from "@constants/package-json";
-import { getActiveLogContext, mergeLogContexts, sanitizeLogContext } from "@logging/log-context";
-import { sanitize, sanitizeRecord } from "@logging/sanitizer";
+import { name, version } from "$constants/package-json";
+import { getActiveLogContext, mergeLogContexts, sanitizeLogContext } from "$logging/log-context";
+import { sanitize, sanitizeRecord } from "$logging/sanitizer";
 import { Predicate } from "effect";
 
 import type { LogObject, LogType } from "consola";
@@ -162,7 +162,7 @@ export function normalizeLogEntry(logObject: LogObject): StructuredLogEntry {
 		type: logObject.type,
 	};
 	if (customProperties !== undefined) normalizedEntry.customProperties = customProperties;
-	// oxlint-disable-next-line prefer-destructuring
+	// oxlint-disable-next-line prefer-destructuring -- not applicable for array access
 	if (errors[0] !== undefined) normalizedEntry.error = errors[0];
 	if (errors.length > 1) normalizedEntry.errors = errors;
 	if (payload !== undefined) normalizedEntry.payload = payload;

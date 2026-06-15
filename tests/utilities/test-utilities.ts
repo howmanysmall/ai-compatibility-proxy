@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noMisplacedAssertion: false positive -- these are used in tests.
 import { expect } from "vitest";
 import { type } from "arktype";
 import { Predicate } from "effect";

@@ -30,8 +30,6 @@ function namelessFunction(): undefined {
 	return undefined;
 }
 
-Object.defineProperty(namelessFunction, "name", { value: "" });
-
 function restoreGarbageCollector(previousCollector: unknown): void {
 	if (previousCollector === undefined) {
 		Reflect.deleteProperty(globalThis, "gc");
@@ -107,12 +105,13 @@ describe("log-context and log-utilities", () => {
 			name: "PlainError",
 		};
 
-		expect(sanitize({ nested: { value: "hidden" } }, { maxDepth: 1 }), "Expected depth limit placeholder.").toEqual(
-			{
-				nested: "[MaxDepthExceeded]",
-			},
-		);
-		expect(sanitize([1, { token: "secret" }]), "Expected array entries to sanitize.").toEqual([
+		expect(
+			sanitize({ nested: { value: "hidden" } }, { maxDepth: 1 }),
+			"Expected depth limit placeholder.",
+		).toStrictEqual({
+			nested: "[MaxDepthExceeded]",
+		});
+		expect(sanitize([1, { token: "secret" }]), "Expected array entries to sanitize.").toStrictEqual([
 			1,
 			{ token: "[REDACTED]" },
 		]);
@@ -124,14 +123,17 @@ describe("log-context and log-utilities", () => {
 			stack: "stack",
 			token: "[REDACTED]",
 		});
-		expect(sanitize(errorLikeWithoutStack), "Expected missing stack to be omitted.").toEqual({
+		expect(sanitize(errorLikeWithoutStack), "Expected missing stack to be omitted.").toStrictEqual({
 			message: "plain object error without stack",
 			name: "PlainError",
 		});
+		Object.defineProperty(namelessFunction, "name", { value: "" });
 		expect(sanitize(namelessFunction), "Expected nameless functions to use anonymous fallback.").toBe(
 			"[Function anonymous]",
 		);
-		expect(sanitize(Object.create(null)), "Expected null-prototype records to sanitize as objects.").toEqual({});
+		expect(sanitize(Object.create(null)), "Expected null-prototype records to sanitize as objects.").toStrictEqual(
+			{},
+		);
 	});
 
 	it("sanitizeLogContext removes undefined values and redacts nested secrets", () => {
@@ -150,10 +152,11 @@ describe("log-context and log-utilities", () => {
 
 	it("sanitizeLogContext handles missing and non-record sanitized contexts", () => {
 		expect.assertions(2);
-		expect(sanitizeLogContext(), "Expected missing context to become empty object.").toEqual({});
-		expect(sanitizeLogContext(Object.create(null)), "Expected non-record context to become empty object.").toEqual(
-			{},
-		);
+		expect(sanitizeLogContext(), "Expected missing context to become empty object.").toStrictEqual({});
+		expect(
+			sanitizeLogContext(Object.create(null)),
+			"Expected non-record context to become empty object.",
+		).toStrictEqual({});
 	});
 
 	it("mergeLogContexts ignores undefined inputs and values", () => {
@@ -178,7 +181,7 @@ describe("log-context and log-utilities", () => {
 		expect(result.activeContext.requestId, "Expected active log context.").toBe("req-1");
 		const { defaults } = result.child.options;
 		expectRecord(defaults, "Expected child logger defaults.");
-		expect(defaults.context !== undefined, "Expected child logger context defaults.").toBe(true);
+		expect(defaults.context, "Expected child logger context defaults.").toBeDefined();
 	});
 
 	it("measure logs success and rethrows failures", () => {

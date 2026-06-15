@@ -1,7 +1,7 @@
 import { mkdirSync } from "node:fs";
 import nodeProcess from "node:process";
 
-import { createDailyFileRotateReporter } from "./reports/daily-file-rotate-reporter.ts";
+import { createDailyFileRotateReporter } from "./reports/daily-file-rotate-reporter";
 
 import type { ConsolaInstance, ConsolaReporter } from "consola";
 
@@ -71,7 +71,7 @@ function createFileReporters(shouldUseFileReporters: boolean): Array<ConsolaRepo
 		createDailyFileRotateReporter({
 			directory: applicationLogPath,
 			filename: "error.log",
-			levelFilter: (level) => level <= 1,
+			levelFilter: (level: number) => level <= 1,
 		}),
 		createDailyFileRotateReporter({
 			directory: applicationLogPath,
@@ -82,7 +82,7 @@ function createFileReporters(shouldUseFileReporters: boolean): Array<ConsolaRepo
 
 async function getApplicationLogPathAsync(): Promise<string | undefined> {
 	try {
-		const { applicationPaths } = await import("@constants/application-paths.ts");
+		const { applicationPaths } = await import("$constants/application-paths.ts");
 		return applicationPaths.log;
 		/* v8 ignore start -- dynamic import permission failures are startup defensive paths. */
 	} catch (error) {
@@ -99,8 +99,8 @@ function isPermissionDeniedError(error: unknown): boolean {
 
 function createContextualLogger(context: LogContext): ContextualLogger {
 	return {
-		error: (message, properties = {}) => baseLogger.error({ ...properties, context, message }),
-		info: (message, properties = {}) => baseLogger.info({ ...properties, context, message }),
+		error: (message: string, properties = {}) => baseLogger.error({ ...properties, context, message }),
+		info: (message: string, properties = {}) => baseLogger.info({ ...properties, context, message }),
 	};
 }
 

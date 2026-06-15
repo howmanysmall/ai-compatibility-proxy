@@ -40,7 +40,7 @@ describe("log-entry", () => {
 		);
 
 		expect(entry.message, "Expected fallback message from args.").toContain("hello");
-		expect(entry.payload, "Expected multi-arg payload.").toEqual(["hello", { token: "[REDACTED]" }]);
+		expect(entry.payload, "Expected multi-arg payload.").toStrictEqual(["hello", { token: "[REDACTED]" }]);
 	});
 
 	it("normalizeLogEntry uses explicit additional strings and arrays before fallback args", () => {
@@ -141,8 +141,11 @@ describe("log-entry", () => {
 		const entry = normalizeLogEntry(logObject);
 
 		expect(entry.payload, "Expected non-array args to produce no payload.").toBeUndefined();
-		expect(entry.context, "Expected non-record context to be ignored.").toEqual({});
-		expect(entry.customProperties, "Expected scalar sanitized custom property to be wrapped as a record.").toEqual({
+		expect(entry.context, "Expected non-record context to be ignored.").toStrictEqual({});
+		expect(
+			entry.customProperties,
+			"Expected scalar sanitized custom property to be wrapped as a record.",
+		).toStrictEqual({
 			custom: "1",
 			valueOf: "[Function valueOf]",
 		});

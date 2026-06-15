@@ -55,16 +55,13 @@ function createConsolaLogObject(level: number, type: LogType, message: string): 
 
 type StreamHandler = (error: Error) => void;
 
-describe("DailyFileRotateReporter", () => {
+describe("dailyFileRotateReporter", () => {
 	it("serializeLogEntry keeps normal entries unchanged", () => {
 		expect.assertions(1);
 		const entry = createLogEntry({ payload: { id: "small-payload" } });
 		const serializedEntry = serializeLogEntry(entry, 4096);
 
-		expect(
-			serializedEntry === JSON.stringify(entry),
-			"Expected normal entry to serialize without modification.",
-		).toBe(true);
+		expect(serializedEntry, "Expected normal entry to serialize without modification.").toBe(JSON.stringify(entry));
 	});
 
 	it("serializeLogEntry default byte limit preserves medium entries", () => {
@@ -81,9 +78,11 @@ describe("DailyFileRotateReporter", () => {
 		expect(
 			parsedEntry.customProperties?.logEntryTruncated,
 			"Expected default byte limit to keep medium entries.",
-		).toBe(undefined);
+		).toBeUndefined();
 		expect(parsedEntry.message, "Expected default byte limit to preserve medium messages.").toBe(entry.message);
-		expect(parsedEntry.payload, "Expected default byte limit to preserve medium payloads.").toEqual(entry.payload);
+		expect(parsedEntry.payload, "Expected default byte limit to preserve medium payloads.").toStrictEqual(
+			entry.payload,
+		);
 	});
 
 	it("serializeLogEntry truncates oversized entries", () => {
@@ -104,22 +103,18 @@ describe("DailyFileRotateReporter", () => {
 			},
 			tag: "oversized-test",
 		});
-		const maxEntryBytes = 4_096;
+		const maxEntryBytes = 4096;
 		const serializedEntry = serializeLogEntry(entry, maxEntryBytes);
 		const parsedEntry = JSON.parse(serializedEntry) as StructuredLogEntry;
 
 		expect(
-			getByteLength(serializedEntry) <= maxEntryBytes,
+			getByteLength(serializedEntry),
 			"Expected serialized entry to fit within the byte cap.",
-		).toBe(true);
-		expect(
-			parsedEntry.customProperties?.logEntryTruncated === true,
-			"Expected entry to be marked as truncated.",
-		).toBe(true);
-		expect(
-			parsedEntry.payload === "[Truncated: log entry exceeded storage limit]",
-			"Expected payload to be omitted.",
-		).toBe(true);
+		).toBeLessThanOrEqual(maxEntryBytes);
+		expect(parsedEntry.customProperties?.logEntryTruncated, "Expected entry to be marked as truncated.").toBe(true);
+		expect(parsedEntry.payload, "Expected payload to be omitted.").toBe(
+			"[Truncated: log entry exceeded storage limit]",
+		);
 		expect(parsedEntry.error, "Expected oversized error details to be omitted.").toBe(
 			"[Truncated: log entry exceeded storage limit]",
 		);
@@ -130,7 +125,7 @@ describe("DailyFileRotateReporter", () => {
 		expect(`${parsedEntry.context.objectValue}`, "Expected object context to be stringified safely.").toContain(
 			"visible",
 		);
-		expect(parsedEntry.message.length < entry.message.length, "Expected message to be shortened.").toBe(true);
+		expect(parsedEntry.message.length, "Expected message to be shortened.").toBeLessThan(entry.message.length);
 	});
 
 	it("serializeLogEntry falls back to minimal truncation when notice entry is still too large", () => {
@@ -148,7 +143,7 @@ describe("DailyFileRotateReporter", () => {
 		expect(parsedEntry.message, "Expected minimal truncation message.").toBe(
 			"Log entry omitted because it exceeded the storage safety limit",
 		);
-		expect(parsedEntry.context, "Expected minimal truncation to drop context.").toEqual({});
+		expect(parsedEntry.context, "Expected minimal truncation to drop context.").toStrictEqual({});
 	});
 
 	it("serializeLogEntry records omitted context key counts for storage-safe truncation notices", () => {
@@ -161,7 +156,7 @@ describe("DailyFileRotateReporter", () => {
 			},
 		});
 
-		const parsedEntry = JSON.parse(serializeLogEntry(entry, 8_192)) as StructuredLogEntry;
+		const parsedEntry = JSON.parse(serializeLogEntry(entry, 8192)) as StructuredLogEntry;
 
 		expect(parsedEntry.customProperties?.logEntryTruncated, "Expected truncation metadata.").toBe(true);
 		expect(parsedEntry.context.truncatedContextKeys, "Expected omitted context key count.").toBe(5);
@@ -263,7 +258,7 @@ describe("DailyFileRotateReporter", () => {
 			Object.defineProperty(nodeProcess.stderr, "write", { configurable: true, value: originalWrite });
 		}
 
-		expect(stderrMessages, "Expected stream error and warning messages to be written to stderr.").toEqual([
+		expect(stderrMessages, "Expected stream error and warning messages to be written to stderr.").toStrictEqual([
 			"[logging] stream error\n",
 			"[logging] stream warning\n",
 		]);

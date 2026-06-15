@@ -1,7 +1,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
-import { sanitizeRecord } from "@logging/sanitizer";
+import { sanitizeRecord } from "$logging/sanitizer";
 
-import type { ReadonlyRecord } from "@ts-types/utility-types";
+import type { ReadonlyRecord } from "$ts-types/utility-types";
 
 export type LogContext = ReadonlyRecord<string, unknown>;
 
@@ -19,7 +19,6 @@ function removeUndefinedValues(context: Readonly<LogContext>): Record<string, un
 
 export function sanitizeLogContext(context?: Readonly<LogContext>): Readonly<LogContext> {
 	if (context === undefined) return {};
-
 	return sanitizeRecord(removeUndefinedValues(context));
 }
 

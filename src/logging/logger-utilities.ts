@@ -1,6 +1,6 @@
-import { getActiveLogContext, mergeLogContexts, runWithLogContext, sanitizeLogContext } from "@logging/log-context";
-import { logger } from "@logging/logger";
-import { uptime } from "@utilities/time-utilities";
+import { getActiveLogContext, mergeLogContexts, sanitizeLogContext } from "$logging/log-context";
+import { logger } from "$logging/logger";
+import { uptime } from "$utilities/time-utilities";
 import prettyBytes from "pretty-bytes";
 
 import type { ConsolaInstance, InputLogObject } from "consola";
@@ -122,8 +122,6 @@ export function withContext(context: Context, loggerInstance: ConsolaInstance = 
 
 	return instance;
 }
-
-export { getActiveLogContext, runWithLogContext };
 
 /**
  * Measures the duration of a synchronous function and logs it.
