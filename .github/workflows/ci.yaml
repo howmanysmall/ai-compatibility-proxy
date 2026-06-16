@@ -17,7 +17,9 @@ jobs:
     name: Install
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
       - uses: ./.github/actions/aube-install
 
   type-check:
@@ -25,42 +27,50 @@ jobs:
     needs: install
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
       - uses: ./.github/actions/aube-install
         with:
           mise_install: false
-      - run: nr type-check
+      - run: ./node_modules/.bin/nr type-check
 
   lint:
     name: Lint
     needs: install
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
       - uses: ./.github/actions/aube-install
         with:
           mise_install: false
-      - run: nr oxlint --format github
-      - run: nr biome ci --reporter github
+      - run: ./node_modules/.bin/nr oxlint --format github
+      - run: ./node_modules/.bin/nr biome ci --reporter github
 
   format:
     name: Format
     needs: install
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
       - uses: ./.github/actions/aube-install
         with:
           mise_install: false
-      - run: nr format:check
+      - run: ./node_modules/.bin/nr format:check
 
   test:
     name: Test
     needs: install
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
       - uses: ./.github/actions/aube-install
         with:
           mise_install: false
-      - run: nr test
+      - run: ./node_modules/.bin/nr test
