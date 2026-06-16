@@ -1,4 +1,4 @@
-FROM oven/bun:1.3.14
+FROM oven/bun:canary-debian
 
 ENV MISE_CACHE_DIR="/mise/cache"
 ENV MISE_CONFIG_DIR="/mise"

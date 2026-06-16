@@ -22,7 +22,7 @@ The first supported path is OpenCode Go:
 ```sh
 cp .env.example .env
 mise x -- aube install --frozen-lockfile
-mise x -- nr dev
+nr dev
 ```
 
 Use your OpenCode Go API key as the client bearer token. In the default `client_bearer` mode, the proxy forwards that
@@ -144,19 +144,22 @@ and other risky fields by default.
 Run commands through mise:
 
 ```sh
-mise x -- nr test
-mise x -- nr type-check
-mise x -- nr lint
-mise x -- nr format:check
-mise x -- nr bench
+nr test
+nr type-check
+nr lint
+nr format:check
+nr bench
 ```
 
 ## Docker
 
+The Docker image uses Bun canary via `oven/bun:canary-debian`. Bun canary is a rolling build, so rebuild with `--pull`
+when you want the latest canary image.
+
 Build and run:
 
 ```sh
-docker build -t ai-compatibility-proxy .
+docker build --pull -t ai-compatibility-proxy .
 docker run --rm -p 8000:8000 --env-file .env ai-compatibility-proxy
 ```
 
@@ -174,10 +177,11 @@ environment variables, expose only HTTPS publicly, and put a reverse proxy in fr
 Prefer Caddy for simple automatic HTTPS. Add reverse-proxy rate limiting when using `server_key` mode to reduce abuse
 risk. The proxy itself is cheap to run; upstream model usage is the real cost driver.
 
-## Direct systemd Deployment
+## Direct `systemd` Deployment
 
 See [deploy/ai-compatibility-proxy.service](deploy/ai-compatibility-proxy.service). Install Bun on the server,
-place environment variables in `/etc/ai-compatibility-proxy.env`, and run the service behind Caddy or Nginx.
+upgrade it to canary with `bun upgrade --canary`, place environment variables in `/etc/ai-compatibility-proxy.env`, and
+run the service behind Caddy or Nginx.
 
 ## Caddy
 
