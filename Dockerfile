@@ -6,7 +6,6 @@ RUN corepack enable
 
 COPY --chown=bun:bun package.json aube-lock.yaml aube-workspace.yaml ./
 COPY --chown=bun:bun patches/ ./patches/
-COPY --chown=bun:bun plugins/ ./plugins/
 COPY --chown=bun:bun scripts/ ./scripts/
 COPY --chown=bun:bun benchmarks/ ./benchmarks/
 COPY --chown=bun:bun src ./src
