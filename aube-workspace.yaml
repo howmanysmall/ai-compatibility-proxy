@@ -7,8 +7,8 @@ packages: []
 catalogs:
   testing:
     "@faker-js/faker": ^10.4.0
-    "@vitest/coverage-v8": 4.1.9
-    vitest: 4.1.9
+    "@vitest/coverage-v8": 4.1.8
+    vitest: 4.1.8
 
 fetchRetries: 5
 fetchRetryMintimeout: 1000
