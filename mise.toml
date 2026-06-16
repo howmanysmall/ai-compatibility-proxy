@@ -16,6 +16,7 @@ rumdl = "latest"
 shfmt = "latest"
 tombi = "latest"
 deno = "latest"
+zizmor = "latest"
 
 [settings]
 auto_install = false
