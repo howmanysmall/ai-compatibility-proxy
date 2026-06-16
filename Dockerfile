@@ -22,7 +22,7 @@ COPY --chown=bun:bun src ./src
 
 RUN mise trust -a \
 	&& mise install aube \
-	&& aube install --prod --frozen-lockfile
+	&& aube install --prod --no-frozen-lockfile
 
 EXPOSE 8000
 
