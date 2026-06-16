@@ -13,21 +13,54 @@ permissions:
   contents: read
 
 jobs:
-  ci:
-    name: CI
+  install:
+    name: Install
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install
-        id: install
-        uses: ./.github/actions/aube-install
+      - uses: ./.github/actions/aube-install
+
+  type-check:
+    name: Type Check
+    needs: install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/aube-install
+        with:
+          mise_install: false
       - run: nr type-check
-        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+
+  lint:
+    name: Lint
+    needs: install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/aube-install
+        with:
+          mise_install: false
       - run: nr oxlint --format github
-        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
       - run: nr biome ci --reporter github
-        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+
+  format:
+    name: Format
+    needs: install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/aube-install
+        with:
+          mise_install: false
       - run: nr format:check
-        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+
+  test:
+    name: Test
+    needs: install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/aube-install
+        with:
+          mise_install: false
       - run: nr test
-        if: ${{ !cancelled() && steps.install.outcome == 'success' }}

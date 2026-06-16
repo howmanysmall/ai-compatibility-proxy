@@ -1,12 +1,28 @@
 name: Aube Install
-description: Runs `CI=true mise x -- aube install --frozen-lockfile`.
+description: Sets up mise, restores the aube store cache, and installs dependencies.
+
+inputs:
+  mise_install:
+    description: Run mise install (disable in downstream jobs that only need the cached tools)
+    default: 'true'
 
 runs:
   using: composite
   steps:
     - uses: jdx/mise-action@v2
+      id: mise
       with:
-        install: true
+        install: ${{ inputs.mise_install }}
+    - uses: actions/cache@v4
+      id: cache
+      with:
+        path: |
+          ~/.local/share/aube/store/v1
+          ~/.cache/aube
+        key: aube-${{ runner.os }}-${{ hashFiles('mise.lock', 'aube-lock.yaml', 'aube-workspace.yaml') }}
+        restore-keys: |
+          aube-${{ runner.os }}-${{ hashFiles('mise.lock') }}-
+          aube-${{ runner.os }}-
     - run: |
         for attempt in 1 2 3; do
           if aube install --fix-lockfile; then
