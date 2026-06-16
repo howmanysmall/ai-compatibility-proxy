@@ -14,7 +14,7 @@ RUN apt-get update \
 
 RUN curl https://mise.run | sh
 
-COPY --chown=bun:bun mise.toml mise.lock package.json aube-lock.yaml aube-workspace.yaml ./
+COPY --chown=bun:bun .npmrc mise.toml mise.lock package.json aube-lock.yaml aube-workspace.yaml ./
 COPY --chown=bun:bun patches/ ./patches/
 COPY --chown=bun:bun scripts/ ./scripts/
 COPY --chown=bun:bun benchmarks/ ./benchmarks/
@@ -22,7 +22,7 @@ COPY --chown=bun:bun src ./src
 
 RUN mise trust -a \
 	&& mise install aube \
-	&& aube install --prod --frozen-lockfile --no-verify-store-integrity
+	&& aube install --prod --frozen-lockfile
 
 EXPOSE 8000
 
