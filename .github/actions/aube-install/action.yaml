@@ -1,0 +1,21 @@
+name: Aube Install
+description: Runs `CI=true mise x -- aube install --frozen-lockfile`.
+
+runs:
+  using: composite
+  steps:
+    - uses: jdx/mise-action@v2
+      with:
+        install: true
+    - run: |
+        for attempt in 1 2 3; do
+          if aube install --fix-lockfile; then
+            break
+          fi
+          if [ "$attempt" = "3" ]; then
+            exit 1
+          fi
+          sleep $((attempt * 10))
+        done
+        git diff --exit-code package.json aube-lock.yaml
+      shell: bash

@@ -18,42 +18,30 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: jdx/mise-action@v2
-        with:
-          install: true
-      - run: CI=true mise x -- aube install --frozen-lockfile
-      - run: mise x -- nr type-check
+      - uses: ./.github/actions/aube-install
+      - run: nr type-check
 
   lint:
     name: Lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: jdx/mise-action@v2
-        with:
-          install: true
-      - run: CI=true mise x -- aube install --frozen-lockfile
-      - run: mise x -- nr oxlint --format github
-      - run: mise x -- nr biome ci --reporter github
+      - uses: ./.github/actions/aube-install
+      - run: nr oxlint --format github
+      - run: nr biome ci --reporter github
 
   format:
     name: Format Check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: jdx/mise-action@v2
-        with:
-          install: true
-      - run: CI=true mise x -- aube install --frozen-lockfile
-      - run: mise x -- nr format:check
+      - uses: ./.github/actions/aube-install
+      - run: nr format:check
 
   test:
     name: Test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: jdx/mise-action@v2
-        with:
-          install: true
-      - run: CI=true mise x -- aube install --frozen-lockfile
-      - run: mise x -- nr test
+      - uses: ./.github/actions/aube-install
+      - run: nr test
