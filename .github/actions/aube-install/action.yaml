@@ -4,7 +4,7 @@ description: Sets up mise, restores the aube store cache, and installs dependenc
 inputs:
   mise_install:
     description: Run mise install (disable in downstream jobs that only need the cached tools)
-    default: 'true'
+    default: "true"
 
 runs:
   using: composite
@@ -13,6 +13,7 @@ runs:
       id: mise
       with:
         install: ${{ inputs.mise_install }}
+        install_args: aube deno
     - uses: actions/cache@v4
       id: cache
       with:
@@ -34,4 +35,5 @@ runs:
           sleep $((attempt * 10))
         done
         git diff --exit-code package.json aube-lock.yaml
+        echo "${{ github.workspace }}/node_modules/.bin" >> "$GITHUB_PATH"
       shell: bash
