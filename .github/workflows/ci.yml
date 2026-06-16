@@ -13,35 +13,21 @@ permissions:
   contents: read
 
 jobs:
-  type-check:
-    name: Type Check
+  ci:
+    name: CI
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: ./.github/actions/aube-install
+      - name: Install
+        id: install
+        uses: ./.github/actions/aube-install
       - run: nr type-check
-
-  lint:
-    name: Lint
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/aube-install
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
       - run: nr oxlint --format github
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
       - run: nr biome ci --reporter github
-
-  format:
-    name: Format Check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/aube-install
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
       - run: nr format:check
-
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/aube-install
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
       - run: nr test
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
