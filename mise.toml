@@ -8,6 +8,7 @@ HK_MISE = 1
 "github:howmanysmall/pullhook" = "latest"
 aube = "latest"
 bun = "latest"
+flyctl = "latest"
 gum = "latest"
 hk = "latest"
 jq = "latest"
@@ -22,7 +23,26 @@ zizmor = "latest"
 auto_install = false
 lockfile = true
 
+[hooks]
+postinstall = "mise run bun-canary"
+
 [tasks]
+[tasks.bun-canary]
+description = "Ensure the mise-managed Bun binary is a canary build"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+
+current_revision="$(bun --revision)"
+if [[ "$current_revision" == *"-canary."* ]]; then
+	echo "$current_revision"
+	exit 0
+fi
+
+bun upgrade --canary
+bun --revision
+"""
+
 [tasks.live-smoke]
 description = "Run repeatable live smoke tests for OpenCode Go and Cerebras proxy paths"
 run = "mise x -- bun run --bun scripts/live-proxy-smoke.ts"

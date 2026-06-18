@@ -169,6 +169,41 @@ Docker Compose:
 docker compose up --build
 ```
 
+## Fly.io Deployment
+
+The included [fly.toml](fly.toml) deploys the Dockerfile, so Fly runs Bun canary from `oven/bun:canary-debian`.
+
+`mise` installs Bun and the Fly CLI for this repo. Bun canary is applied by the `postinstall` hook with
+`bun upgrade --canary`; do not set `bun = "canary"` because mise's Bun backend resolves that to a nonexistent
+`bun-vcanary` release URL.
+
+The default `client_bearer` auth mode does not require Fly secrets. In that mode, your OpenAI-compatible client sends
+the upstream API key in its `Authorization` header and the proxy forwards it.
+
+```sh
+mise install
+mise x -- bun --revision
+mise x -- flyctl auth login
+mise x -- flyctl launch --no-deploy
+mise x -- flyctl deploy
+mise x -- flyctl status
+mise x -- flyctl logs
+```
+
+If `ai-compatibility-proxy` is already taken as a Fly app name, choose another name during `fly launch` and let Fly update
+the `app` value in `fly.toml`.
+
+For a personal hosted proxy where Fly stores the upstream key, switch to `server_key` mode:
+
+```sh
+mise x -- flyctl secrets set \
+	UPSTREAM_AUTH_MODE=server_key \
+	UPSTREAM_API_KEY=... \
+	PROXY_API_KEY=...
+```
+
+Then use `https://<app-name>.fly.dev/v1` as the base URL and `PROXY_API_KEY` as the client API key.
+
 ## VPS Deployment
 
 A low-cost VPS is enough because the proxy is stateless and has no database. Install Docker or Bun, set the
