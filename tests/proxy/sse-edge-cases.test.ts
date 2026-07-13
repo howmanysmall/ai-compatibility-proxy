@@ -1,13 +1,17 @@
 import { expect, describe, it } from "vitest";
+import { textEncoder } from "$constants/constant-classes";
 import { createOpenAiStreamResponseAsync, translateAnthropicSseText } from "$proxy/sse";
+import { type } from "arktype";
 
 const CHAT_COMPLETION_ID_PATTERN = /^chatcmpl-/u;
+
+const isRecord = type("Record<string, unknown>");
 
 function parseOpenAiChunks(text: string): ReadonlyArray<Record<string, unknown>> {
 	return text
 		.split("\n\n")
 		.filter((event) => event.startsWith("data: ") && event !== "data: [DONE]")
-		.map((event) => JSON.parse(event.slice(6)) as Record<string, unknown>);
+		.map((event) => isRecord.assert(JSON.parse(event.slice(6))));
 }
 
 describe("sSE edge cases", () => {
@@ -32,9 +36,9 @@ describe("sSE edge cases", () => {
 		expect.assertions(2);
 		const upstream = new Response(
 			new ReadableStream<Uint8Array>({
-				start(controller) {
+				start(controller): void {
 					controller.enqueue(
-						new TextEncoder().encode('data: {"type":"content_block_delta","delta":{"text":"hello"}}'),
+						textEncoder.encode('data: {"type":"content_block_delta","delta":{"text":"hello"}}'),
 					);
 					controller.close();
 				},

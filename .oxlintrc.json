@@ -37,7 +37,7 @@
 			"rules": { "no-console": "off" }
 		},
 		{
-			"files": ["tests/**/*.test.{tsx,ts}"],
+			"files": ["tests/**/*.test.{tsx,ts}", "tests/**/*.test-d.{tsx,ts}"],
 			"plugins": ["vitest"],
 			"rules": {
 				"max-lines": "off",
@@ -48,11 +48,13 @@
 					"error",
 					{
 						"additionalAssertionFunctions": ["expectRecord", "expectArray", "expectPresent"],
-						"additionalExpectCallNames": ["expectRecord", "expectArray", "expectPresent"]
+						"additionalExpectCallNames": ["expectRecord", "expectArray", "expectPresent", "expectTypeOf"]
 					}
 				],
 				"small-rules/prevent-abbreviations": "off",
 				"small-rules/require-async-suffix": "off",
+				"typescript/no-base-to-string": "off",
+				"typescript/no-unsafe-type-assertion": "off",
 				"typescript/require-await": "off",
 				"unicorn/no-null": "off",
 				"vitest/consistent-each-for": "error",
@@ -104,11 +106,18 @@
 			}
 		},
 		{
+			"files": ["tests/**/*.test-d.{tsx,ts}"],
+			"rules": {
+				"small-rules/prefer-expect-assertions": "off",
+				"vitest/prefer-expect-assertions": "off"
+			}
+		},
+		{
 			"files": ["tests/fixtures/**/*.{ts,tsx}", "*.config.{cjs,mjs,js,cts,mts,ts}", "knip.ts"],
 			"rules": { "import/no-default-export": "off" }
 		},
 		{
-			"files": ["vitest*.config.ts"],
+			"files": ["vitest*.config.ts", "tests/utilities/test-utilities.ts"],
 			"rules": { "unicorn/no-null": "off" }
 		},
 		{

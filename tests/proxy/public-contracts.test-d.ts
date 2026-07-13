@@ -1,3 +1,4 @@
+// oxlint-disable vitest/prefer-expect-assertions -- MAN SHUT THE FUCK UP!!!!!
 import { expectTypeOf, it, describe } from "vitest";
 
 import type { ProviderTarget, ProviderTargetDefaults } from "$providers/provider-target";
@@ -34,11 +35,11 @@ describe("public contracts", () => {
 			upstreamProtocol: "anthropic_messages",
 		} satisfies ProxyConfiguration;
 
-		expectTypeOf(proxyConfiguration).toMatchTypeOf<ProxyConfiguration>();
+		expectTypeOf(proxyConfiguration).toExtend<ProxyConfiguration>();
 	});
 
 	it("provider target and fetcher contracts stay request-boundary focused", () => {
-		expectTypeOf(fetcherAsync).toMatchTypeOf<Fetcher>();
+		expectTypeOf(fetcherAsync).toExtend<Fetcher>();
 
 		expectTypeOf<ProviderTargetDefaults>().toEqualTypeOf<{
 			readonly authHeader: string;
@@ -51,7 +52,7 @@ describe("public contracts", () => {
 		expectTypeOf<ProviderTarget>().toHaveProperty("listModelsAsync").toBeFunction();
 	});
 
-	it("OpenAI request and error wire shapes remain nullable where required", () => {
+	it("openAI request and error wire shapes remain nullable where required", () => {
 		expectTypeOf<OpenAiChatCompletionRequest>()
 			.toHaveProperty("messages")
 			.toEqualTypeOf<OpenAiChatCompletionRequest["messages"]>();

@@ -1,15 +1,15 @@
 import { expect, describe, it } from "vitest";
-import { translateAnthropicToOpenAi, translateOpenAiToAnthropic } from "$proxy/anthropic-translator";
-import { createApp } from "$proxy/app";
-import { normalizeCerebrasRequest } from "$proxy/cerebras-translator";
-import { loadConfiguration } from "$proxy/config";
-import { translateAnthropicSseText } from "$proxy/sse";
+import { translateAnthropicToOpenAi, translateOpenAiToAnthropic } from "$proxy/anthropic-translator.ts";
+import { createApp } from "$proxy/app.ts";
+import { normalizeCerebrasRequest } from "$proxy/cerebras-translator.ts";
+import { loadConfiguration } from "$proxy/config.ts";
+import { translateAnthropicSseText } from "$proxy/sse.ts";
 import { Predicate } from "effect";
 
-import { expectRecord, getInitHeader } from "../utilities/test-utilities";
+import { expectRecord, getInitHeader } from "../utilities/test-utilities.ts";
 
-import type { ProxyConfiguration } from "$proxy/config";
-import type { Fetcher } from "$proxy/upstream";
+import type { ProxyConfiguration } from "$proxy/config.ts";
+import type { Fetcher } from "$proxy/upstream.ts";
 
 function createConfiguration(overrides: Partial<ProxyConfiguration> = {}): ProxyConfiguration {
 	return {
@@ -97,15 +97,13 @@ function getRequestModel(init: RequestInit | undefined, fallbackModel: string): 
 }
 
 function createModelListFetcher(capture: { authorization: string; url: string }): Fetcher {
-	return (input, init) => {
+	return async (input, init) => {
 		capture.url = String(input);
 		capture.authorization = getInitHeaderOrEmpty(init, "authorization");
-		return Promise.resolve(
-			Response.json({
-				data: [{ created: 0, id: "minimax-m3", object: "model", owned_by: "opencode" }],
-				object: "list",
-			}),
-		);
+		return Response.json({
+			data: [{ created: 0, id: "minimax-m3", object: "model", owned_by: "opencode" }],
+			object: "list",
+		});
 	};
 }
 
@@ -115,74 +113,66 @@ function createOpenAiCompatibleProbeFetcher(capture: {
 	url: string;
 	xApiKey: string;
 }): Fetcher {
-	return (input, init) => {
+	return async (input, init) => {
 		const url = String(input);
 		if (url === "https://models.dev/api.json") {
-			return Promise.resolve(
-				Response.json({
-					opencode: {
-						models: {
-							"future-openai-model": { provider: { npm: "@ai-sdk/openai-compatible" } },
-						},
-						npm: "@ai-sdk/openai-compatible",
+			return Response.json({
+				opencode: {
+					models: {
+						"future-openai-model": { provider: { npm: "@ai-sdk/openai-compatible" } },
 					},
-				}),
-			);
+					npm: "@ai-sdk/openai-compatible",
+				},
+			});
 		}
 
 		capture.authorization = getInitHeaderOrEmpty(init, "authorization");
 		capture.url = url;
 		capture.xApiKey = getInitHeaderOrEmpty(init, "x-api-key");
 		capture.body = getRecordBody(init);
-		return Promise.resolve(
-			Response.json({
-				choices: [
-					{
-						finish_reason: "stop",
-						index: 0,
-						message: { content: "pong", role: "assistant" },
-					},
-				],
-				created: 0,
-				id: "chatcmpl_1",
-				model: "deepseek-v4-flash",
-				object: "chat.completion",
-			}),
-		);
+		return Response.json({
+			choices: [
+				{
+					finish_reason: "stop",
+					index: 0,
+					message: { content: "pong", role: "assistant" },
+				},
+			],
+			created: 0,
+			id: "chatcmpl_1",
+			model: "deepseek-v4-flash",
+			object: "chat.completion",
+		});
 	};
 }
 
 function createAnthropicFallbackFetcher(seenUrls: Array<string>): Fetcher {
-	return (input, init) => {
+	return async (input, init) => {
 		const url = String(input);
 		if (url === "https://models.dev/api.json") {
-			return Promise.resolve(
-				Response.json({
-					opencode: {
-						models: {},
-						npm: "@ai-sdk/openai-compatible",
-					},
-				}),
-			);
+			return Response.json({
+				opencode: {
+					models: {},
+					npm: "@ai-sdk/openai-compatible",
+				},
+			});
 		}
 
 		seenUrls.push(url);
 		if (url.endsWith("/chat/completions")) {
-			return Promise.resolve(Response.json({ error: { message: "unsupported route" } }, { status: 404 }));
+			return Response.json({ error: { message: "unsupported route" } }, { status: 404 });
 		}
 
 		const model = getRequestModel(init, "minimax-m3");
-		return Promise.resolve(
-			Response.json({
-				content: [{ text: `fallback:${model}`, type: "text" }],
-				id: "msg_fallback",
-				model,
-				role: "assistant",
-				stop_reason: "end_turn",
-				type: "message",
-				usage: { input_tokens: 1, output_tokens: 1 },
-			}),
-		);
+		return Response.json({
+			content: [{ text: `fallback:${model}`, type: "text" }],
+			id: "msg_fallback",
+			model,
+			role: "assistant",
+			stop_reason: "end_turn",
+			type: "message",
+			usage: { input_tokens: 1, output_tokens: 1 },
+		});
 	};
 }
 
@@ -314,7 +304,9 @@ describe("proxy", () => {
 	it("rejects missing client bearer auth", async () => {
 		expect.assertions(2);
 		const app = createApp({
-			fetcher: () => Promise.reject(new Error("fetch should not be called")),
+			fetcher: async () => {
+				throw new Error("fetch should not be called");
+			},
 			proxyConfiguration: createConfiguration(),
 		});
 
@@ -329,7 +321,9 @@ describe("proxy", () => {
 	it("returns health status through Elysia route", async () => {
 		expect.assertions(3);
 		const app = createApp({
-			fetcher: () => Promise.reject(new Error("fetch should not be called")),
+			fetcher: async () => {
+				throw new Error("fetch should not be called");
+			},
 			proxyConfiguration: createConfiguration(),
 		});
 
@@ -344,7 +338,9 @@ describe("proxy", () => {
 	it("returns OpenAI-compatible not found errors", async () => {
 		expect.assertions(3);
 		const app = createApp({
-			fetcher: () => Promise.reject(new Error("fetch should not be called")),
+			fetcher: async () => {
+				throw new Error("fetch should not be called");
+			},
 			proxyConfiguration: createConfiguration(),
 		});
 
@@ -360,7 +356,9 @@ describe("proxy", () => {
 	it("rejects chat requests without JSON content type", async () => {
 		expect.assertions(3);
 		const app = createApp({
-			fetcher: () => Promise.reject(new Error("fetch should not be called")),
+			fetcher: async () => {
+				throw new Error("fetch should not be called");
+			},
 			proxyConfiguration: createConfiguration(),
 		});
 
@@ -385,7 +383,9 @@ describe("proxy", () => {
 	it("rejects chat requests with missing content type before reading the body", async () => {
 		expect.assertions(3);
 		const app = createApp({
-			fetcher: () => Promise.reject(new Error("fetch should not be called")),
+			fetcher: async () => {
+				throw new Error("fetch should not be called");
+			},
 			proxyConfiguration: createConfiguration(),
 		});
 
@@ -408,7 +408,9 @@ describe("proxy", () => {
 	it("rejects chat requests with non-object JSON bodies", async () => {
 		expect.hasAssertions();
 		const app = createApp({
-			fetcher: () => Promise.reject(new Error("fetch should not be called")),
+			fetcher: async () => {
+				throw new Error("fetch should not be called");
+			},
 			proxyConfiguration: createConfiguration(),
 		});
 
@@ -521,16 +523,14 @@ describe("proxy", () => {
 	it("maps upstream 400 errors to OpenAI-compatible errors", async () => {
 		expect.assertions(3);
 		const app = createApp({
-			fetcher: () =>
-				Promise.resolve(
-					Response.json(
-						{
-							error: {
-								message: "bad upstream request",
-							},
+			fetcher: async () =>
+				Response.json(
+					{
+						error: {
+							message: "bad upstream request",
 						},
-						{ status: 400 },
-					),
+					},
+					{ status: 400 },
 				),
 			proxyConfiguration: createConfiguration(),
 		});
@@ -552,15 +552,13 @@ describe("proxy", () => {
 		expect.assertions(4);
 		const streamText = 'data: {"choices":[{"delta":{"content":"Hi"},"index":0}]}\n\n';
 		const app = createApp({
-			fetcher: () =>
-				Promise.resolve(
-					new Response(streamText, {
-						headers: {
-							"content-type": "text/event-stream",
-							"x-upstream-stream": "raw",
-						},
-					}),
-				),
+			fetcher: async () =>
+				new Response(streamText, {
+					headers: {
+						"content-type": "text/event-stream",
+						"x-upstream-stream": "raw",
+					},
+				}),
 			proxyConfiguration: createConfiguration({
 				defaultModel: "gpt-oss-120b",
 				upstreamBaseUrl: "https://api.cerebras.ai/v1",
@@ -624,9 +622,9 @@ describe("proxy", () => {
 		expect.assertions(3);
 		let seenAuthorization = "";
 		const app = createApp({
-			fetcher: (_input, init) => {
+			fetcher: async (_input, init) => {
 				seenAuthorization = getInitHeaderOrEmpty(init, "authorization");
-				return Promise.resolve(Response.json({ data: [], object: "list" }));
+				return Response.json({ data: [], object: "list" });
 			},
 			proxyConfiguration: createConfiguration({
 				proxyApiKey: "proxy-key",

@@ -1,11 +1,14 @@
 import { expect, describe, it } from "vitest";
 import { translateAnthropicSseText } from "$proxy/sse";
+import { type } from "arktype";
 import { Predicate } from "effect";
 
 import type { ReadonlyRecord } from "$ts-types/utility-types";
 
+const isString = type("string");
+
 function parseChunks(output: string): ReadonlyArray<ReadonlyRecord<string, unknown>> {
-	const chunks: Array<ReadonlyRecord<string, unknown>> = [];
+	const chunks = new Array<ReadonlyRecord<string, unknown>>();
 	let size = 0;
 
 	for (const baseLine of output.split("\n\n")) {
@@ -38,9 +41,9 @@ describe("sSE shared id", () => {
 
 		expect(chunks.length, `Expected at least 3 chunks, got ${chunks.length}`).toBeGreaterThanOrEqual(3);
 
-		const chunkIds: Array<unknown> = [];
-		const chunkCreated: Array<unknown> = [];
-		const chunkModels: Array<unknown> = [];
+		const chunkIds = new Array<unknown>();
+		const chunkCreated = new Array<unknown>();
+		const chunkModels = new Array<unknown>();
 
 		let size = 0;
 
@@ -81,7 +84,7 @@ describe("sSE shared id", () => {
 	});
 
 	it("falls back to generated UUID and configured model when message_start is absent", () => {
-		expect.assertions(5);
+		expect.assertions(6);
 		const input = [
 			'data: {"type":"content_block_delta","delta":{"type":"text_delta","text":"Hi"}}',
 			"",
@@ -94,15 +97,17 @@ describe("sSE shared id", () => {
 
 		expect(chunks.length, "Expected at least 2 chunks").toBeGreaterThanOrEqual(2);
 
-		const ids: Array<string> = [];
-		const models: Array<unknown> = [];
+		const ids = new Array<string>();
+		const models = new Array<unknown>();
 
 		let size = 0;
 
-		for (const { id, model } of chunks) {
-			ids[size] = id as string;
-			models[size++] = model;
-		}
+		expect(() => {
+			for (const { id, model } of chunks) {
+				ids[size] = isString.assert(id);
+				models[size++] = model;
+			}
+		}).not.toThrow();
 
 		expect(new Set(ids).size, "All chunks must share one id even without message_start").toBe(1);
 		expect(ids[0]?.startsWith("chatcmpl-"), "Fallback id should be chatcmpl-<uuid>").toBe(true);

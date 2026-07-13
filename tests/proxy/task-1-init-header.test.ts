@@ -23,7 +23,6 @@ describe("initial headers", () => {
 
 	it("getInitHeader returns null when init is undefined", () => {
 		expect.assertions(1);
-		const missing = JSON.parse("null") as null;
-		expect(getInitHeader(undefined, "authorization"), "Expected null for undefined init.").toBe(missing);
+		expect(getInitHeader(undefined, "authorization"), "Expected null for undefined init.").toBeNull();
 	});
 });

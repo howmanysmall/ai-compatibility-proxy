@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+// oxlint-disable sonar/cognitive-complexity -- irrelevant.
 
 import { spawn } from "node:child_process";
 import { readFile, stat } from "node:fs/promises";
@@ -37,7 +38,7 @@ interface SmokeOptions {
 
 interface SmokeResult {
 	readonly content: string;
-	readonly durationMs: number;
+	readonly durationMs?: number | undefined;
 	readonly finishReason: string | undefined;
 	readonly httpStatus: number;
 	readonly provider: ProviderName;
@@ -174,7 +175,8 @@ function promptForSmokeOptionsEffect(commandOptions: LiveSmokeCommandOptions): E
 
 			const opencodeGoModel = await ternaryAsync(
 				shouldAskForOpenCodeGoModel(provider),
-				async () => await promptForOpenCodeGoModelAsync(),
+				async () => promptForOpenCodeGoModelAsync(),
+				// oxlint-disable-next-line typescript/require-await -- ternary async
 				async () => parseOpenCodeGoModel(commandOptions.opencodeModel ?? DEFAULT_OPENCODE_GO_MODEL),
 			);
 
@@ -356,9 +358,14 @@ function stopProxyProcessEffect(childProcess: ChildProcess): Effect.Effect<void,
 async function waitForChildExitAsync(childProcess: ChildProcess): Promise<void> {
 	if (childProcess.exitCode !== null) return;
 
-	await new Promise<void>((resolve) => {
-		childProcess.once("close", () => resolve());
+	// oxlint-disable-next-line typescript/no-invalid-void-type -- lol!
+	const { resolve, promise } = Promise.withResolvers<void>();
+
+	childProcess.once("close", () => {
+		resolve();
 	});
+
+	await promise;
 }
 
 function requestChatCompletionEffect(
@@ -399,7 +406,7 @@ function requestChatCompletionEffect(
 				requestedModel: providerConfiguration.model,
 				success: response.ok && content.length > 0,
 				upstreamModel,
-			} as SmokeResult;
+			};
 		},
 	});
 }
@@ -446,7 +453,7 @@ function waitForHealthAttemptEffect(
 	});
 }
 
-function isHealthyEffect(port: number): Effect.Effect<boolean, never> {
+function isHealthyEffect(port: number): Effect.Effect<boolean> {
 	return Effect.promise(async () => {
 		try {
 			const response = await fetch(`http://127.0.0.1:${port}/health`);
@@ -466,7 +473,7 @@ function readApiKeyEffect({
 		catch: toError,
 		try: async () => {
 			const environmentValue = env[keyEnvironmentVariable]?.trim();
-			if (environmentValue) return environmentValue;
+			if (environmentValue !== undefined && environmentValue.length > 0) return environmentValue;
 
 			try {
 				const fileContent = await readFile(keyFilePath, "utf8");
@@ -490,7 +497,8 @@ function getKeyStatusEffect({
 	return Effect.tryPromise({
 		catch: toError,
 		try: async () => {
-			if (env[keyEnvironmentVariable]?.trim()) return `${keyEnvironmentVariable} is set`;
+			const value = env[keyEnvironmentVariable]?.trim();
+			if (value !== undefined && value.length > 0) return `${keyEnvironmentVariable} is set`;
 
 			try {
 				const fileInformation = await stat(keyFilePath);
@@ -611,7 +619,7 @@ function printResult({
 	const statusColor = httpStatus >= 200 && httpStatus < 300 ? green(String(httpStatus)) : red(String(httpStatus));
 	const modelMatches = requestedModel === upstreamModel;
 	const modelColor = modelMatches ? cyan : yellow;
-	const durationText = magenta(prettyMilliseconds(durationMs));
+	const durationText = magenta(prettyMilliseconds(durationMs ?? 0));
 	const yellowFinish = yellow(finishReason ?? "undefined");
 
 	printBoxTop(title, 80, borderStyle);
@@ -675,7 +683,7 @@ function printSummary(results: ReadonlyArray<SmokeResult>): void {
 
 function getHomeDirectory(): string {
 	const homeDirectory = env.HOME?.trim();
-	if (homeDirectory) return homeDirectory;
+	if (homeDirectory !== undefined && homeDirectory.length > 0) return homeDirectory;
 
 	const error = new Error("HOME is required to locate default key files.");
 	Error.captureStackTrace(error, getHomeDirectory);
@@ -699,7 +707,7 @@ function visualLength(value: string): number {
 		if (character === undefined) break;
 
 		const codePoint = clean.codePointAt(index);
-		if (!codePoint) {
+		if (codePoint === undefined || codePoint === 0) {
 			index += 1;
 			continue;
 		}

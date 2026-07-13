@@ -91,7 +91,7 @@ function createSharedRefreshFailureFetcher(
 	refreshFailure: Readonly<{ readonly promise: Promise<Response> }>,
 ): RefreshFailureFetcher {
 	let fetchCount = 0;
-	const fetcher: Fetcher = () => {
+	const fetcher: Fetcher = async () => {
 		fetchCount += 1;
 		return fetchCount === 1 ? initialMetadata.promise : refreshFailure.promise;
 	};
@@ -301,7 +301,7 @@ describe("openCode model routing", () => {
 		clearOpenCodeModelRoutingCache();
 		const metadataFailure = createPendingResponseRejecter();
 		let fetchCount = 0;
-		const fetcher: Fetcher = () => {
+		const fetcher: Fetcher = async () => {
 			fetchCount += 1;
 			return metadataFailure.promise;
 		};

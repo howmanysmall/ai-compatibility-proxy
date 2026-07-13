@@ -76,9 +76,7 @@ export function loadConfiguration(environment: Record<string, string | undefined
 	const isDevelopmentOrTest =
 		normalizedEnvironment.NODE_ENV === "development" || normalizedEnvironment.NODE_ENV === "test";
 
-	const allowedHosts = ALLOWED_UPSTREAM_HOSTS
-		? ALLOWED_UPSTREAM_HOSTS.split(",").map((value) => value.trim().toLowerCase())
-		: [];
+	const allowedHosts = ALLOWED_UPSTREAM_HOSTS?.split(",").map((value) => value.trim().toLowerCase()) ?? [];
 
 	const upstreamBaseUrl = normalizedEnvironment.UPSTREAM_BASE_URL ?? getDefaultBaseUrl(UPSTREAM_PROTOCOL);
 	const upstreamAuthHeader = normalizedEnvironment.UPSTREAM_AUTH_HEADER ?? getDefaultAuthHeader(UPSTREAM_PROTOCOL);
@@ -129,7 +127,7 @@ function removeEmptyValues(environment: Record<string, string | undefined>): Rec
 
 	for (const [key, value] of Object.entries(environment)) {
 		const trimmedValue = value?.trim();
-		if (trimmedValue) normalizedEnvironment[key] = trimmedValue;
+		if (trimmedValue !== undefined && trimmedValue.length > 0) normalizedEnvironment[key] = trimmedValue;
 	}
 
 	return normalizedEnvironment;

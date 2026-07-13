@@ -1,3 +1,4 @@
+// oxlint-disable typescript/only-throw-error no-throw-literal -- coal!
 import { expect, it, describe } from "vitest";
 import { logger } from "$logging/logger";
 import { ProxyError } from "$proxy/errors";
@@ -10,40 +11,38 @@ import { expectRecord } from "../utilities/test-utilities";
 import type { ProxyConfiguration } from "$proxy/config";
 import type { Fetcher } from "$proxy/upstream";
 
-const successFetcher: Fetcher = () => Promise.resolve(Response.json({ ok: true }));
+const successFetcher: Fetcher = async () => Response.json({ ok: true });
 
-const stringRejectingFetcher: Fetcher = () =>
-	// oxlint-disable-next-line prefer-promise-reject-errors -- Covers upstream normalization of non-Error rejections.
-	Promise.reject("string network failure");
+const stringRejectingFetcher: Fetcher = async () => {
+	throw "string network failure";
+};
 
-const plainHttp500Fetcher: Fetcher = () => Promise.resolve(new Response("plain upstream failure", { status: 500 }));
+const plainHttp500Fetcher: Fetcher = async () => new Response("plain upstream failure", { status: 500 });
 
 function createNeverResolvingFetcher(): Fetcher {
 	const deferred = Promise.withResolvers<Response>();
-	return () => deferred.promise;
+	return async () => deferred.promise;
 }
 
 function createHttp500ThenSuccessFetcher(getCalls: (calls: number) => void): Fetcher {
 	let calls = 0;
-	return () => {
+	return async () => {
 		calls += 1;
 		getCalls(calls);
 		if (calls === 1) {
-			return Promise.resolve(
-				Response.json({ error: { message: "temporary upstream failure" } }, { status: 500 }),
-			);
+			return Response.json({ error: { message: "temporary upstream failure" } }, { status: 500 });
 		}
-		return Promise.resolve(Response.json({ ok: true }));
+		return Response.json({ ok: true });
 	};
 }
 
 function createNetworkFailureThenSuccessFetcher(getCalls: (calls: number) => void): Fetcher {
 	let calls = 0;
-	return () => {
+	return async () => {
 		calls += 1;
 		getCalls(calls);
-		if (calls === 1) return Promise.reject(new TypeError("temporary network failure"));
-		return Promise.resolve(Response.json({ ok: true }));
+		if (calls === 1) throw new TypeError("temporary network failure");
+		return Response.json({ ok: true });
 	};
 }
 
@@ -109,9 +108,9 @@ describe("effect upstream", () => {
 	it("effect upstream POST returns parsed JSON on success", async () => {
 		expect.assertions(7);
 		let requestInit: RequestInit | undefined;
-		const fetcher: Fetcher = (_input, init) => {
+		const fetcher: Fetcher = async (_input, init) => {
 			requestInit = init;
-			return Promise.resolve(Response.json({ ok: true }));
+			return Response.json({ ok: true });
 		};
 
 		const response = await fetchUpstreamJsonAsync({
@@ -140,9 +139,9 @@ describe("effect upstream", () => {
 	it("effect upstream GET forwards headers without a body", async () => {
 		expect.assertions(6);
 		let requestInit: RequestInit | undefined;
-		const fetcher: Fetcher = (_input, init) => {
+		const fetcher: Fetcher = async (_input, init) => {
 			requestInit = init;
-			return Promise.resolve(Response.json({ data: [] }));
+			return Response.json({ data: [] });
 		};
 
 		const response = await fetchUpstreamGetAsync({
@@ -168,7 +167,7 @@ describe("effect upstream", () => {
 		expect.assertions(2);
 		const fetcher = createNeverResolvingFetcher();
 
-		const error = await captureTimeoutErrorAsync(() =>
+		const error = await captureTimeoutErrorAsync(async () =>
 			fetchUpstreamJsonAsync({
 				body: { message: "safe test body" },
 				fetcher,
@@ -206,12 +205,12 @@ describe("effect upstream", () => {
 	it("effect upstream POST does not retry client HTTP 400", async () => {
 		expect.assertions(3);
 		let calls = 0;
-		const fetcher: Fetcher = () => {
+		const fetcher: Fetcher = async () => {
 			calls += 1;
-			return Promise.resolve(Response.json({ error: { message: "bad upstream request" } }, { status: 400 }));
+			return Response.json({ error: { message: "bad upstream request" } }, { status: 400 });
 		};
 
-		const error = await captureProxyErrorAsync(() =>
+		const error = await captureProxyErrorAsync(async () =>
 			fetchUpstreamJsonAsync({
 				body: { message: "safe test body" },
 				fetcher,
@@ -228,16 +227,11 @@ describe("effect upstream", () => {
 
 	it("effect upstream POST maps HTTP 500 JSON errors while preserving content type", async () => {
 		expect.assertions(3);
-		const error = await captureProxyErrorAsync(() =>
+		const error = await captureProxyErrorAsync(async () =>
 			fetchUpstreamJsonAsync({
 				body: { message: "safe test body" },
-				fetcher: () =>
-					Promise.resolve(
-						Response.json(
-							{ error: { code: "overloaded", message: "provider overloaded" } },
-							{ status: 500 },
-						),
-					),
+				fetcher: async () =>
+					Response.json({ error: { code: "overloaded", message: "provider overloaded" } }, { status: 500 }),
 				headers: new Headers(),
 				proxyConfiguration: createConfig(),
 				url: "https://upstream.example/v1/messages?token=secret",
@@ -272,7 +266,7 @@ describe("effect upstream", () => {
 
 	it("effect upstream maps non-Error network failures to Error instances", async () => {
 		expect.assertions(1);
-		const error = await captureErrorAsync(() =>
+		const error = await captureErrorAsync(async () =>
 			fetchUpstreamJsonAsync({
 				body: { message: "safe test body" },
 				fetcher: stringRejectingFetcher,
@@ -287,7 +281,7 @@ describe("effect upstream", () => {
 
 	it("effect upstream maps HTTP 500 text bodies without content type", async () => {
 		expect.assertions(2);
-		const error = await captureProxyErrorAsync(() =>
+		const error = await captureProxyErrorAsync(async () =>
 			fetchUpstreamJsonAsync({
 				body: { message: "safe test body" },
 				fetcher: plainHttp500Fetcher,
@@ -303,10 +297,10 @@ describe("effect upstream", () => {
 
 	it("effect upstream maps HTTP 500 empty bodies without content type", async () => {
 		expect.assertions(2);
-		const error = await captureProxyErrorAsync(() =>
+		const error = await captureProxyErrorAsync(async () =>
 			fetchUpstreamJsonAsync({
 				body: { message: "safe test body" },
-				fetcher: () => Promise.resolve(new Response(null, { status: 500 })),
+				fetcher: async () => new Response(null, { status: 500 }),
 				headers: new Headers(),
 				proxyConfiguration: createConfig(),
 				url: "https://upstream.example/v1/messages?token=secret",
@@ -323,12 +317,13 @@ describe("effect upstream", () => {
 		expect.assertions(1);
 		const response = new Response(null, { status: 500 });
 		Object.defineProperty(response, "text", {
-			// oxlint-disable-next-line prefer-promise-reject-errors -- Covers upstream normalization of body-read non-Error rejections.
-			value: () => Promise.reject("body read failed"),
+			value: async () => {
+				throw "body read failed";
+			},
 		});
-		const fetcher: Fetcher = () => Promise.resolve(response);
+		const fetcher: Fetcher = async () => response;
 
-		const error = await captureErrorAsync(() =>
+		const error = await captureErrorAsync(async () =>
 			fetchUpstreamJsonAsync({
 				body: { message: "safe test body" },
 				fetcher,
@@ -346,11 +341,13 @@ describe("effect upstream", () => {
 		const expectedError = new Error("client error body failed");
 		const response = new Response(null, { status: 400 });
 		Object.defineProperty(response, "text", {
-			value: () => Promise.reject(expectedError),
+			value: async () => {
+				throw expectedError;
+			},
 		});
-		const fetcher: Fetcher = () => Promise.resolve(response);
+		const fetcher: Fetcher = async () => response;
 
-		const error = await captureErrorAsync(() =>
+		const error = await captureErrorAsync(async () =>
 			fetchUpstreamJsonAsync({
 				body: { message: "safe test body" },
 				fetcher,
@@ -368,12 +365,14 @@ describe("effect upstream", () => {
 		expect.assertions(2);
 		const response = new Response(null, { status: 400 });
 		Object.defineProperty(response, "text", {
-			// oxlint-disable-next-line prefer-promise-reject-errors -- Covers normalization of non-Error client body parsing failures.
-			value: () => Promise.reject("client body read failed"),
+			value: async () => {
+				// oxlint-disable-next-line typescript/only-throw-error no-throw-literal -- What?
+				throw "client body read failed";
+			},
 		});
-		const fetcher: Fetcher = () => Promise.resolve(response);
+		const fetcher: Fetcher = async () => response;
 
-		const error = await captureErrorAsync(() =>
+		const error = await captureErrorAsync(async () =>
 			fetchUpstreamJsonAsync({
 				body: { message: "safe test body" },
 				fetcher,
@@ -389,7 +388,7 @@ describe("effect upstream", () => {
 
 	it("effect upstream logs only safe upstream metadata", async () => {
 		expect.assertions(9);
-		const records: Array<LogRecord> = [];
+		const records = new Array<LogRecord>();
 		const originalInfo = logger.info;
 		const originalError = logger.error;
 		Object.defineProperty(logger, "info", {
@@ -435,7 +434,7 @@ describe("effect upstream", () => {
 
 	it("effect upstream error logs include safe method, path, and status only", async () => {
 		expect.assertions(3);
-		const records: Array<LogRecord> = [];
+		const records = new Array<LogRecord>();
 		const originalInfo = logger.info;
 		const originalError = logger.error;
 		Object.defineProperty(logger, "info", {
@@ -452,11 +451,10 @@ describe("effect upstream", () => {
 		});
 
 		try {
-			await captureProxyErrorAsync(() =>
+			await captureProxyErrorAsync(async () =>
 				fetchUpstreamJsonAsync({
 					body: { messages: [{ content: "should-not-log", role: "user" }] },
-					fetcher: () =>
-						Promise.resolve(Response.json({ error: { message: "invalid request" } }, { status: 400 })),
+					fetcher: async () => Response.json({ error: { message: "invalid request" } }, { status: 400 }),
 					headers: new Headers({ authorization: "Bearer should-not-log" }),
 					proxyConfiguration: createConfig(),
 					url: "https://upstream.example/v1/messages?token=secret",

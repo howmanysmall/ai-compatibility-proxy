@@ -70,7 +70,9 @@ describe("fetch handler", () => {
 	it("fetch handler returns health status", async () => {
 		expect.assertions(3);
 		const handler = createFetchHandler({
-			fetcher: () => Promise.reject(new Error("fetch should not be called")),
+			fetcher: async () => {
+				throw new Error("fetch should not be called");
+			},
 			proxyConfiguration: createConfiguration(),
 		});
 
@@ -87,15 +89,13 @@ describe("fetch handler", () => {
 		let seenUrl = "";
 		let seenAuthorization = "";
 		const handler = createFetchHandler({
-			fetcher: (input, init) => {
+			fetcher: async (input, init) => {
 				seenUrl = String(input);
 				seenAuthorization = getInitHeaderOrEmpty(init, "authorization");
-				return Promise.resolve(
-					Response.json({
-						data: [{ created: 0, id: "minimax-m3", object: "model", owned_by: "opencode" }],
-						object: "list",
-					}),
-				);
+				return Response.json({
+					data: [{ created: 0, id: "minimax-m3", object: "model", owned_by: "opencode" }],
+					object: "list",
+				});
 			},
 			proxyConfiguration: createConfiguration(),
 		});
@@ -119,23 +119,21 @@ describe("fetch handler", () => {
 		expect.assertions(3);
 		let seenUrl = "";
 		const handler = createFetchHandler({
-			fetcher: (input) => {
+			fetcher: async (input) => {
 				seenUrl = String(input);
-				return Promise.resolve(
-					Response.json({
-						choices: [
-							{
-								finish_reason: "stop",
-								index: 0,
-								message: { content: "pong", role: "assistant" },
-							},
-						],
-						created: 0,
-						id: "chatcmpl_1",
-						model: "gpt-oss-120b",
-						object: "chat.completion",
-					}),
-				);
+				return Response.json({
+					choices: [
+						{
+							finish_reason: "stop",
+							index: 0,
+							message: { content: "pong", role: "assistant" },
+						},
+					],
+					created: 0,
+					id: "chatcmpl_1",
+					model: "gpt-oss-120b",
+					object: "chat.completion",
+				});
 			},
 			proxyConfiguration: createConfiguration({
 				defaultModel: "gpt-oss-120b",
@@ -159,7 +157,9 @@ describe("fetch handler", () => {
 	it("fetch handler returns OpenAI-compatible not found errors", async () => {
 		expect.assertions(3);
 		const handler = createFetchHandler({
-			fetcher: () => Promise.reject(new Error("fetch should not be called")),
+			fetcher: async () => {
+				throw new Error("fetch should not be called");
+			},
 			proxyConfiguration: createConfiguration(),
 		});
 
@@ -175,7 +175,9 @@ describe("fetch handler", () => {
 	it("fetch handler maps thrown errors", async () => {
 		expect.assertions(3);
 		const handler = createFetchHandler({
-			fetcher: () => Promise.reject(new Error("upstream exploded")),
+			fetcher: async () => {
+				throw new Error("upstream exploded");
+			},
 			proxyConfiguration: createConfiguration(),
 		});
 
@@ -196,15 +198,13 @@ describe("fetch handler", () => {
 		expect.assertions(4);
 		const streamText = 'data: {"choices":[{"delta":{"content":"Hi"},"index":0}]}\n\n';
 		const handler = createFetchHandler({
-			fetcher: () =>
-				Promise.resolve(
-					new Response(streamText, {
-						headers: {
-							"content-type": "text/event-stream",
-							"x-upstream-stream": "raw",
-						},
-					}),
-				),
+			fetcher: async () =>
+				new Response(streamText, {
+					headers: {
+						"content-type": "text/event-stream",
+						"x-upstream-stream": "raw",
+					},
+				}),
 			proxyConfiguration: createConfiguration({
 				defaultModel: "gpt-oss-120b",
 				upstreamBaseUrl: "https://api.cerebras.ai/v1",
@@ -416,7 +416,7 @@ describe("fetch handler", () => {
 	it("request with empty message content does not fail validation", async () => {
 		expect.assertions(1);
 		const handler = createFetchHandler({
-			fetcher: () => Promise.resolve(Response.json({ choices: [] })),
+			fetcher: async () => Response.json({ choices: [] }),
 			proxyConfiguration: createConfiguration(),
 		});
 
@@ -432,7 +432,7 @@ describe("fetch handler", () => {
 	it("request with non-text content part in array does not fail length validation", async () => {
 		expect.assertions(1);
 		const handler = createFetchHandler({
-			fetcher: () => Promise.resolve(Response.json({ choices: [] })),
+			fetcher: async () => Response.json({ choices: [] }),
 			proxyConfiguration: createConfiguration(),
 		});
 
@@ -448,7 +448,7 @@ describe("fetch handler", () => {
 	it("request with valid Content-Length header within limit succeeds", async () => {
 		expect.assertions(1);
 		const handler = createFetchHandler({
-			fetcher: () => Promise.resolve(Response.json({ choices: [] })),
+			fetcher: async () => Response.json({ choices: [] }),
 			proxyConfiguration: createConfiguration({ maxRequestBodySizeBytes: 1000 }),
 		});
 

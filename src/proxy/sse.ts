@@ -10,6 +10,14 @@ import type { OpenAiChatCompletionChunk, OpenAiFinishReason, OpenAiUsage } from 
 
 const SSE_EVENT_SEPARATOR_PATTERN = /\n\n/u;
 
+const SSE_HEADERS = new Headers({
+	"cache-control": "no-cache, no-transform",
+	connection: "keep-alive",
+	"content-type": "text/event-stream; charset=utf-8",
+	"x-accel-buffering": "no",
+});
+
+// oxlint-disable-next-line typescript/require-await -- slop
 export async function createOpenAiStreamResponseAsync(upstreamResponse: Response, model: string): Promise<Response> {
 	const upstreamBody = upstreamResponse.body;
 	if (!upstreamBody) {
@@ -65,17 +73,17 @@ function createAnthropicEventTranslator(fallbackModel: string): (event: Record<s
 	let streamModel: string | undefined;
 
 	function getSharedId(): string {
-		if (!streamId) streamId = `chatcmpl-${crypto.randomUUID()}`;
+		streamId ??= `chatcmpl-${crypto.randomUUID()}`;
 		return streamId;
 	}
 
 	function getSharedCreated(): number {
-		if (!streamCreated) streamCreated = getUnixSeconds();
+		streamCreated ??= getUnixSeconds();
 		return streamCreated;
 	}
 
 	function getSharedModel(): string {
-		if (!streamModel) streamModel = fallbackModel;
+		streamModel ??= fallbackModel;
 		return streamModel;
 	}
 
@@ -208,13 +216,6 @@ function formatFinalChunk({ created, finishReason, id, model, openAiUsage }: Fin
 function formatChunk(openAiChatCompletionChunk: OpenAiChatCompletionChunk): string {
 	return `data: ${JSON.stringify(openAiChatCompletionChunk)}\n\n`;
 }
-
-const SSE_HEADERS = new Headers({
-	"cache-control": "no-cache, no-transform",
-	connection: "keep-alive",
-	"content-type": "text/event-stream; charset=utf-8",
-	"x-accel-buffering": "no",
-});
 
 function getRecord(value: unknown): Record<string, unknown> {
 	return Predicate.isRecord(value) ? value : {};

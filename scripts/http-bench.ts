@@ -1,3 +1,4 @@
+// oxlint-disable unicorn/max-nested-calls -- html.
 import { spawn } from "node:child_process";
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import net from "node:net";
@@ -186,10 +187,12 @@ await new Command()
 			.action(async (options) => {
 				await Effect.runPromise(
 					Effect.gen(function* runBenchmarkProgram() {
-						yield* Effect.promise(() => ensureDependencyAsync("oha"));
-						const result = yield* Effect.promise(() => runBenchmarkAsync(options));
-						yield* Effect.promise(() => persistArtifactsAsync(options, result));
-						yield* Effect.sync(() => printArtifactSummary(options, result));
+						ensureDependency("oha");
+						const result = yield* Effect.promise(async () => runBenchmarkAsync(options));
+						yield* Effect.promise(async () => persistArtifactsAsync(options, result));
+						yield* Effect.sync(() => {
+							printArtifactSummary(options, result);
+						});
 					}),
 				);
 			}),
@@ -268,7 +271,7 @@ async function runBenchmarkAsync(options: BenchmarkOptions): Promise<BenchmarkRu
 		} as const;
 
 		const summary = buildSummary(options, rawJsonByName);
-		const sparkline = await createSparklineAsync(summary.endpoints.map((endpoint) => endpoint.requestsPerSec));
+		const sparkline = createSparkline(summary.endpoints.map((endpoint) => endpoint.requestsPerSec));
 		printReadableReport(summary, baselineSummary, sparkline);
 		const reportHtml = createHtmlReport(summary, comparisonSnapshots, sparkline);
 
@@ -347,14 +350,10 @@ function printRunHeader(options: BenchmarkOptions, resultDirectory: string, prox
 	console.log(`${ANSI.dim}Snapshot ${resultDirectory}${ANSI.reset}\n`);
 }
 
-function printReadableReport(
-	current: BenchmarkSummary,
-	previous: BenchmarkSummary | undefined,
-	sparkline: string | undefined,
-): void {
+function printReadableReport(current: BenchmarkSummary, previous?: BenchmarkSummary, sparkline?: string): void {
 	printCurrentRunTable(current);
 	if (previous) printComparisonTable(current, previous);
-	if (sparkline) {
+	if (sparkline !== undefined && sparkline.length > 0) {
 		console.log(`\n${ANSI.dim}Throughput sparkline ${sparkline}${ANSI.reset}`);
 		console.log(`${ANSI.dim}/health → /v1/models → /v1/chat/completions${ANSI.reset}`);
 	}
@@ -1106,7 +1105,9 @@ function createHtmlReport(
 					createReportHeader(current),
 					createVerdictSection(current, comparisonSnapshots),
 					createQuickStatsSection(current),
-					sparkline ? createSparklineSection(current, sparkline) : raw(""),
+					sparkline !== undefined && sparkline.length > 0
+						? createSparklineSection(current, sparkline)
+						: raw(""),
 					createSection(
 						"Performance breakdown",
 						"01",
@@ -1269,7 +1270,7 @@ function createQuickStatsSection(summary: BenchmarkSummary): HtmlNode {
 		),
 		createQuickStat(
 			"Reliability",
-			`${formatPercent(successAvg)}`,
+			formatPercent(successAvg),
 			`avg across ${summary.endpoints.length} endpoints`,
 			"emerald",
 		),
@@ -1922,25 +1923,27 @@ function getListeningPort(server: Bun.Server<undefined>, serviceName: string): n
 async function chooseListeningPortAsync(host: string, requestedPort: number): Promise<number> {
 	if (requestedPort !== 0) return requestedPort;
 
-	return await new Promise<number>((resolve, reject) => {
-		const server = net.createServer();
-		server.unref();
-		server.once("error", reject);
-		server.listen({ host, port: 0 }, () => {
-			const address = server.address();
-			server.close((error) => {
-				if (error) {
-					reject(error);
-					return;
-				}
-				if (typeof address === "object" && address !== null) {
-					resolve(address.port);
-					return;
-				}
-				reject(new Error("Failed to allocate an available benchmark port."));
-			});
+	const { promise, resolve, reject } = Promise.withResolvers<number>();
+
+	const server = net.createServer();
+	server.unref();
+	server.once("error", reject);
+	server.listen({ host, port: 0 }, () => {
+		const address = server.address();
+		server.close((error) => {
+			if (error) {
+				reject(error);
+				return;
+			}
+			if (typeof address === "object" && address !== null) {
+				resolve(address.port);
+				return;
+			}
+			reject(new Error("Failed to allocate an available benchmark port."));
 		});
 	});
+
+	return promise;
 }
 
 function createMockUpstreamHandler(): (request: Request) => Promise<Response> {
@@ -1984,11 +1987,11 @@ async function runOhaAsync(options: {
 		"-c",
 		String(options.concurrency),
 	];
-	if (options.method) parameters.push("-m", options.method);
+	if (options.method !== undefined && options.method.length > 0) parameters.push("-m", options.method);
 	for (const [name, value] of options.headers ?? []) {
 		parameters.push("-H", `${name}: ${value}`);
 	}
-	if (options.bodyFile) parameters.push("-D", options.bodyFile);
+	if (options.bodyFile !== undefined && options.bodyFile.length > 0) parameters.push("-D", options.bodyFile);
 	parameters.push(options.url);
 
 	const { code, stderr, stdout } = await runCommandAsync("oha", parameters, { NO_COLOR: "false" });
@@ -2000,31 +2003,37 @@ async function runOhaAsync(options: {
 	return stdout.trim();
 }
 
+interface CommandOutput {
+	readonly code: number;
+	readonly stderr: string;
+	readonly stdout: string;
+}
+
 async function runCommandAsync(
 	command: string,
-	args: ReadonlyArray<string>,
-	env: Readonly<Record<string, string>>,
-): Promise<{ readonly code: number; readonly stderr: string; readonly stdout: string }> {
-	return await new Promise((resolve, reject) => {
-		const childProcess = spawn(command, args, {
-			env: { ...processEnvironment, ...env },
-			stdio: ["ignore", "pipe", "pipe"],
-		});
-		let stdout = "";
-		let stderr = "";
-		childProcess.stdout.setEncoding("utf8");
-		childProcess.stderr.setEncoding("utf8");
-		childProcess.stdout.on("data", (chunk) => {
-			stdout += chunk;
-		});
-		childProcess.stderr.on("data", (chunk) => {
-			stderr += chunk;
-		});
-		childProcess.on("error", reject);
-		childProcess.on("close", (code) => {
-			resolve({ code: code ?? 1, stderr, stdout });
-		});
+	parameters: ReadonlyArray<string>,
+	environment: Readonly<Record<string, string>>,
+): Promise<CommandOutput> {
+	const { promise, resolve, reject } = Promise.withResolvers<CommandOutput>();
+	const childProcess = spawn(command, parameters, {
+		env: { ...processEnvironment, ...environment },
+		stdio: ["ignore", "pipe", "pipe"],
 	});
+	let stdout = "";
+	let stderr = "";
+	childProcess.stdout.setEncoding("utf8");
+	childProcess.stderr.setEncoding("utf8");
+	childProcess.stdout.on("data", (chunk) => {
+		stdout += chunk;
+	});
+	childProcess.stderr.on("data", (chunk) => {
+		stderr += chunk;
+	});
+	childProcess.on("error", reject);
+	childProcess.on("close", (code) => {
+		resolve({ code: code ?? 1, stderr, stdout });
+	});
+	return promise;
 }
 
 async function warmProxyAsync(proxyBaseUrl: string, payloadText: string, warmupRequests: number): Promise<void> {
@@ -2063,31 +2072,35 @@ async function waitForHealthyAsync(url: string, deadline = Date.now() + 10_000):
 	}
 
 	await delayAsync(100);
-	return await waitForHealthyAsync(url, deadline);
+	await waitForHealthyAsync(url, deadline);
 }
 
-async function createSparklineAsync(values: ReadonlyArray<number>): Promise<string | undefined> {
-	if (values.length === 0) return undefined;
+function isEmptyArray(array: ReadonlyArray<NonNullable<unknown>>): array is [] {
+	return array.length === 0;
+}
+
+function createSparkline(values: ReadonlyArray<number>): string | undefined {
+	if (isEmptyArray(values)) return undefined;
 
 	const ticks = ["▁", "▂", "▃", "▄", "▅", "▆", "▇", "█"] as const;
 	const minimum = Math.min(...values);
 	const maximum = Math.max(...values);
-	if (minimum === maximum) return ticks.at(-1)!.repeat(values.length);
+	if (minimum === maximum) return "█".repeat(values.length);
 
 	return values
 		.map((value) => {
 			const normalized = (value - minimum) / (maximum - minimum);
 			const index = Math.min(ticks.length - 1, Math.max(0, Math.round(normalized * (ticks.length - 1))));
-			return ticks[index] ?? ticks[0]!;
+			return ticks[index] ?? ticks[0];
 		})
 		.join("");
 }
 
-async function ensureDependencyAsync(command: string): Promise<void> {
+function ensureDependency(command: string): void {
 	const executablePath = Bun.which(command);
-	if (!executablePath) {
+	if (executablePath === null || executablePath.length === 0) {
 		const error = new Error(`${command} is required but was not found on PATH.`);
-		Error.captureStackTrace(error, ensureDependencyAsync);
+		Error.captureStackTrace(error, ensureDependency);
 		throw error;
 	}
 }

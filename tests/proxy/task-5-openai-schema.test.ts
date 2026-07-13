@@ -76,7 +76,9 @@ describe("openAI Schema", () => {
 	it("rejects request bodies missing messages", async () => {
 		expect.assertions(2);
 		const app = createApp({
-			fetcher: () => Promise.reject(new Error("fetch should not be called")),
+			fetcher: async () => {
+				throw new Error("fetch should not be called");
+			},
 			proxyConfiguration: createConfiguration(),
 		});
 		const response = await app.fetch(createJsonRequest({ model: "minimax-m3" }));
@@ -90,7 +92,9 @@ describe("openAI Schema", () => {
 	it("rejects request bodies with non-array messages", async () => {
 		expect.assertions(2);
 		const app = createApp({
-			fetcher: () => Promise.reject(new Error("fetch should not be called")),
+			fetcher: async () => {
+				throw new Error("fetch should not be called");
+			},
 			proxyConfiguration: createConfiguration(),
 		});
 		const response = await app.fetch(createJsonRequest({ messages: "not an array" }));
@@ -104,7 +108,9 @@ describe("openAI Schema", () => {
 	it("rejects request bodies with empty messages arrays", async () => {
 		expect.assertions(2);
 		const app = createApp({
-			fetcher: () => Promise.reject(new Error("fetch should not be called")),
+			fetcher: async () => {
+				throw new Error("fetch should not be called");
+			},
 			proxyConfiguration: createConfiguration(),
 		});
 		const response = await app.fetch(createJsonRequest({ messages: [] }));
@@ -118,7 +124,9 @@ describe("openAI Schema", () => {
 	it("rejects empty request bodies", async () => {
 		expect.assertions(2);
 		const app = createApp({
-			fetcher: () => Promise.reject(new Error("fetch should not be called")),
+			fetcher: async () => {
+				throw new Error("fetch should not be called");
+			},
 			proxyConfiguration: createConfiguration(),
 		});
 		const response = await app.fetch(createJsonRequest({}));

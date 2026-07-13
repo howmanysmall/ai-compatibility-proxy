@@ -34,11 +34,11 @@ describe("auth timing", () => {
 	it("server_key mode rejects same-length wrong token", async () => {
 		expect.hasAssertions();
 		const app = createApp({
-			fetcher: (_input, init) => {
+			fetcher: async (_input, init) => {
 				expect(getInitHeader(init, "authorization"), "Expected upstream auth header.").toBe(
 					"Bearer upstream-key",
 				);
-				return Promise.resolve(Response.json({ data: [], object: "list" }));
+				return Response.json({ data: [], object: "list" });
 			},
 			proxyConfiguration: createConfiguration(),
 		});
@@ -55,7 +55,7 @@ describe("auth timing", () => {
 	it("server_key mode rejects different-length wrong token", async () => {
 		expect.assertions(1);
 		const app = createApp({
-			fetcher: () => Promise.resolve(Response.json({ data: [], object: "list" })),
+			fetcher: async () => Response.json({ data: [], object: "list" }),
 			proxyConfiguration: createConfiguration(),
 		});
 
@@ -71,11 +71,11 @@ describe("auth timing", () => {
 	it("server_key mode accepts correct token", async () => {
 		expect.hasAssertions();
 		const app = createApp({
-			fetcher: (_input, init) => {
+			fetcher: async (_input, init) => {
 				expect(getInitHeader(init, "authorization"), "Expected upstream auth header.").toBe(
 					"Bearer upstream-key",
 				);
-				return Promise.resolve(Response.json({ data: [], object: "list" }));
+				return Response.json({ data: [], object: "list" });
 			},
 			proxyConfiguration: createConfiguration(),
 		});

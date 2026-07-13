@@ -130,6 +130,7 @@ describe("log-entry", () => {
 		expect.assertions(3);
 		const logObject = createLogObject({
 			args: "not-array" as unknown as [],
+			// oxlint-disable-next-line typescript/no-empty-object-type typescript/ban-types -- lol
 			context: "not-context" as unknown as {},
 			valueOf: () => 42,
 		});
@@ -152,7 +153,7 @@ describe("log-entry", () => {
 	});
 
 	it("normalizeLogEntry records Bun runtime version when Bun is available", () => {
-		expect.hasAssertions();
+		expect.assertions(1);
 		const previousBun = Reflect.get(globalThis, "Bun");
 		Reflect.set(globalThis, "Bun", { version: "1.2.3-test" });
 

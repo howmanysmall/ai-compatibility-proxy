@@ -1,8 +1,10 @@
+// oxlint-disable typescript/restrict-template-expressions -- coal
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
-import path from "node:path";
+import nodePath from "node:path";
 import nodeProcess from "node:process";
 import { expect, describe, it } from "vitest";
+import { isStructuredLogEntry } from "$logging/log-entry";
 import { createDailyFileRotateReporter, serializeLogEntry } from "$logging/reports/daily-file-rotate-reporter";
 
 import type { StructuredLogEntry } from "$logging/log-entry";
@@ -73,7 +75,7 @@ describe("dailyFileRotateReporter", () => {
 		});
 
 		const serializedEntry = serializeLogEntry(entry);
-		const parsedEntry = JSON.parse(serializedEntry) as StructuredLogEntry;
+		const parsedEntry = isStructuredLogEntry.assert(JSON.parse(serializedEntry));
 
 		expect(
 			parsedEntry.customProperties?.logEntryTruncated,
@@ -105,7 +107,7 @@ describe("dailyFileRotateReporter", () => {
 		});
 		const maxEntryBytes = 4096;
 		const serializedEntry = serializeLogEntry(entry, maxEntryBytes);
-		const parsedEntry = JSON.parse(serializedEntry) as StructuredLogEntry;
+		const parsedEntry = isStructuredLogEntry.assert(JSON.parse(serializedEntry));
 
 		expect(
 			getByteLength(serializedEntry),
@@ -138,7 +140,7 @@ describe("dailyFileRotateReporter", () => {
 			},
 		});
 
-		const parsedEntry = JSON.parse(serializeLogEntry(entry, 512)) as StructuredLogEntry;
+		const parsedEntry = isStructuredLogEntry.assert(JSON.parse(serializeLogEntry(entry, 512)));
 
 		expect(parsedEntry.message, "Expected minimal truncation message.").toBe(
 			"Log entry omitted because it exceeded the storage safety limit",
@@ -156,7 +158,7 @@ describe("dailyFileRotateReporter", () => {
 			},
 		});
 
-		const parsedEntry = JSON.parse(serializeLogEntry(entry, 8192)) as StructuredLogEntry;
+		const parsedEntry = isStructuredLogEntry.assert(JSON.parse(serializeLogEntry(entry, 8192)));
 
 		expect(parsedEntry.customProperties?.logEntryTruncated, "Expected truncation metadata.").toBe(true);
 		expect(parsedEntry.context.truncatedContextKeys, "Expected omitted context key count.").toBe(5);
@@ -169,8 +171,9 @@ describe("dailyFileRotateReporter", () => {
 	it("createDailyFileRotateReporter honors the configured level filter", () => {
 		expect.assertions(1);
 		let filterCalls = 0;
+		const directory = mkdtempSync(nodePath.join(tmpdir(), "ai-compatibility-proxy-test-logs-"));
 		const reporter = createDailyFileRotateReporter({
-			directory: mkdtempSync(path.join(tmpdir(), "ai-compatibility-proxy-test-logs-")),
+			directory,
 			filename: "combined.log",
 			levelFilter: (level) => {
 				filterCalls += 1;
@@ -188,11 +191,13 @@ describe("dailyFileRotateReporter", () => {
 
 	it("createDailyFileRotateReporter writes logs when no level filter is configured", () => {
 		expect.assertions(4);
-		const writes: Array<string> = [];
+		const writes = new Array<string>();
 		let streamFilename = "";
 		let streamOptions: Parameters<typeof createStream>[1] | undefined;
+		const directory = mkdtempSync(nodePath.join(tmpdir(), "ai-compatibility-proxy-test-logs-"));
+
 		const reporter = createDailyFileRotateReporter({
-			directory: mkdtempSync(path.join(tmpdir(), "ai-compatibility-proxy-test-logs-")),
+			directory,
 			filename: "combined.log",
 			maxFiles: 1,
 			size: "1M",
@@ -200,8 +205,8 @@ describe("dailyFileRotateReporter", () => {
 				streamFilename = filename;
 				streamOptions = options;
 				return {
-					on: () => undefined,
-					write: (message: string) => {
+					on: (): undefined => undefined,
+					write: (message: string): boolean => {
 						writes.push(message);
 						return true;
 					},
@@ -227,8 +232,9 @@ describe("dailyFileRotateReporter", () => {
 
 	it("createDailyFileRotateReporter writes file stream warnings to stderr", () => {
 		expect.assertions(1);
-		const stderrMessages: Array<string> = [];
+		const stderrMessages = new Array<string>();
 		const handlers = new Map<string, StreamHandler>();
+		// oxlint-disable-next-line typescript/unbound-method -- yurr
 		const originalWrite = nodeProcess.stderr.write;
 		Object.defineProperty(nodeProcess.stderr, "write", {
 			configurable: true,
@@ -239,16 +245,17 @@ describe("dailyFileRotateReporter", () => {
 		});
 
 		try {
+			const directory = mkdtempSync(nodePath.join(tmpdir(), "ai-compatibility-proxy-test-logs-"));
 			createDailyFileRotateReporter({
-				directory: mkdtempSync(path.join(tmpdir(), "ai-compatibility-proxy-test-logs-")),
+				directory,
 				filename: "combined.log",
 				maxFiles: 1,
 				size: "1M",
 				streamFactory: ((_filename: string, _options: Parameters<typeof createStream>[1]) => ({
-					on: (event: string, handler: StreamHandler) => {
+					on: (event: string, handler: StreamHandler): void => {
 						handlers.set(event, handler);
 					},
-					write: () => true,
+					write: (): boolean => true,
 				})) as unknown as typeof createStream,
 			});
 

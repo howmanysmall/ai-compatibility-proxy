@@ -8,21 +8,21 @@ const isHeadersRecord = type("Record<string, string>").readonly();
 
 export function getInitHeader(init: RequestInit | undefined, name: string): string | null {
 	const headers = init?.headers;
-	if (headers === undefined) return JSON.parse("null") as null;
+	if (headers === undefined) return null;
 	if (headers instanceof Headers) return headers.get(name);
 
 	const target = name.toLowerCase();
 
 	if (isHeadersArray.allows(headers)) {
 		for (const [key, value] of headers) if (key.toLowerCase() === target) return value;
-		return JSON.parse("null") as null;
+		return null;
 	}
 
 	if (isHeadersRecord.allows(headers)) {
 		for (const [key, value] of Object.entries(headers)) if (key.toLowerCase() === target) return value;
 	}
 
-	return JSON.parse("null") as null;
+	return null;
 }
 
 export function expectRecord(value: unknown, message: string): asserts value is Record<string, unknown> {

@@ -22,11 +22,9 @@ function captureProxyError(callback: () => unknown): ProxyError {
 	throw error;
 }
 
-function expectProxyError(callback: () => unknown, param: string): void {
-	const error = captureProxyError(callback);
-
-	// biome-ignore lint/suspicious/noMisplacedAssertion: garbage.
-	expect(error.param, "Expected ProxyError param.").toBe(param);
+function expectProxyError(callback: () => unknown, parameter: string): void {
+	const { param } = captureProxyError(callback);
+	expect(param, "Expected ProxyError param.").toBe(parameter);
 }
 
 describe("anthropic Translator Edge Cases", () => {
@@ -61,10 +59,7 @@ describe("anthropic Translator Edge Cases", () => {
 				translateOpenAiToAnthropic({ messages: [{ content: "system only", role: "system" }] }, "fallback", 10),
 			"messages",
 		);
-		expectProxyError(
-			() => translateOpenAiToAnthropic({} as OpenAiChatCompletionRequest, "fallback", 10),
-			"messages",
-		);
+		expectProxyError(() => translateOpenAiToAnthropic({}, "fallback", 10), "messages");
 		expectProxyError(
 			() => translateOpenAiToAnthropic({ messages: [{ content: null, role: "user" }] }, "fallback", 10),
 			"messages.user.content",

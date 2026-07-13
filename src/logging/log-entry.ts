@@ -1,10 +1,11 @@
 import { hostname } from "node:os";
-import path from "node:path";
+import nodePath from "node:path";
 import nodeProcess from "node:process";
 import { inspect } from "node:util";
 import { name, version } from "$constants/package-json";
 import { getActiveLogContext, mergeLogContexts, sanitizeLogContext } from "$logging/log-context";
 import { sanitize, sanitizeRecord } from "$logging/sanitizer";
+import { type } from "arktype";
 import { Predicate } from "effect";
 
 import type { LogObject, LogType } from "consola";
@@ -14,33 +15,48 @@ const UNKNOWN_HOST_NAME = "unknown";
 const STANDARD_LOG_OBJECT_KEYS = new Set(["additional", "args", "context", "date", "level", "message", "tag", "type"]);
 let currentSequenceNumber = 0;
 
-export interface StructuredLogEntry {
-	readonly application: {
-		readonly name: string;
-		readonly version: string;
-	};
-	readonly context: Readonly<Record<string, unknown>>;
-	readonly customProperties?: Readonly<Record<string, unknown>>;
-	readonly error?: unknown;
-	readonly errors?: ReadonlyArray<unknown>;
-	readonly level: string;
-	readonly levelValue: number;
-	readonly message: string;
-	readonly payload?: unknown;
-	readonly process: {
-		readonly id: number;
-		readonly platform: NodeJS.Platform;
-		readonly title: string;
-		readonly version: string;
-	};
-	readonly sequenceNumber: number;
-	readonly tag?: string;
-	readonly timestamp: string;
-	readonly type: LogType;
-	readonly host: {
-		readonly name: string;
-	};
-}
+const isApplication = type({
+	name: "string",
+	version: "string",
+}).readonly();
+
+const isRecord = type("Record<string, unknown>").readonly();
+const isPlatform = type(
+	'"aix" | "android" | "darwin" | "freebsd" | "haiku" | "linux" | "openbsd" | "sunos" | "win32" | "cygwin" | "netbsd"',
+);
+const isLogType = type(
+	'"silent" | "fatal" | "error" | "warn" | "log" | "info" | "success" | "fail" | "ready" | "start" | "box" | "debug" | "trace" | "verbose"',
+);
+
+const isHost = type({ name: "string" }).readonly();
+const isProcess = type({
+	id: "number",
+	platform: isPlatform,
+	title: "string",
+	version: "string",
+}).readonly();
+
+export const isStructuredLogEntry = type({
+	application: isApplication,
+	context: isRecord,
+	"customProperties?": isRecord,
+	"error?": "unknown",
+	"errors?": type("unknown[]").readonly(),
+	host: isHost,
+	level: "string",
+	levelValue: "number",
+	message: "string",
+	"payload?": "unknown",
+	process: isProcess,
+	sequenceNumber: "number",
+	"tag?": "string",
+	timestamp: "string",
+	type: isLogType,
+})
+	.readonly()
+	.onDeepUndeclaredKey("reject");
+
+export type StructuredLogEntry = typeof isStructuredLogEntry.infer;
 
 function getHostName(): string {
 	try {
@@ -52,12 +68,12 @@ function getHostName(): string {
 	/* v8 ignore stop */
 }
 
-function getSeverityName(level: number, type: LogType): string {
-	if (type === "fatal" || type === "error") return "error";
-	if (type === "warn") return "warn";
-	if (type === "debug") return "debug";
-	if (type === "trace") return "trace";
-	if (type === "verbose") return "verbose";
+function getSeverityName(level: number, logType: LogType): string {
+	if (logType === "fatal" || logType === "error") return "error";
+	if (logType === "warn") return "warn";
+	if (logType === "debug") return "debug";
+	if (logType === "trace") return "trace";
+	if (logType === "verbose") return "verbose";
 	if (level <= 1) return "error";
 	if (level === 2) return "warn";
 	if (level >= 4) return "debug";
@@ -68,8 +84,11 @@ function stringify(value: unknown): string {
 	return Predicate.isString(value) ? value : JSON.stringify(value);
 }
 
-function buildMessage({ message, additional, type }: LogObject, sanitizedArguments: ReadonlyArray<unknown>): string {
-	const explicitMessageParts: Array<string> = [];
+function buildMessage(
+	{ message, additional, type: logType }: LogObject,
+	sanitizedArguments: ReadonlyArray<unknown>,
+): string {
+	const explicitMessageParts = new Array<string>();
 	let size = 0;
 
 	if (Predicate.isString(message) && message.length > 0) explicitMessageParts[size++] = message;
@@ -84,7 +103,7 @@ function buildMessage({ message, additional, type }: LogObject, sanitizedArgumen
 	if (explicitMessageParts.length > 0) return explicitMessageParts.join(" ");
 
 	const fallbackMessage = sanitizedArguments.map(stringify).join(" ").trim();
-	return fallbackMessage.length > 0 ? fallbackMessage : `logger.${type}`;
+	return fallbackMessage.length > 0 ? fallbackMessage : `logger.${logType}`;
 }
 
 function extractCustomProperties(logObject: LogObject): Readonly<Record<string, unknown>> | undefined {
@@ -103,7 +122,7 @@ function getLogParameters(logObject: LogObject): Array<unknown> {
 }
 
 function extractErrors(logObject: LogObject): ReadonlyArray<unknown> {
-	const errorValues: Array<unknown> = [];
+	const errorValues = new Array<unknown>();
 	let size = 0;
 
 	for (const value of getLogParameters(logObject)) {
@@ -154,7 +173,7 @@ export function normalizeLogEntry(logObject: LogObject): StructuredLogEntry {
 		process: {
 			id: nodeProcess.pid,
 			platform: nodeProcess.platform,
-			title: path.basename(nodeProcess.title),
+			title: nodePath.basename(nodeProcess.title),
 			version: getVersion(),
 		},
 		sequenceNumber: ++currentSequenceNumber,
