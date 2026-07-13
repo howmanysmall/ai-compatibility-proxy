@@ -1,4 +1,4 @@
-// oxlint-disable import/no-namespace unicorn/no-null sonar/void-use small-rules/no-commented-code -- it's fine
+// oxlint-disable import/no-namespace unicorn/no-null sonar/void-use small-rules/no-commented-code unicorn/max-nested-calls -- it's fine
 import { faker } from "@faker-js/faker";
 import { type } from "arktype";
 import { Schema } from "effect";

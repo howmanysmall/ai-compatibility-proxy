@@ -1,3 +1,4 @@
+// oxlint-disable no-await-in-loop -- nobody cares
 import cryptoNode from "node:crypto";
 import { faker } from "@faker-js/faker";
 import { bench, run } from "mitata";
@@ -25,7 +26,7 @@ function hasSameTokenNode(clientBearerToken: string, expectedToken: string): boo
 function timingSafeEqualBytes(left: Uint8Array, right: Uint8Array): boolean {
 	if (left.byteLength !== right.byteLength) return false;
 	let result = 0;
-	// biome-ignore lint/suspicious/noBitwiseOperators: lol
+	// oxlint-disable-next-line typescript/no-non-null-assertion -- shut
 	for (let index = 0; index < left.length; index += 1) result |= left[index]! ^ right[index]!;
 	return result === 0;
 }

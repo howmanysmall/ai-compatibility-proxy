@@ -88,7 +88,7 @@ function buildMessage(
 	{ message, additional, type: logType }: LogObject,
 	sanitizedArguments: ReadonlyArray<unknown>,
 ): string {
-	const explicitMessageParts = new Array<string>();
+	const explicitMessageParts: Array<string> = [];
 	let size = 0;
 
 	if (Predicate.isString(message) && message.length > 0) explicitMessageParts[size++] = message;
@@ -122,7 +122,7 @@ function getLogParameters(logObject: LogObject): Array<unknown> {
 }
 
 function extractErrors(logObject: LogObject): ReadonlyArray<unknown> {
-	const errorValues = new Array<unknown>();
+	const errorValues: Array<unknown> = [];
 	let size = 0;
 
 	for (const value of getLogParameters(logObject)) {

@@ -5,25 +5,25 @@ export type UpstreamProtocol = "anthropic_messages" | "cerebras_openai";
 export type UpstreamAuthMode = "client_bearer" | "server_key";
 
 export interface ProxyConfiguration {
-	readonly port: number;
+	readonly allowedUpstreamHosts: ReadonlyArray<string>;
+	readonly cerebrasDropUnsupportedFields: boolean;
+	readonly cerebrasStrictRequestValidation: boolean;
+	readonly defaultMaxTokens: number;
+	readonly defaultModel: string;
+	readonly logLevel: string;
+	readonly maxRequestBodySizeBytes: number;
 	readonly opencodeModelsCacheTtlMs: number;
 	readonly opencodeModelsFetchTimeoutMs: number;
 	readonly opencodeModelsUrl: string;
-	readonly upstreamProtocol: UpstreamProtocol;
-	readonly upstreamBaseUrl: string;
-	readonly upstreamAuthMode: UpstreamAuthMode;
-	readonly upstreamAuthHeader: string;
-	readonly upstreamApiKey: string | undefined;
+	readonly port: number;
 	readonly proxyApiKey: string | undefined;
-	readonly defaultModel: string;
-	readonly defaultMaxTokens: number;
 	readonly requestTimeoutMs: number;
-	readonly logLevel: string;
-	readonly cerebrasStrictRequestValidation: boolean;
-	readonly cerebrasDropUnsupportedFields: boolean;
-	readonly maxRequestBodySizeBytes: number;
-	readonly allowedUpstreamHosts: ReadonlyArray<string>;
+	readonly upstreamApiKey: string | undefined;
+	readonly upstreamAuthHeader: string;
+	readonly upstreamAuthMode: UpstreamAuthMode;
+	readonly upstreamBaseUrl: string;
 	readonly upstreamErrorTransparency: boolean;
+	readonly upstreamProtocol: UpstreamProtocol;
 }
 
 const isProxyEnvironment = type({

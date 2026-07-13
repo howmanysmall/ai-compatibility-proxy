@@ -80,9 +80,10 @@ function sanitizeError(error: Error | ErrorLike, sanitizeContext: SanitizeContex
 function sanitizeMap(map: ReadonlyMap<unknown, unknown>, sanitizeContext: SanitizeContext): Record<string, unknown> {
 	const entries = Array.from(map.entries(), ([key, value]) => ({
 		key: sanitizeInternal(key, createNextContext(sanitizeContext)),
-		value: typeof key === "string" && isSensitiveKey(key) ?
-			"[REDACTED]" :
-			sanitizeInternal(value, createNextContext(sanitizeContext)),
+		value:
+			typeof key === "string" && isSensitiveKey(key)
+				? "[REDACTED]"
+				: sanitizeInternal(value, createNextContext(sanitizeContext)),
 	}));
 
 	return {
@@ -136,6 +137,7 @@ function sanitizeInternal(value: unknown, sanitizeContext: SanitizeContext): unk
 
 	sanitizeContext.seenObjects.add(value);
 	try {
+		// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- bruh
 		const record = value as Record<string, unknown>;
 		if (Predicate.isError(value)) return sanitizeError(value, sanitizeContext);
 		if (isErrorLike(record)) return sanitizeError(record, sanitizeContext);

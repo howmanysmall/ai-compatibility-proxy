@@ -17,7 +17,7 @@ export function createAuthContext(request: Request, proxyConfiguration: ProxyCon
 	});
 
 	if (proxyConfiguration.upstreamAuthMode === "client_bearer") {
-		if (!clientBearerToken) {
+		if (clientBearerToken === undefined || clientBearerToken.length === 0) {
 			const error = new ProxyError("Missing bearer token.", {
 				status: 401,
 				type: "authentication_error",
@@ -30,7 +30,7 @@ export function createAuthContext(request: Request, proxyConfiguration: ProxyCon
 		return { upstreamHeaders };
 	}
 
-	if (!proxyConfiguration.proxyApiKey) {
+	if (proxyConfiguration.proxyApiKey === undefined || proxyConfiguration.proxyApiKey.length === 0) {
 		const error = new ProxyError("PROXY_API_KEY is required when UPSTREAM_AUTH_MODE=server_key.", {
 			status: 500,
 			type: "configuration_error",
@@ -39,7 +39,7 @@ export function createAuthContext(request: Request, proxyConfiguration: ProxyCon
 		throw error;
 	}
 
-	if (!proxyConfiguration.upstreamApiKey) {
+	if (proxyConfiguration.upstreamApiKey === undefined || proxyConfiguration.upstreamApiKey.length === 0) {
 		const error = new ProxyError("UPSTREAM_API_KEY is required when UPSTREAM_AUTH_MODE=server_key.", {
 			status: 500,
 			type: "configuration_error",
@@ -48,7 +48,7 @@ export function createAuthContext(request: Request, proxyConfiguration: ProxyCon
 		throw error;
 	}
 
-	if (!clientBearerToken) {
+	if (clientBearerToken === undefined || clientBearerToken.length === 0) {
 		const error = new ProxyError("Invalid proxy bearer token.", {
 			status: 401,
 			type: "authentication_error",

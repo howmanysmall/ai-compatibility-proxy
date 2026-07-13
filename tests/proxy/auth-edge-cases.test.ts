@@ -52,9 +52,7 @@ function captureProxyError(callback: () => unknown): ProxyError {
 function expectProxyError(callback: () => unknown, status: number, type: string): void {
 	const error = captureProxyError(callback);
 
-	// biome-ignore lint/suspicious/noMisplacedAssertion: will be used in a test.
 	expect(error.status, "Expected ProxyError status.").toBe(status);
-	// biome-ignore lint/suspicious/noMisplacedAssertion: will be used in a test.
 	expect(error.type, "Expected ProxyError type.").toBe(type);
 }
 

@@ -154,7 +154,7 @@ describe("log-context and log-utilities", () => {
 		expect.assertions(2);
 		expect(sanitizeLogContext(), "Expected missing context to become empty object.").toStrictEqual({});
 		expect(
-			sanitizeLogContext(Object.create(null)),
+			sanitizeLogContext(Object.create(null) as Record<string, unknown>),
 			"Expected non-record context to become empty object.",
 		).toStrictEqual({});
 	});

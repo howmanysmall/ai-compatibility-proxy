@@ -103,7 +103,7 @@ async function readBodyBytesAsync(request: Request, maxRequestBodySizeBytes: num
 	}
 
 	const reader = request.body.getReader();
-	const chunks = new Array<Uint8Array>();
+	const chunks: Array<Uint8Array> = [];
 	let totalBytes = 0;
 	try {
 		while (true) {

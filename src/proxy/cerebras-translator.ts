@@ -61,6 +61,7 @@ export function normalizeCerebrasRequest(
 		}
 	}
 
+	// oxlint-disable-next-line typescript/prefer-nullish-coalescing typescript/strict-boolean-expressions -- intentional.
 	normalizedRequest.model = openAiChatCompletionRequest.model?.trim() || proxyConfiguration.defaultModel;
 	normalizedRequest.messages = normalizeCerebrasMessages(openAiChatCompletionRequest.messages);
 

@@ -99,8 +99,12 @@ function isPermissionDeniedError(error: unknown): boolean {
 
 function createContextualLogger(context: LogContext): ContextualLogger {
 	return {
-		error: (message: string, properties = {}) => baseLogger.error({ ...properties, context, message }),
-		info: (message: string, properties = {}) => baseLogger.info({ ...properties, context, message }),
+		error: (message: string, properties = {}): void => {
+			baseLogger.error({ ...properties, context, message });
+		},
+		info: (message: string, properties = {}): void => {
+			baseLogger.info({ ...properties, context, message });
+		},
 	};
 }
 

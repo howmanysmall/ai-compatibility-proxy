@@ -34,7 +34,7 @@ export const cerebrasTarget: ProviderTarget = {
 			url: `${proxyConfiguration.upstreamBaseUrl}/chat/completions`,
 		});
 
-		if (cerebrasRequest.stream) {
+		if (cerebrasRequest.stream === true) {
 			return new Response(upstreamResponse.body, {
 				headers: upstreamResponse.headers,
 				status: upstreamResponse.status,
@@ -49,7 +49,7 @@ export const cerebrasTarget: ProviderTarget = {
 		headers,
 		proxyConfiguration,
 	}: ProviderTargetInput): Promise<OpenAiModelListResponse> {
-		return await getModelsAsync(fetcher, headers, proxyConfiguration, cerebrasDefaults.ownedBy);
+		return getModelsAsync(fetcher, headers, proxyConfiguration, cerebrasDefaults.ownedBy);
 	},
 	protocol: "cerebras_openai",
 };

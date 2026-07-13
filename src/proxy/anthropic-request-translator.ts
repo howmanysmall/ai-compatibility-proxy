@@ -78,6 +78,7 @@ export function translateOpenAiToAnthropic(
 }
 
 function getModel(openAiChatCompletionRequest: OpenAiChatCompletionRequest, defaultModel: string): string {
+	// oxlint-disable-next-line typescript/prefer-nullish-coalescing typescript/strict-boolean-expressions -- intentional.
 	const model = openAiChatCompletionRequest.model?.trim() || defaultModel;
 	if (model.length === 0) {
 		const error = new ProxyError("A model is required.", { param: "model" });

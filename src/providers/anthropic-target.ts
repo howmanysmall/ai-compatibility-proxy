@@ -35,10 +35,10 @@ export const anthropicTarget: ProviderTarget = {
 		const model = getRequestModel(request, proxyConfiguration.defaultModel);
 		const routeDecision = await resolveOpenCodeModelRouteAsync(fetcher, proxyConfiguration, model);
 		if (routeDecision.route === "chat_completions") {
-			return await forwardOpenAiCompatibleRequestAsync({ fetcher, headers, proxyConfiguration, request });
+			return forwardOpenAiCompatibleRequestAsync({ fetcher, headers, proxyConfiguration, request });
 		}
 		if (routeDecision.route === "messages") {
-			return await forwardAnthropicRequestAsync({ fetcher, headers, proxyConfiguration, request });
+			return forwardAnthropicRequestAsync({ fetcher, headers, proxyConfiguration, request });
 		}
 
 		const knownPassthroughSupport = unknownModelPassthroughSupport.get(model);
@@ -59,12 +59,12 @@ export const anthropicTarget: ProviderTarget = {
 			}
 		}
 
-		return await forwardAnthropicRequestAsync({ fetcher, headers, proxyConfiguration, request });
+		return forwardAnthropicRequestAsync({ fetcher, headers, proxyConfiguration, request });
 	},
 	defaults: anthropicDefaults,
 	// biome-ignore lint/nursery/useExplicitReturnType: too complex.
 	async listModelsAsync({ fetcher, headers, proxyConfiguration }: ProviderTargetInput) {
-		return await getModelsAsync(fetcher, headers, proxyConfiguration, anthropicDefaults.ownedBy);
+		return getModelsAsync(fetcher, headers, proxyConfiguration, anthropicDefaults.ownedBy);
 	},
 	protocol: "anthropic_messages",
 };
@@ -88,7 +88,9 @@ async function forwardAnthropicRequestAsync({
 		url: `${proxyConfiguration.upstreamBaseUrl}/messages`,
 	});
 
-	if (anthropicRequest.stream) return createOpenAiStreamResponseAsync(upstreamResponse, anthropicRequest.model);
+	if (anthropicRequest.stream === true) {
+		return createOpenAiStreamResponseAsync(upstreamResponse, anthropicRequest.model);
+	}
 
 	return Response.json(translateAnthropicToOpenAi(await upstreamResponse.json(), anthropicRequest.model), {
 		headers: { "cache-control": "no-store" },
@@ -110,7 +112,7 @@ async function forwardOpenAiCompatibleRequestAsync({
 		url: `${proxyConfiguration.upstreamBaseUrl}/chat/completions`,
 	});
 
-	if (upstreamRequest.stream) {
+	if (upstreamRequest.stream === true) {
 		return new Response(upstreamResponse.body, {
 			headers: upstreamResponse.headers,
 			status: upstreamResponse.status,
@@ -131,6 +133,7 @@ function getOpenAiCompatibleRequest(
 }
 
 function getRequestModel(request: OpenAiChatCompletionRequest, defaultModel: string): string {
+	// oxlint-disable-next-line typescript/prefer-nullish-coalescing typescript/strict-boolean-expressions -- intentional.
 	return request.model?.trim() || defaultModel;
 }
 
@@ -138,7 +141,7 @@ function getOpenAiCompatibleHeaders(headers: Headers): Headers {
 	if (headers.has("authorization")) return headers;
 
 	const apiKey = headers.get("x-api-key");
-	if (!apiKey) return headers;
+	if (apiKey === null || apiKey.length === 0) return headers;
 
 	const openAiHeaders = new Headers(headers);
 	openAiHeaders.delete("x-api-key");

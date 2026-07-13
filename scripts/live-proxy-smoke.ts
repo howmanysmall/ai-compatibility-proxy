@@ -32,8 +32,8 @@ interface SmokeOptions {
 	readonly isLive: boolean;
 	readonly opencodeGoModel: string;
 	readonly port: number;
-	readonly provider: ProviderSelection;
 	readonly prompt: string;
+	readonly provider: ProviderSelection;
 }
 
 interface SmokeResult {

@@ -67,7 +67,7 @@ export function getTextContent(content: OpenAiChatMessage["content"], parameter:
 	if (typeof content === "string") return content;
 
 	if (Array.isArray(content)) {
-		const textParts = new Array<string>();
+		const textParts: Array<string> = [];
 		let size = 0;
 
 		for (const part of content) {

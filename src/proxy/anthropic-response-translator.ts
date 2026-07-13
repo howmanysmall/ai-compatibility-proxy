@@ -11,7 +11,7 @@ import type { AnthropicMessagesResponse, AnthropicStopReason, AnthropicUsage } f
 import type { OpenAiChatCompletionResponse, OpenAiFinishReason, OpenAiUsage } from "./openai-types";
 
 export function translateAnthropicToOpenAi(
-	anthropicMessagesResponse: AnthropicMessagesResponse | unknown,
+	anthropicMessagesResponse: unknown,
 	requestModel: string,
 ): OpenAiChatCompletionResponse {
 	const anthropicResponse = getAnthropicResponse(anthropicMessagesResponse);
@@ -41,7 +41,7 @@ export function translateAnthropicToOpenAi(
 }
 
 export function mapAnthropicFinishReason(anthropicStopReason?: AnthropicStopReason | null): OpenAiFinishReason | null {
-	if (!anthropicStopReason) return OPENAI_NULL;
+	if (anthropicStopReason === null || anthropicStopReason === undefined) return OPENAI_NULL;
 
 	if (anthropicStopReason === "max_tokens") return "length";
 	if (anthropicStopReason === "tool_use") return "tool_calls";
@@ -63,12 +63,12 @@ export function mapAnthropicUsage(anthropicUsage?: AnthropicUsage): OpenAiUsage 
 	};
 }
 
-function getAnthropicResponse(value: AnthropicMessagesResponse | unknown): AnthropicMessagesResponse | undefined {
+function getAnthropicResponse(value: unknown): AnthropicMessagesResponse | undefined {
 	return isAnthropicMessagesResponse.allows(value) ? value : undefined;
 }
 
 function getAnthropicText(content: ReadonlyArray<ReadonlyRecord<string, unknown>>): string {
-	const textParts = new Array<string>();
+	const textParts: Array<string> = [];
 	let size = 0;
 
 	for (const block of content) {
