@@ -9,7 +9,7 @@ fetchRetryMaxtimeout: 30000
 fetchTimeout: 60000
 trustPolicyExclude:
   - skills
-patchedDependencies: {}
+patchedDependencies: { '@vitest/expect@4.1.10': patches/@vitest__expect@4.1.10.patch }
 blockExoticSubdeps: true
 minimumReleaseAge: 1440
 minimumReleaseAgeExclude:
