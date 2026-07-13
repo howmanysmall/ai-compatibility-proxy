@@ -1,25 +1,15 @@
 allowBuilds:
   "@jsr/sander__html": false
   "@swc/core": true
-
 enableGlobalVirtualStore: true
 packages: []
-catalogs:
-  testing:
-    "@faker-js/faker": ^10.4.0
-    "@vitest/coverage-v8": 4.1.8
-    vitest: 4.1.8
-
 fetchRetries: 5
 fetchRetryMintimeout: 1000
 fetchRetryMaxtimeout: 30000
 fetchTimeout: 60000
 trustPolicyExclude:
   - skills
-
-patchedDependencies:
-  package-manager-detector@1.6.0: patches/package-manager-detector@1.6.0.patch
-
+patchedDependencies: {}
 blockExoticSubdeps: true
 minimumReleaseAge: 1440
 minimumReleaseAgeExclude:

@@ -152,7 +152,7 @@
 				"language_server": { "name": "oxfmt" }
 			},
 			"hard_tabs": true,
-			"language_servers": ["oxfmt", "codebook", "harper-ls", "wakatime"],
+			"language_servers": ["oxfmt", "codebook", "harper-ls", "wakatime", "json-language-server"],
 			"prettier": { "allowed": false },
 			"tab_size": 4
 		},
@@ -250,7 +250,15 @@
 			"format_on_save": "on",
 			"formatter": "language_server",
 			"hard_tabs": true,
-			"language_servers": ["dependi", "deputy", "tombi", "wakatime", "harper-ls", "codebook"],
+			"language_servers": [
+				"dependi",
+				"deputy",
+				"tombi",
+				"wakatime",
+				"harper-ls",
+				"codebook",
+				"json-language-server"
+			],
 			"tab_size": 4
 		},
 		"TSX": {
@@ -313,7 +321,8 @@
 				"yaml-language-server",
 				"wakatime",
 				"harper-ls",
-				"codebook"
+				"codebook",
+				"json-language-server"
 			],
 			"prettier": { "allowed": false },
 			"tab_size": 2
@@ -330,6 +339,10 @@
 			}
 		},
 		"biome": {
+			"binary": {
+				"arguments": ["--run", "biome", "--", "lsp-proxy"],
+				"path": "node"
+			},
 			"settings": {
 				"biome": {
 					"configurationPath": "./biome.jsonc",
@@ -356,6 +369,10 @@
 			}
 		},
 		"oxfmt": {
+			"binary": {
+				"arguments": ["--run", "oxfmt", "--", "--lsp"],
+				"path": "node"
+			},
 			"initialization_options": {
 				"settings": {
 					"configPath": "./.oxfmtrc.json",
@@ -364,6 +381,10 @@
 			}
 		},
 		"oxlint": {
+			"binary": {
+				"arguments": ["--run", "oxlint", "--", "--lsp"],
+				"path": "node"
+			},
 			"initialization_options": {
 				"settings": {
 					"disableNestedConfig": false,
@@ -397,7 +418,7 @@
 							"enabled": "none",
 							"suppressWhenArgumentMatchesName": true
 						},
-						"parameterTypes": { "enabled": true },
+						"parameterTypes": { "enabled": false },
 						"propertyDeclarationTypes": { "enabled": false },
 						"variableTypes": { "enabled": false }
 					},
