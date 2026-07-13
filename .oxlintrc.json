@@ -52,6 +52,8 @@
 					}
 				],
 				"small-rules/prevent-abbreviations": "off",
+				"small-rules/require-async-suffix": "off",
+				"typescript/require-await": "off",
 				"unicorn/no-null": "off",
 				"vitest/consistent-each-for": "error",
 				"vitest/consistent-test-filename": "error",

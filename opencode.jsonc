@@ -23,21 +23,21 @@
 				"todoread": "allow",
 				"todowrite": "allow",
 				"webfetch": "allow",
-				"websearch": "allow"
+				"websearch": "allow",
 			},
 			"prompt": "# Q&A Assistant\n\nYou answer questions about code, architecture, debugging strategies, and technical concepts. You do NOT execute code or make edits—just provide knowledge.\n\n## Response Style\n\n- **Concise first** - lead with the direct answer, expand only if needed\n- **Code snippets** - show minimal examples when helpful, not full implementations\n- **No hedging** - if you know it, say it; if you don't, say that\n- **Cite sources** - mention docs/specs when relevant\n\n## What You Handle\n\n- Explain how X works\n- Debug strategy suggestions (without running anything)\n- API/library usage questions\n- Architecture tradeoffs\n- \"Why is this happening?\" conceptual debugging\n- Best practices and patterns\n- Compare/contrast approaches\n\n## What You Decline\n\n- \"Write me X\" (that's for coding agents)\n- \"Run this and tell me what happens\"\n- Tasks requiring file system access\n\nIf user needs execution or edits, tell them to switch agents.\n\n## Format\n\n- Short answers for short questions\n- Use headers only for multi-part responses\n- Code blocks with language tags\n- Lists only when comparing multiple items\n",
-			"temperature": 0.3
-		}
+			"temperature": 0.3,
+		},
 	},
 	"autoupdate": true,
 	"compaction": {
 		"auto": true,
-		"prune": true
+		"prune": true,
 	},
 	"disabled_providers": [],
 	"experimental": {
 		"batch_tool": true,
-		"continue_loop_on_deny": false
+		"continue_loop_on_deny": false,
 	},
 	"formatter": {
 		"biome": {
@@ -63,8 +63,8 @@
 				".tsx",
 				".vue",
 				".yaml",
-				".yml"
-			]
+				".yml",
+			],
 		},
 		"oxfmt": {
 			"command": ["mise", "x", "--", "nr", "oxfmt", "$FILE"],
@@ -95,19 +95,30 @@
 				".tsx",
 				".vue",
 				".yaml",
-				".yml"
-			]
+				".yml",
+			],
 		},
 		"rumdl": {
 			"command": ["mise", "x", "--", "rumdl", "check", "--fix", "$FILE"],
 			"disabled": false,
-			"extensions": [".md", ".markdown", ".mdown", ".mkdn", ".mkd", ".mdwn", ".mdtxt", ".mdtext", ".text", ".Rmd"]
+			"extensions": [
+				".md",
+				".markdown",
+				".mdown",
+				".mkdn",
+				".mkd",
+				".mdwn",
+				".mdtxt",
+				".mdtext",
+				".text",
+				".Rmd",
+			],
 		},
 		"tombi": {
 			"command": ["mise", "x", "--", "tombi", "format", "$FILE"],
 			"disabled": false,
-			"extensions": [".toml"]
-		}
+			"extensions": [".toml"],
+		},
 	},
 	"instructions": ["./AGENTS.md"],
 	"lsp": {
@@ -135,8 +146,8 @@
 				".tsx",
 				".vue",
 				".yaml",
-				".yml"
-			]
+				".yml",
+			],
 		},
 		"eslint": { "disabled": true },
 		"oxfmt": {
@@ -168,70 +179,81 @@
 				".tsx",
 				".vue",
 				".yaml",
-				".yml"
+				".yml",
 			],
-			"initialization": {}
+			"initialization": {},
 		},
 		"oxlint": {
 			"command": ["mise", "x", "--", "nr", "oxlint", "--lsp"],
 			"disabled": false,
 			"env": {},
 			"extensions": [".js", ".mjs", ".cjs", ".ts", ".mts", ".cts", ".jsx", ".tsx", ".vue", ".svelte", ".astro"],
-			"initialization": {}
+			"initialization": {},
 		},
 		"rumdl": {
 			"command": ["mise", "x", "--", "rumdl", "server"],
 			"disabled": false,
-			"extensions": [".md", ".markdown", ".mdown", ".mkdn", ".mkd", ".mdwn", ".mdtxt", ".mdtext", ".text", ".Rmd"]
+			"extensions": [
+				".md",
+				".markdown",
+				".mdown",
+				".mkdn",
+				".mkd",
+				".mdwn",
+				".mdtxt",
+				".mdtext",
+				".text",
+				".Rmd",
+			],
 		},
 		"tombi": {
 			"command": ["mise", "x", "--", "tombi", "lsp"],
 			"disabled": false,
-			"extensions": [".toml"]
+			"extensions": [".toml"],
 		},
 		"typescript": {
 			"command": ["mise", "x", "--", "nr", "tsgo", "--lsp", "--stdio"],
 			"disabled": true,
-			"extensions": [".ts", ".tsx"]
-		}
+			"extensions": [".ts", ".tsx"],
+		},
 	},
 	"mcp": {
 		"bun-docs": {
 			"type": "remote",
-			"url": "https://bun.com/docs/mcp"
+			"url": "https://bun.com/docs/mcp",
 		},
 		"chrome-dev-tools": {
 			"command": ["bash", "./scripts/get-chrome-path.sh", "--serve"],
 			"enabled": true,
-			"type": "local"
+			"type": "local",
 		},
 		"context7": {
 			"enabled": true,
 			"headers": { "CONTEXT7_API_KEY": "{env:CONTEXT7_API_KEY}" },
 			"type": "remote",
-			"url": "https://mcp.context7.com/mcp"
+			"url": "https://mcp.context7.com/mcp",
 		},
 		"gh-grep": {
 			"enabled": true,
 			"type": "remote",
-			"url": "https://mcp.grep.app"
+			"url": "https://mcp.grep.app",
 		},
 		"github": {
 			"enabled": false,
 			"headers": { "Authorization": "Bearer {env:GITHUB_PAT}" },
 			"type": "remote",
-			"url": "https://api.githubcopilot.com/mcp/"
+			"url": "https://api.githubcopilot.com/mcp/",
 		},
 		"jsr": {
 			"command": ["mise", "x", "--", "jsr-cli", "mcp"],
 			"enabled": true,
-			"type": "local"
+			"type": "local",
 		},
 		"npm-registry": {
 			"command": ["mise", "x", "--", "npm-registry-mcp"],
 			"enabled": true,
-			"type": "local"
-		}
+			"type": "local",
+		},
 	},
 	"permission": {
 		"bash": {
@@ -283,7 +305,7 @@
 			"sort*": "allow",
 			"tail*": "allow",
 			"tree*": "allow",
-			"wc*": "allow"
+			"wc*": "allow",
 		},
 		"codesearch": "allow",
 		"doom_loop": "allow",
@@ -300,21 +322,21 @@
 		"todoread": "allow",
 		"todowrite": "allow",
 		"webfetch": "allow",
-		"websearch": "allow"
+		"websearch": "allow",
 	},
 	"plugin": ["opencode-wakatime"],
 	"provider": {
 		"openai": {
 			"models": {
 				"gpt-5.4": {
-					"limit": { "context": 200000, "output": 128000 }
+					"limit": { "context": 200000, "output": 128000 },
 				},
 				"gpt-5.5": {
-					"limit": { "context": 200000, "output": 128000 }
-				}
-			}
-		}
+					"limit": { "context": 200000, "output": 128000 },
+				},
+			},
+		},
 	},
 	"shell": "fish",
-	"username": "ai-compatibility-proxy"
+	"username": "ai-compatibility-proxy",
 }
