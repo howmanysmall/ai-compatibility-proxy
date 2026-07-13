@@ -187,6 +187,7 @@
 				"noUnusedPrivateClassMembers": "error",
 				"noUnusedVariables": "error",
 				"preset": "recommended",
+				"useImportExtensions": "off",
 				"useInlineScriptId": "error",
 				"useJsonImportAttributes": "off",
 				"useSingleJsDocAsterisk": "error"

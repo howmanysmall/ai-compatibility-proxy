@@ -7,7 +7,6 @@ HK_MISE = 1
 "github:howmanysmall/npm-registry-mcp" = "latest"
 "github:howmanysmall/pullhook" = "latest"
 bun = "latest"
-deno = "latest"
 flyctl = "latest"
 gum = "latest"
 hk = "latest"

@@ -3,14 +3,15 @@ node_modules
 .github
 .vscode
 .agents
+.codex
 .opencode
 .env
 .env.*
 *.md
-!deno.json
-!deno.lock
 .DS_Store
 repos
 coverage
 dist
 out
+tests
+benchmarks

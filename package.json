@@ -13,8 +13,8 @@
 	},
 	"type": "module",
 	"scripts": {
-		"biome": "biome",
 		"bench": "bun run --bun scripts/http-bench.ts run",
+		"biome": "biome",
 		"build:oxc": "bun run --bun scripts/build-small-rules.ts",
 		"changelogithub": "changelogithub",
 		"commitlint": "commitlint",
@@ -34,11 +34,13 @@
 		"start": "bun run --bun src/index.ts",
 		"test": "vitest run",
 		"test:agent": "node --run test -- --reporter agent",
-		"test:watch": "vitest --coverage.enabled=false",
 		"test:fuzz": "vitiate regression --config vitest.vitiate.config.ts",
 		"test:fuzz:run": "vitiate fuzz --fuzz-time 10 --config vitest.vitiate.config.ts",
 		"test:mutation": "stryker run",
-		"type-check": "tsgo --noEmit"
+		"test:watch": "vitest --coverage.enabled=false",
+		"tsgo": "tsgo",
+		"type-check": "tsgo --noEmit",
+		"type-check:agent": "node --run type-check -- --pretty false"
 	},
 	"dependencies": {
 		"arkenv": "0.12.2",

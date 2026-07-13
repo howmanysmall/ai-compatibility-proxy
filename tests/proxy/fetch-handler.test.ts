@@ -259,22 +259,22 @@ describe("fetch handler", () => {
 
 		const encoder = new TextEncoder();
 		const stream = new ReadableStream({
-			start(controller) {
+			start(controller): void {
 				controller.enqueue(encoder.encode("some long text here"));
 				controller.close();
 			},
 		});
+		const requestInitialization: RequestInit & { duplex: "half" } = {
+			body: stream,
+			duplex: "half",
+			headers: {
+				authorization: "Bearer test-token",
+				"content-type": "application/json",
+			},
+			method: "POST",
+		};
 
-		const response = await handler(
-			new Request("http://localhost/v1/chat/completions", {
-				body: stream,
-				headers: {
-					authorization: "Bearer test-token",
-					"content-type": "application/json",
-				},
-				method: "POST",
-			}),
-		);
+		const response = await handler(new Request("http://localhost/v1/chat/completions", requestInitialization));
 
 		expect(response.status).toBe(413);
 		const body = await readRecordAsync(response);

@@ -15,16 +15,16 @@ A self-hosted Bun proxy that exposes an OpenAI-compatible API (`/v1/chat/complet
 `nr` (from `@antfu/ni`, installed via `package.json`) is a shorthand for `pnpm run`. If a command depends on something from mise.toml, run it through `mise x` with the exception of anything from `@antfu/ni`. The `@antfu/ni` package provides several shorthands.
 
 ```sh
-nr test                             # run all tests (coverage, parallel, fail-fast)
-nr test tests/proxy/proxy.test.ts   # run a single test file
-nr type-check                       # type-check the whole project
-nr lint:agent                       # lint: oxlint + biome
-nr lint:agent src/proxy/app.ts      # lint specific files/paths
-nr format:check                     # check formatting (biome + oxfmt)
-nr format                           # auto-fix formatting
-nr dev                              # run the server locally
-nr bench                            # run HTTP benchmarks locally
-hk run check                        # run all pre-push checks manually
+nr test:agent                             # run all tests (coverage, parallel, fail-fast)
+nr test:agent tests/proxy/proxy.test.ts   # run a single test file
+nr type-check:agent                       # type-check the whole project
+nr lint:agent                             # lint: oxlint + biome
+nr lint:agent src/proxy/app.ts            # lint specific files/paths
+nr format:check                           # check formatting (biome + oxfmt)
+nr format                                 # auto-fix formatting
+nr dev                                    # run the server locally
+nr bench                                  # run HTTP benchmarks locally
+hk run check                              # run all pre-push checks manually
 ```
 
 Tests use Vitest. Tests live in `tests/` mirroring `src/` structure. Test utilities in `tests/utilities/test-utilities.ts`.
@@ -97,7 +97,7 @@ hk manages pre-commit, commit-msg, pre-push, and post-merge hooks:
 
 ## Conventions
 
-- **Runtime**: Bun (managed by `mise.toml`). TypeScript with strict mode and `verbatimModuleSyntax`. Dependencies use `package.json` and `aube-lock.yaml`; do not use `bun install`.
+- **Runtime**: Bun (managed by `mise.toml`). TypeScript with strict mode and `verbatimModuleSyntax`. Dependencies use `package.json` and `pnpm-lock.yaml`; do not use `bun install`.
 - **Formatting**: tabs (width 4), 120 char line width, double quotes, trailing commas only in multiline. `oxfmt` owns TypeScript/JavaScript formatting. Biome owns JSON, JSONC, CSS, HTML, and lint-only checks for TS/JS.
 - **Linting**: `oxlint` (primary, JS/TS) + `biome` (supplementary: a11y, security, performance, CSS/JSON/HTML). Both must pass.
 - **Validation**: `arktype` for runtime schema validation with `type.errors` checking. `arkenv` for env var parsing with auto-coercion.

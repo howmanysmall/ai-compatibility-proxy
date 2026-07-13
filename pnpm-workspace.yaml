@@ -87,7 +87,7 @@ minimumReleaseAgeExclude:
 
 minimumReleaseAgeStrict: true
 resolutionMode: time-based
-strictStorePkgContentCheck: false # Vitiate's Optique dev tarballs declare build metadata Aube normalizes away.
+strictStorePkgContentCheck: false # Vitiate's Optique dev tarballs have inconsistent build metadata.
 strictDepBuilds: true # Fail on unreviewed build scripts
 strictPeerDependencies: false
 strictSsl: true # Prevent MITM attacks

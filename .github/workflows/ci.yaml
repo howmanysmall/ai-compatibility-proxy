@@ -13,64 +13,35 @@ permissions:
   contents: read
 
 jobs:
-  install:
-    name: Install
+  validate:
+    name: Validate
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
-      - uses: ./.github/actions/aube-install
 
-  type-check:
-    name: Type Check
-    needs: install
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Set up tools
+        uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4.2.0
         with:
-          persist-credentials: false
-      - uses: ./.github/actions/aube-install
-        with:
-          mise_install: false
-      - run: ./node_modules/.bin/nr type-check
+          install_args: bun pnpm
+          version: 2026.7.5
 
-  lint:
-    name: Lint
-    needs: install
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-        with:
-          persist-credentials: false
-      - uses: ./.github/actions/aube-install
-        with:
-          mise_install: false
-      - run: ./node_modules/.bin/nr oxlint --format github
-      - run: ./node_modules/.bin/nr biome ci --reporter github
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
-  format:
-    name: Format
-    needs: install
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-        with:
-          persist-credentials: false
-      - uses: ./.github/actions/aube-install
-        with:
-          mise_install: false
-      - run: ./node_modules/.bin/nr format:check
+      - name: Type check
+        run: pnpm run type-check
 
-  test:
-    name: Test
-    needs: install
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-        with:
-          persist-credentials: false
-      - uses: ./.github/actions/aube-install
-        with:
-          mise_install: false
-      - run: ./node_modules/.bin/nr test
+      - name: Lint with Oxlint
+        run: pnpm exec oxlint --format github
+
+      - name: Lint with Biome
+        run: pnpm exec biome ci --reporter github
+
+      - name: Check formatting
+        run: pnpm run format:check
+
+      - name: Test
+        run: pnpm run test
