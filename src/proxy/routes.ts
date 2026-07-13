@@ -9,7 +9,7 @@ import type { getProviderTarget } from "$providers/registry";
 
 import type { ProxyApp } from "./app";
 import type { ProxyConfiguration } from "./config";
-import type { OpenAiChatCompletionRequest } from "./openai-types";
+import type { OpenAiChatCompletionRequest, OpenAiChatMessage } from "./openai-types";
 import type { Fetcher } from "./upstream";
 
 interface RouteDependencies {
@@ -175,14 +175,12 @@ function validateMessages(messages: OpenAiChatCompletionRequest["messages"]): vo
 		throw error;
 	}
 
-	for (let index = 0; index < messages.length; index += 1) {
-		validateMessageContent(messages[index], index);
+	for (const [index, message] of messages.entries()) {
+		validateMessageContent(message, index);
 	}
 }
 
-function validateMessageContent(message: unknown, index: number): void {
-	if (!Predicate.isRecord(message)) return;
-
+function validateMessageContent(message: OpenAiChatMessage, index: number): void {
 	const { content } = message;
 	if (content === undefined || content === null) return;
 
@@ -197,8 +195,6 @@ function validateMessageContent(message: unknown, index: number): void {
 		}
 		return;
 	}
-
-	if (!Array.isArray(content)) return;
 
 	for (let jndex = 0; jndex < content.length; jndex += 1) {
 		validateMessageContentPart(content[jndex], index, jndex);
