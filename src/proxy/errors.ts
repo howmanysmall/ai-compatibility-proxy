@@ -1,12 +1,15 @@
+import { logger } from "$logging/logger";
 import { Predicate } from "effect";
 
-import { OPENAI_NULL } from "./openai-constants.ts";
+import { OPENAI_NULL } from "./openai-constants";
 
-import type { OpenAiErrorBody } from "./openai-types.ts";
+import type { ProxyConfiguration } from "./config";
+import type { OpenAiErrorBody } from "./openai-types";
 
 interface ProxyErrorOptions {
-	readonly code?: string | null;
-	readonly param?: string | null;
+	readonly cause?: unknown;
+	readonly code?: string | null | undefined;
+	readonly param?: string | null | undefined;
 	readonly status?: number;
 	readonly type?: string;
 }
@@ -19,7 +22,7 @@ export class ProxyError extends Error {
 	public override readonly name = "ProxyError";
 
 	public constructor(message: string, proxyErrorOptions: ProxyErrorOptions = {}) {
-		super(message);
+		super(message, { cause: proxyErrorOptions.cause });
 		this.status = proxyErrorOptions.status ?? 400;
 		this.type = proxyErrorOptions.type ?? "invalid_request_error";
 		this.param = proxyErrorOptions.param ?? OPENAI_NULL;
@@ -54,27 +57,48 @@ function getProxyError(error: unknown): ProxyError {
 	return exception;
 }
 
-export async function createUpstreamErrorAsync(response: Response): Promise<ProxyError> {
+export async function createUpstreamErrorAsync(
+	response: Response,
+	proxyConfiguration?: ProxyConfiguration,
+): Promise<ProxyError> {
+	const transparency = proxyConfiguration?.upstreamErrorTransparency ?? true;
 	const contentType = response.headers.get("content-type") ?? "";
 	const fallbackMessage = `Upstream request failed with HTTP ${response.status}.`;
 
-	if (!contentType.includes("application/json")) {
+	let rawMessage: string;
+	let code: string | undefined;
+	let parameter: string | undefined;
+
+	if (contentType.includes("application/json")) {
+		const body = await response.json();
+		const upstreamError = Predicate.isRecord(body) ? body : {};
+		rawMessage = getUpstreamErrorMessage(upstreamError) ?? fallbackMessage;
+		code = getStringValue(upstreamError, "code");
+		parameter = getStringValue(upstreamError, "param");
+	} else {
 		const text = await response.text();
-		const error = new ProxyError(text.trim() || fallbackMessage, {
+		rawMessage = text.trim() || fallbackMessage;
+	}
+
+	if (!transparency) {
+		logger.error("Upstream error (opaque mode)", {
+			code,
+			message: rawMessage,
+			param: parameter,
 			status: response.status,
-			type: "upstream_error",
+		});
+
+		const error = new ProxyError("An error occurred with the upstream provider.", {
+			status: response.status,
+			type: response.status >= 500 ? "upstream_error" : "invalid_request_error",
 		});
 		Error.captureStackTrace(error, createUpstreamErrorAsync);
 		return error;
 	}
 
-	const body = await response.json();
-	const upstreamError = Predicate.isRecord(body) ? body : {};
-	const message = getUpstreamErrorMessage(upstreamError) ?? fallbackMessage;
-
-	const error = new ProxyError(message, {
-		code: getStringValue(upstreamError, "code"),
-		param: getStringValue(upstreamError, "param"),
+	const error = new ProxyError(rawMessage, {
+		code,
+		param: parameter,
 		status: response.status,
 		type: response.status >= 500 ? "upstream_error" : "invalid_request_error",
 	});
@@ -95,9 +119,9 @@ function getUpstreamErrorMessage(body: Record<string, unknown>): string | undefi
 	return typeof message === "string" ? message : undefined;
 }
 
-function getStringValue(body: Record<string, unknown>, key: string): string | null {
+function getStringValue(body: Record<string, unknown>, key: string): string | undefined {
 	const { error } = body;
 	if (Predicate.isRecord(error) && typeof error[key] === "string") return error[key];
 	if (typeof body[key] === "string") return body[key];
-	return OPENAI_NULL;
+	return undefined;
 }

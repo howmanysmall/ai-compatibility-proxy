@@ -1,7 +1,9 @@
-// oxlint-disable sonar/void-use
+// oxlint-disable sonar/void-use -- using void to prevent dead code elimination
+import { bench, run } from "mitata";
+
 const ITERATIONS = 100_000;
 
-Deno.bench("[] + push", { baseline: true }, () => {
+bench("[] + push", () => {
 	const array: Array<number> = [];
 	for (let index = 0; index < ITERATIONS; index += 1) {
 		array.push(index);
@@ -9,7 +11,7 @@ Deno.bench("[] + push", { baseline: true }, () => {
 	void array;
 });
 
-Deno.bench("[] + [.length] =", {}, () => {
+bench("[] + [.length] =", () => {
 	const array: Array<number> = [];
 	for (let index = 0; index < ITERATIONS; index += 1) {
 		array[array.length] = index;
@@ -17,7 +19,7 @@ Deno.bench("[] + [.length] =", {}, () => {
 	void array;
 });
 
-Deno.bench("[] + length++", {}, () => {
+bench("[] + length++", () => {
 	const array: Array<number> = [];
 	let length = 0;
 	for (let index = 0; index < ITERATIONS; index += 1) {
@@ -26,7 +28,7 @@ Deno.bench("[] + length++", {}, () => {
 	void array;
 });
 
-Deno.bench("new Array() + push", {}, () => {
+bench("new Array() + push", () => {
 	const array = new Array<number>();
 	for (let index = 0; index < ITERATIONS; index += 1) {
 		array.push(index);
@@ -34,7 +36,7 @@ Deno.bench("new Array() + push", {}, () => {
 	void array;
 });
 
-Deno.bench("new Array() + [.length] =", {}, () => {
+bench("new Array() + [.length] =", () => {
 	const array = new Array<number>();
 	for (let index = 0; index < ITERATIONS; index += 1) {
 		array[array.length] = index;
@@ -42,7 +44,7 @@ Deno.bench("new Array() + [.length] =", {}, () => {
 	void array;
 });
 
-Deno.bench("new Array() + length++", {}, () => {
+bench("new Array() + length++", () => {
 	const array = new Array<number>();
 	let length = 0;
 	for (let index = 0; index < ITERATIONS; index += 1) {
@@ -50,3 +52,5 @@ Deno.bench("new Array() + length++", {}, () => {
 	}
 	void array;
 });
+
+await run();

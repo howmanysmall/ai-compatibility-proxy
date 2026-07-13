@@ -1,5 +1,6 @@
 # Ignore node.js for the future
 **/node_modules/**
+.pnpm-store/
 
 # output
 out
@@ -9,6 +10,10 @@ dist
 # code coverage
 coverage
 *.lcov
+/reports/
+.stryker-tmp/
+.vitiate/
+.swc/
 
 # logs
 logs
@@ -82,3 +87,13 @@ hk.local.pkl
 .agents/skills/improve-codebase-architecture/
 .agents/skills/hk/
 .agents/skills/mise-tasks/
+.agents/skills/bun/
+.agents/skills/bun-development/
+.agents/skills/bun-runtime/
+.agents/skills/pnpm/
+.agents/skills/tsdown/
+.agents/skills/javascript-testing-expert/
+.agents/skills/mutation-testing/
+.agents/skills/security-and-hardening/
+.agents/skills/api-security-hardening/
+security/

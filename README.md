@@ -1,6 +1,6 @@
 # AI Compatibility Proxy
 
-A self-hosted Deno proxy that exposes a small OpenAI-compatible API and translates or normalizes requests for upstream
+A self-hosted Bun proxy that exposes a small OpenAI-compatible API and translates or normalizes requests for upstream
 providers that are not quite OpenAI-compatible.
 
 The first supported path is OpenCode Go:
@@ -21,7 +21,8 @@ The first supported path is OpenCode Go:
 
 ```sh
 cp .env.example .env
-mise x -- deno run --allow-net --allow-env src/index.ts
+mise x -- pnpm install --frozen-lockfile
+nr dev
 ```
 
 Use your OpenCode Go API key as the client bearer token. In the default `client_bearer` mode, the proxy forwards that
@@ -143,18 +144,22 @@ and other risky fields by default.
 Run commands through mise:
 
 ```sh
-mise x -- deno test
-mise x -- deno check
-mise x -- deno task lint
-mise x -- deno task format:check
+nr test
+nr type-check
+nr lint
+nr format:check
+nr bench
 ```
 
 ## Docker
 
+The Docker image uses Bun canary via `oven/bun:canary-debian`. Bun canary is a rolling build, so rebuild with `--pull`
+when you want the latest canary image.
+
 Build and run:
 
 ```sh
-docker build -t ai-compatibility-proxy .
+docker build --pull -t ai-compatibility-proxy .
 docker run --rm -p 8000:8000 --env-file .env ai-compatibility-proxy
 ```
 
@@ -164,18 +169,54 @@ Docker Compose:
 docker compose up --build
 ```
 
+## Fly.io Deployment
+
+The included [fly.toml](fly.toml) deploys the Dockerfile, so Fly runs Bun canary from `oven/bun:canary-debian`.
+
+`mise` installs Bun and the Fly CLI for this repo. Bun canary is applied by the `postinstall` hook with
+`bun upgrade --canary`; do not set `bun = "canary"` because mise's Bun backend resolves that to a nonexistent
+`bun-vcanary` release URL.
+
+The default `client_bearer` auth mode does not require Fly secrets. In that mode, your OpenAI-compatible client sends
+the upstream API key in its `Authorization` header and the proxy forwards it.
+
+```sh
+mise install
+mise x -- bun --revision
+mise x -- flyctl auth login
+mise x -- flyctl launch --no-deploy
+mise x -- flyctl deploy
+mise x -- flyctl status
+mise x -- flyctl logs
+```
+
+If `ai-compatibility-proxy` is already taken as a Fly app name, choose another name during `fly launch` and let Fly update
+the `app` value in `fly.toml`.
+
+For a personal hosted proxy where Fly stores the upstream key, switch to `server_key` mode:
+
+```sh
+mise x -- flyctl secrets set \
+	UPSTREAM_AUTH_MODE=server_key \
+	UPSTREAM_API_KEY=... \
+	PROXY_API_KEY=...
+```
+
+Then use `https://<app-name>.fly.dev/v1` as the base URL and `PROXY_API_KEY` as the client API key.
+
 ## VPS Deployment
 
-A low-cost VPS is enough because the proxy is stateless and has no database. Install Docker or Deno 2.x, set the
+A low-cost VPS is enough because the proxy is stateless and has no database. Install Docker or Bun, set the
 environment variables, expose only HTTPS publicly, and put a reverse proxy in front.
 
 Prefer Caddy for simple automatic HTTPS. Add reverse-proxy rate limiting when using `server_key` mode to reduce abuse
 risk. The proxy itself is cheap to run; upstream model usage is the real cost driver.
 
-## Direct systemd Deployment
+## Direct `systemd` Deployment
 
-See [deploy/ai-compatibility-proxy.service](deploy/ai-compatibility-proxy.service). Install Deno 2.x on the server,
-place environment variables in `/etc/ai-compatibility-proxy.env`, and run the service behind Caddy or Nginx.
+See [deploy/ai-compatibility-proxy.service](deploy/ai-compatibility-proxy.service). Install Bun on the server,
+upgrade it to canary with `bun upgrade --canary`, place environment variables in `/etc/ai-compatibility-proxy.env`, and
+run the service behind Caddy or Nginx.
 
 ## Caddy
 
@@ -184,5 +225,5 @@ See [deploy/Caddyfile](deploy/Caddyfile) for a minimal HTTPS reverse proxy.
 ## Hosting Notes
 
 Docker on a VPS or Fly.io is a good fit for this stateless proxy. Railway, Render, and Northflank can also work if their
-timeout limits fit your client usage. Deno Deploy may work for simple request/response usage, but confirm SSE and
-timeout behavior before relying on it for Warp. This project does not recommend Vercel.
+timeout limits fit your client usage. Confirm SSE and timeout behavior before relying on any request-limited platform
+for Warp. This project does not recommend Vercel.

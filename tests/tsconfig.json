@@ -1,0 +1,22 @@
+{
+	"compilerOptions": {
+		"paths": {
+			"$constants/*": ["../src/constants/*"],
+			"$logging/*": ["../src/logging/*"],
+			"$oxlint-rules/*": ["../plugins/oxc/small-rules/rules/*"],
+			"$oxlint-types/*": ["../plugins/oxc/small-rules/types/*"],
+			"$oxlint-utilities/*": ["../plugins/oxc/small-rules/utilities/*"],
+			"$polyfills/*": ["../src/polyfills/*"],
+			"$providers/*": ["../src/providers/*"],
+			"$proxy/*": ["../src/proxy/*"],
+			"$small-rules": ["../plugins/oxc/small-rules/index.ts"],
+			"$ts-types/*": ["../src/types/*"],
+			"$utilities/*": ["../src/utilities/*"],
+			"$validators/*": ["../src/validators/*"]
+		},
+		"tsBuildInfoFile": "../node_modules/.tsbuildinfo-tests",
+		"types": ["bun", "node", "vitest/globals"]
+	},
+	"extends": "../tsconfig.base.json",
+	"include": ["../src/**/*.ts", "./**/*.ts", "./**/*.test-d.ts", "./plugins/**/*"]
+}

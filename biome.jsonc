@@ -5,22 +5,25 @@
 			"source": {
 				"noDuplicateClasses": "on",
 				"organizeImports": "off",
-				"recommended": true,
+				"preset": "recommended",
 				"useSortedAttributes": "on",
-				"useSortedInterfaceMembers": "off",
-				"useSortedKeys": "on",
-				"useSortedProperties": "on"
+				"useSortedEnumMembers": "on",
+				"useSortedInterfaceMembers": "on",
+				"useSortedKeys": {
+					"level": "on",
+					"options": {
+						"groupByNesting": false,
+						"sortOrder": "lexicographic"
+					}
+				},
+				"useSortedPackageJson": "off",
+				"useSortedProperties": "on",
+				"useSortedSelectionSet": "on",
+				"useSortedTypeFields": "on"
 			}
 		},
 		"enabled": true,
-		"includes": [
-			"**",
-			"!.omo/**",
-			"!.repos/**",
-			"!skills-lock.json",
-			"!package.json",
-			"!plugins/oxc/small-rules.js"
-		]
+		"includes": ["**", "!**/*.js", "!**/*-lock.{json,yaml}"]
 	},
 
 	"css": {
@@ -33,19 +36,11 @@
 			"quoteStyle": "double"
 		},
 		"globals": [],
-		"linter": { "enabled": true },
-		"parser": {}
+		"linter": { "enabled": true }
 	},
 
 	"files": {
-		"includes": [
-			"**",
-			"!.omo/**",
-			"!.repos/**",
-			"!skills-lock.json",
-			"!package.json",
-			"!plugins/oxc/small-rules.js"
-		]
+		"includes": ["**", "!.agents", "!.omo", "!.repos", "!**/package.json", "!**/*.js", "!**/*-lock.{json,yaml}"]
 	},
 
 	"formatter": {
@@ -55,16 +50,7 @@
 		"enabled": true,
 		"expand": "auto",
 		"formatWithErrors": true,
-		"includes": [
-			"**/*.{json,jsonc,grit,ts,tsx,js,jsx,code-workspace,astro}",
-			"!.omo/**",
-			"!.repos/**",
-			"!**/{dist,do-not-sync-ever,garbage,node_modules}/**",
-			"!**/*.ts",
-			"!.context/**",
-			"!*-lock.json",
-			"!plugins/oxc/small-rules.js"
-		],
+		"includes": ["**", "!**/*.js", "!**/{dist,do-not-sync-ever,garbage,node_modules}/**"],
 		"indentStyle": "tab",
 		"indentWidth": 4,
 		"lineEnding": "lf",
@@ -129,7 +115,7 @@
 			"semicolons": "always",
 			"trailingCommas": "all"
 		},
-		"globals": [],
+		"globals": ["Bun"],
 		"linter": { "enabled": true }
 	},
 
@@ -149,115 +135,227 @@
 	},
 
 	"linter": {
+		"domains": {
+			"project": "all",
+			"types": "all"
+		},
 		"enabled": true,
-		"includes": [
-			"src/**",
-			".husky/**",
-			"tests/**",
-			"!.omo/**",
-			"!.repos/**",
-			"!**/.vscode/**",
-			"!**/*.code-workspace",
-			"!**/dist/**",
-			"!**/do-not-sync-ever/**",
-			"!**/garbage/**",
-			"!**/node_modules/**",
-			"!.context/**"
-		],
+		"includes": ["**", "!**/{dist,do-not-sync-ever,garbage,node_modules}/**"],
 		"rules": {
-			// a11y: oxlint has jsx_a11y but biome coverage is better
-			"a11y": { "recommended": true },
+			"a11y": { "preset": "none" },
 
-			// complexity: most covered by oxlint, keep unique biome rules
 			"complexity": {
+				"noDivRegex": "error",
+				"noExcessiveNestedTestSuites": "error",
 				"noForEach": "error",
+				"noImplicitCoercions": "error",
+				"noRedundantDefaultExport": "error",
+				"noUselessCatchBinding": "error",
+				"noUselessReturn": "error",
+				"noUselessStringConcat": "error",
 				"noUselessSwitchCase": "off",
-				"recommended": false,
+				"preset": "none",
+				"useArrayFind": "error",
 				"useArrowFunction": "off",
 				"useDateNow": "error",
 				"useFlatMap": "error",
 				"useLiteralKeys": "error",
+				"useMaxParams": {
+					"level": "error",
+					"options": { "max": 7 }
+				},
 				"useOptionalChain": "error",
-				"useSimplifiedLogicExpression": "error"
+				"useSimpleNumberKeys": "error",
+				"useSimplifiedLogicExpression": "error",
+				"useWhile": "error"
 			},
 
-			// correctness: almost entirely covered by oxlint
 			"correctness": {
-				"noUnusedImports": "off",
-				"noUnusedPrivateClassMembers": "off",
-				"noUnusedVariables": "off",
-				"recommended": false
+				"noGlobalDirnameFilename": "error",
+				"noNodejsModules": "off",
+				"noUndeclaredDependencies": {
+					"level": "error",
+					"options": {}
+				},
+				"noUndeclaredVariables": {
+					"level": "error",
+					"options": { "checkTypes": true }
+				},
+				"noUnresolvedImports": "off",
+				"noUnusedImports": "error",
+				"noUnusedInstantiation": "error",
+				"noUnusedPrivateClassMembers": "error",
+				"noUnusedVariables": "error",
+				"preset": "recommended",
+				"useImportExtensions": "off",
+				"useInlineScriptId": "error",
+				"useJsonImportAttributes": "off",
+				"useSingleJsDocAsterisk": "error"
 			},
 
-			// nursery: experimental rules
-			"nursery": { "recommended": true },
+			"nursery": {
+				"noBaseToString": "error",
+				"noConditionalExpect": "error",
+				"noExcessiveNestedCallbacks": {
+					// temporarily disabled
+					"level": "off",
+					"options": { "max": 5 }
+				},
+				"noFloatingPromises": "error",
+				"noIdenticalTestTitle": "error",
+				"noImpliedEval": "error",
+				"noLoopFunc": "error",
+				"noMisleadingReturnType": "off",
+				"noMisusedPromises": "error",
+				"noUnsafePlusOperands": "error",
+				"noUselessTypeConversion": "off",
+				"preset": "recommended",
+				"useArraySome": "error",
+				"useAwaitThenable": "error",
+				"useConsistentTestIt": "error",
+				"useDisposables": "error",
+				"useDomNodeTextContent": "error",
+				"useDomQuerySelector": "error",
+				"useExhaustiveSwitchCases": "error",
+				"useExpect": "error",
+				"useExplicitReturnType": "error",
+				"useExplicitType": "off",
+				"useIframeSandbox": "error",
+				"useImportsFirst": "error",
+				"useMathMinMax": "error",
+				"useNamedCaptureGroup": "error",
+				"useNullishCoalescing": "error",
+				"useReduceTypeParameter": "error",
+				"useRegexpExec": "error",
+				"useRegexpTest": "error",
+				"useSortedClasses": "error",
+				"useStringStartsEndsWith": "error",
+				"useTestHooksInOrder": "error",
+				"useTestHooksOnTop": "error",
+				"useThisInClassMethods": "error",
+				"useUnicodeRegex": "error",
+				"useVarsOnTop": "error"
+			},
 
-			// performance: some unique to biome
 			"performance": {
 				"noAccumulatingSpread": "error",
+				"noAwaitInLoops": "off",
 				"noDelete": "error",
-				"recommended": false,
+				"noSyncScripts": "error",
+				"preset": "recommended",
+				"useSolidForComponent": "error",
 				"useTopLevelRegex": "error"
 			},
 
-			// security: biome has better coverage
 			"security": {
 				"noDangerouslySetInnerHtml": "off",
-				"recommended": true
+				"noScriptUrl": "error",
+				"preset": "recommended"
 			},
 
-			// style: keep unique biome rules
 			"style": {
+				"noCommonJs": "error",
+				"noDefaultExport": "off",
+				"noDescendingSpecificity": "error",
+				"noDoneCallback": "error",
 				"noEnum": "off",
+				"noExcessiveClassesPerFile": {
+					"level": "error",
+					"options": { "maxClasses": 3 }
+				},
+				"noExcessiveLinesPerFile": {
+					"level": "off",
+					"options": {
+						"maxLines": 200,
+						"skipBlankLines": true
+					}
+				},
+				"noExportedImports": "error",
+				"noHeadElement": "error",
+				"noImplicitBoolean": "error",
+				"noInferrableTypes": "error",
+				"noJsxLiterals": "error",
+				"noMagicNumbers": "off",
+				"noMultiAssign": "error",
+				"noMultilineString": "error",
+				"noNamespace": "error",
+				"noNegationElse": "error",
+				"noNestedTernary": "error",
 				"noNonNullAssertion": "off",
-				"recommended": false,
+				"noParameterAssign": "error",
+				"noParameterProperties": "error",
+				"noProcessEnv": "error",
+				"noRestrictedGlobals": "error",
+				"noRestrictedImports": "error",
+				"noRestrictedTypes": {
+					"level": "error",
+					"options": {
+						"types": {
+							"Omit": {
+								"message": "Use Except from type-fest instead.",
+								"use": "Except"
+							}
+						}
+					}
+				},
+				"preset": "recommended",
 				"useArrayLiterals": "off",
 				"useBlockStatements": "off",
+				"useConsistentEnumValueType": "error",
 				"useConsistentMemberAccessibility": "off",
+				"useConsistentMethodSignatures": "off",
 				"useConst": {
 					"fix": "safe",
 					"level": "error"
 				},
 				"useDefaultParameterLast": "error",
+				"useDestructuring": "off",
+				"useErrorCause": "error",
 				"useFilenamingConvention": {
 					"level": "error",
 					"options": {
 						"filenameCases": ["kebab-case"],
 						"requireAscii": true
 					}
-				}
+				},
+				"useGlobalThis": "error",
+				"useSpreadOverApply": "error"
 			},
 
-			// suspicious: almost entirely covered by oxlint
 			"suspicious": {
+				"noAlert": "error",
+				"noApproximativeNumericConstant": "error",
+				"noArrayIndexKey": "error",
 				"noConstEnum": "off",
+				"noControlCharactersInRegex": "off",
+				"noDuplicateEnumValues": "error",
 				"noEmptyBlockStatements": "error",
-				"recommended": false
+				"noEqualsToNull": "error",
+				"noForIn": "error",
+				"noNestedPromises": "error",
+				"noParametersOnlyUsedInRecursion": "error",
+				"noProto": "error",
+				"noReturnAssign": "error",
+				"noShadow": {
+					"level": "off",
+					"options": {
+						"ignoreFunctionTypeParameterNameValueShadow": false,
+						"ignoreTypeValueShadow": false
+					}
+				},
+				"noTemplateCurlyInString": "off",
+				"noUndeclaredEnvVars": "error",
+				"noUnnecessaryConditions": "off",
+				"preset": "recommended",
+				"useArraySortCompare": "error"
 			}
 		}
 	},
 
 	"overrides": [
+		// JSONC Files
 		{
-			"assist": {
-				"actions": {
-					"source": {
-						"useSortedKeys": {
-							"level": "on",
-							"options": {
-								"groupByNesting": true,
-								"sortOrder": "lexicographic"
-							}
-						}
-					}
-				},
-				"enabled": true
-			},
-			"includes": ["common/environment.ts", "plugins/oxc/small-rules/utilities/naming-convention/format.ts"]
-		},
-
-		{
-			"includes": [".vscode/**", ".vscode/*.code-snippets", "**/*.code-workspace"],
+			"includes": ["**/*.jsonc", "!**/biome.jsonc"],
 			"json": {
 				"formatter": {
 					"enabled": true,
@@ -274,6 +372,7 @@
 			}
 		},
 
+		// JSON Files
 		{
 			"includes": [],
 			"json": {
@@ -290,7 +389,61 @@
 					"allowTrailingCommas": false
 				}
 			}
+		},
+
+		{
+			"includes": ["tests/**/*.test.ts"],
+			"linter": {
+				"rules": {
+					"nursery": {},
+					"performance": {
+						"useTopLevelRegex": "off"
+					},
+					"style": {
+						"noExcessiveLinesPerFile": "off"
+					}
+				}
+			}
+		},
+
+		{
+			"includes": ["tests/fixtures/**/*"],
+			"linter": {
+				"rules": {
+					"correctness": {
+						"noUndeclaredDependencies": "off"
+					},
+					"style": {
+						"useImportType": "off"
+					}
+				}
+			}
+		},
+
+		{
+			"includes": ["*.config.{ts,mjs}"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noProcessEnv": "off"
+					}
+				}
+			}
 		}
+
+		// package.json exception
+		// {
+		// 	"assist": {
+		// 		"actions": {
+		// 			"source": {
+		// 				"useSortedKeys": "off",
+		// 				"useSortedPackageJson": "on"
+		// 			}
+		// 		}
+		// 	},
+		// 	"formatter": { "enabled": false },
+		// 	"includes": ["package.json"]
+		// }
 	],
 
 	"vcs": {

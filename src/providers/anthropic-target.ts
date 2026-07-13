@@ -1,21 +1,20 @@
-import { translateAnthropicToOpenAi, translateOpenAiToAnthropic } from "@proxy/anthropic-translator.ts";
-import { ProxyError } from "@proxy/errors.ts";
-import { getModelsAsync } from "@proxy/models.ts";
-import { createOpenAIStreamResponseAsync } from "@proxy/sse.ts";
-import { fetchUpstreamJsonAsync } from "@proxy/upstream.ts";
+import { translateAnthropicToOpenAi, translateOpenAiToAnthropic } from "$proxy/anthropic-translator";
+import { ProxyError } from "$proxy/errors";
+import { getModelsAsync } from "$proxy/models";
+import { createOpenAiStreamResponseAsync } from "$proxy/sse";
+import { fetchUpstreamJsonAsync } from "$proxy/upstream";
 import { Predicate } from "effect";
 
-import { resolveOpenCodeModelRouteAsync } from "./opencode-model-routing.ts";
+import { resolveOpenCodeModelRouteAsync } from "./opencode-model-routing";
 
-import type { OpenAiChatCompletionRequest } from "@proxy/openai-types.ts";
-import type { Writable } from "type-fest";
+import type { OpenAiChatCompletionRequest } from "$proxy/openai-types";
 
 import type {
 	ProviderChatCompletionInput,
 	ProviderTarget,
 	ProviderTargetDefaults,
 	ProviderTargetInput,
-} from "./provider-target.ts";
+} from "./provider-target";
 
 const unknownModelPassthroughSupport = new Map<string, boolean>();
 
@@ -36,10 +35,10 @@ export const anthropicTarget: ProviderTarget = {
 		const model = getRequestModel(request, proxyConfiguration.defaultModel);
 		const routeDecision = await resolveOpenCodeModelRouteAsync(fetcher, proxyConfiguration, model);
 		if (routeDecision.route === "chat_completions") {
-			return await forwardOpenAiCompatibleRequestAsync({ fetcher, headers, proxyConfiguration, request });
+			return forwardOpenAiCompatibleRequestAsync({ fetcher, headers, proxyConfiguration, request });
 		}
 		if (routeDecision.route === "messages") {
-			return await forwardAnthropicRequestAsync({ fetcher, headers, proxyConfiguration, request });
+			return forwardAnthropicRequestAsync({ fetcher, headers, proxyConfiguration, request });
 		}
 
 		const knownPassthroughSupport = unknownModelPassthroughSupport.get(model);
@@ -60,11 +59,12 @@ export const anthropicTarget: ProviderTarget = {
 			}
 		}
 
-		return await forwardAnthropicRequestAsync({ fetcher, headers, proxyConfiguration, request });
+		return forwardAnthropicRequestAsync({ fetcher, headers, proxyConfiguration, request });
 	},
 	defaults: anthropicDefaults,
+	// biome-ignore lint/nursery/useExplicitReturnType: too complex.
 	async listModelsAsync({ fetcher, headers, proxyConfiguration }: ProviderTargetInput) {
-		return await getModelsAsync(fetcher, headers, proxyConfiguration, anthropicDefaults.ownedBy);
+		return getModelsAsync(fetcher, headers, proxyConfiguration, anthropicDefaults.ownedBy);
 	},
 	protocol: "anthropic_messages",
 };
@@ -80,16 +80,16 @@ async function forwardAnthropicRequestAsync({
 		proxyConfiguration.defaultModel,
 		proxyConfiguration.defaultMaxTokens,
 	);
-	const upstreamResponse = await fetchUpstreamJsonAsync(
+	const upstreamResponse = await fetchUpstreamJsonAsync({
+		body: anthropicRequest,
 		fetcher,
-		`${proxyConfiguration.upstreamBaseUrl}/messages`,
 		headers,
-		anthropicRequest,
 		proxyConfiguration,
-	);
+		url: `${proxyConfiguration.upstreamBaseUrl}/messages`,
+	});
 
-	if (anthropicRequest.stream) {
-		return await createOpenAIStreamResponseAsync(upstreamResponse, anthropicRequest.model);
+	if (anthropicRequest.stream === true) {
+		return createOpenAiStreamResponseAsync(upstreamResponse, anthropicRequest.model);
 	}
 
 	return Response.json(translateAnthropicToOpenAi(await upstreamResponse.json(), anthropicRequest.model), {
@@ -104,15 +104,15 @@ async function forwardOpenAiCompatibleRequestAsync({
 	request,
 }: ProviderChatCompletionInput): Promise<Response> {
 	const upstreamRequest = getOpenAiCompatibleRequest(request, proxyConfiguration.defaultModel);
-	const upstreamResponse = await fetchUpstreamJsonAsync(
+	const upstreamResponse = await fetchUpstreamJsonAsync({
+		body: upstreamRequest,
 		fetcher,
-		`${proxyConfiguration.upstreamBaseUrl}/chat/completions`,
-		getOpenAiCompatibleHeaders(headers),
-		upstreamRequest,
+		headers: getOpenAiCompatibleHeaders(headers),
 		proxyConfiguration,
-	);
+		url: `${proxyConfiguration.upstreamBaseUrl}/chat/completions`,
+	});
 
-	if (upstreamRequest.stream) {
+	if (upstreamRequest.stream === true) {
 		return new Response(upstreamResponse.body, {
 			headers: upstreamResponse.headers,
 			status: upstreamResponse.status,
@@ -129,14 +129,11 @@ function getOpenAiCompatibleRequest(
 	const model = getRequestModel(request, defaultModel);
 	if (Predicate.isString(request.model) && request.model.trim().length > 0) return request;
 
-	const requestWithDefaultModel: Writable<OpenAiChatCompletionRequest> = {
-		...request,
-		model,
-	};
-	return requestWithDefaultModel;
+	return { ...request, model } satisfies OpenAiChatCompletionRequest;
 }
 
 function getRequestModel(request: OpenAiChatCompletionRequest, defaultModel: string): string {
+	// oxlint-disable-next-line typescript/prefer-nullish-coalescing typescript/strict-boolean-expressions -- intentional.
 	return request.model?.trim() || defaultModel;
 }
 
@@ -144,7 +141,7 @@ function getOpenAiCompatibleHeaders(headers: Headers): Headers {
 	if (headers.has("authorization")) return headers;
 
 	const apiKey = headers.get("x-api-key");
-	if (!apiKey) return headers;
+	if (apiKey === null || apiKey.length === 0) return headers;
 
 	const openAiHeaders = new Headers(headers);
 	openAiHeaders.delete("x-api-key");

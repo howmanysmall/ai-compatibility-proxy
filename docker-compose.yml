@@ -6,3 +6,11 @@ services:
         ports:
             - "8000:8000"
         restart: unless-stopped
+        read_only: true
+        tmpfs:
+            - /tmp
+            - /home/bun
+        cap_drop:
+            - ALL
+        security_opt:
+            - no-new-privileges:true

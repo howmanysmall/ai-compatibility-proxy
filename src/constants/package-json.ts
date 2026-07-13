@@ -1,4 +1,1 @@
-import packageJson from "../../deno.json" with { type: "json" };
-
-export const { name } = packageJson;
-export const { version } = packageJson;
+export { name, version } from "../../package.json";

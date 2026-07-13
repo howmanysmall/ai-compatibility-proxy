@@ -7,6 +7,9 @@
 	},
 	"colorize_brackets": true,
 	"context_servers": {
+		"bun-docs": {
+			"url": "https://bun.com/docs/mcp"
+		},
 		"jsr": {
 			"args": ["x", "--", "jsr-cli", "mcp"],
 			"command": "mise"
@@ -34,9 +37,7 @@
 			"tsconfig*.json",
 			"*.code-snippets"
 		],
-		"Shell Script": ["zsh", "zshrc", "zprofile", "zshenv", "bashrc", "bash_profile"],
-		"TOML": ["toml"],
-		"YAML": ["*.yml", "*.yaml", ".github/workflows/*.yml", ".github/workflows/*.yaml"]
+		"Shell Script": ["zsh", "zshrc", "zprofile", "zshenv", "bashrc", "bash_profile"]
 	},
 	"format_on_save": "on",
 	"hard_tabs": true,
@@ -108,7 +109,6 @@
 			"hard_tabs": true,
 			"language_servers": [
 				"biome",
-				"deno",
 				"codebook",
 				"dependi",
 				"deputy",
@@ -132,7 +132,7 @@
 				"language_server": { "name": "oxfmt" }
 			},
 			"hard_tabs": true,
-			"language_servers": ["oxfmt", "codebook", "harper-ls", "wakatime"],
+			"language_servers": ["oxfmt", "codebook", "harper-ls", "wakatime", "json-language-server"],
 			"prettier": { "allowed": false },
 			"tab_size": 4
 		},
@@ -153,7 +153,6 @@
 			"hard_tabs": true,
 			"language_servers": [
 				"biome",
-				"deno",
 				"dependi",
 				"deputy",
 				"json-language-server",
@@ -165,11 +164,39 @@
 			"prettier": { "allowed": false },
 			"tab_size": 4
 		},
+		"JavaScript": {
+			"code_actions_on_format": {
+				"source.fixAll.biome": true,
+				"source.fixAll.oxc": true,
+				"source.organizeImports.biome": false
+			},
+			"format_on_save": "on",
+			"formatter": [
+				{
+					"language_server": { "name": "biome" }
+				},
+				{
+					"language_server": { "name": "oxfmt" }
+				}
+			],
+			"hard_tabs": true,
+			"language_servers": ["biome", "oxfmt", "oxlint", "!tsgo", "vtsls", "harper-ls", "codebook", "wakatime"],
+			"prettier": { "allowed": false },
+			"tab_size": 4
+		},
 		"LESS": {
 			"format_on_save": "on",
 			"formatter": {
 				"language_server": { "name": "oxfmt" }
 			},
+			"prettier": { "allowed": false }
+		},
+		"MDX": {
+			"format_on_save": "on",
+			"formatter": {
+				"language_server": { "name": "oxfmt" }
+			},
+			"language_servers": ["codebook", "harper-ls", "oxfmt", "rumdl", "wakatime"],
 			"prettier": { "allowed": false }
 		},
 		"Markdown": {
@@ -183,14 +210,6 @@
 			"show_whitespaces": "none",
 			"soft_wrap": "editor_width",
 			"tab_size": 4
-		},
-		"MDX": {
-			"format_on_save": "on",
-			"formatter": {
-				"language_server": { "name": "oxfmt" }
-			},
-			"language_servers": ["codebook", "harper-ls", "oxfmt", "rumdl", "wakatime"],
-			"prettier": { "allowed": false }
 		},
 		"Pkl": {
 			"format_on_save": "on",
@@ -231,7 +250,15 @@
 			"format_on_save": "on",
 			"formatter": "language_server",
 			"hard_tabs": true,
-			"language_servers": ["dependi", "deputy", "tombi", "wakatime", "harper-ls", "codebook"],
+			"language_servers": [
+				"dependi",
+				"deputy",
+				"tombi",
+				"wakatime",
+				"harper-ls",
+				"codebook",
+				"json-language-server"
+			],
 			"tab_size": 4
 		},
 		"TSX": {
@@ -247,13 +274,10 @@
 				},
 				{
 					"language_server": { "name": "oxfmt" }
-				},
-				{
-					"language_server": { "name": "deno" }
 				}
 			],
 			"hard_tabs": true,
-			"language_servers": ["biome", "oxfmt", "oxlint", "deno", "harper-ls", "codebook", "wakatime"],
+			"language_servers": ["biome", "oxfmt", "oxlint", "!tsgo", "vtsls", "harper-ls", "codebook", "wakatime"],
 			"prettier": { "allowed": false },
 			"tab_size": 4
 		},
@@ -270,13 +294,10 @@
 				},
 				{
 					"language_server": { "name": "oxfmt" }
-				},
-				{
-					"language_server": { "name": "deno" }
 				}
 			],
 			"hard_tabs": true,
-			"language_servers": ["biome", "oxfmt", "oxlint", "deno", "harper-ls", "codebook", "wakatime"],
+			"language_servers": ["biome", "oxfmt", "oxlint", "!tsgo", "vtsls", "harper-ls", "codebook", "wakatime"],
 			"prettier": { "allowed": false },
 			"tab_size": 4
 		},
@@ -300,7 +321,8 @@
 				"yaml-language-server",
 				"wakatime",
 				"harper-ls",
-				"codebook"
+				"codebook",
+				"json-language-server"
 			],
 			"prettier": { "allowed": false },
 			"tab_size": 2
@@ -318,8 +340,8 @@
 		},
 		"biome": {
 			"binary": {
-				"arguments": ["--quiet", "task", "biome", "lsp-proxy"],
-				"path": "deno"
+				"arguments": ["--run", "biome", "--", "lsp-proxy"],
+				"path": "node"
 			},
 			"settings": {
 				"biome": {
@@ -327,11 +349,6 @@
 					"rename": true,
 					"requireConfiguration": true
 				}
-			}
-		},
-		"deno": {
-			"settings": {
-				"deno": { "enable": true }
 			}
 		},
 		"dependi": {
@@ -351,38 +368,10 @@
 				}
 			}
 		},
-		"json-language-server": {
-			"settings": {
-				"json": {
-					"schemas": [
-						{
-							"fileMatch": ["deno.json", "deno.jsonc"],
-							"url": "https://raw.githubusercontent.com/denoland/deno/refs/heads/main/cli/schemas/config-file.v1.json"
-						},
-						{
-							"fileMatch": ["package.json"],
-							"url": "https://www.schemastore.org/package"
-						},
-						{
-							"fileMatch": [".oxfmtrc.json"],
-							"url": "https://raw.githubusercontent.com/oxc-project/oxc/refs/heads/main/npm/oxfmt/configuration_schema.json"
-						},
-						{
-							"fileMatch": [".lefthook.json", "lefthook.json"],
-							"url": "https://raw.githubusercontent.com/evilmartians/lefthook/master/schema.json"
-						},
-						{
-							"fileMatch": [".oxlintrc.json"],
-							"url": "https://raw.githubusercontent.com/oxc-project/oxc/refs/heads/main/npm/oxlint/configuration_schema.json"
-						}
-					]
-				}
-			}
-		},
 		"oxfmt": {
 			"binary": {
-				"arguments": ["--quiet", "task", "oxfmt", "--lsp"],
-				"path": "deno"
+				"arguments": ["--run", "oxfmt", "--", "--lsp"],
+				"path": "node"
 			},
 			"initialization_options": {
 				"settings": {
@@ -393,8 +382,8 @@
 		},
 		"oxlint": {
 			"binary": {
-				"arguments": ["--quiet", "task", "oxlint", "--lsp"],
-				"path": "deno"
+				"arguments": ["--run", "oxlint", "--", "--lsp"],
+				"path": "node"
 			},
 			"initialization_options": {
 				"settings": {
@@ -414,7 +403,7 @@
 						"functionLikeReturnTypes": { "enabled": true },
 						"parameterNames": {
 							"enabled": "none",
-							"suppressWhenArgumentMatchesName": false
+							"suppressWhenArgumentMatchesName": true
 						},
 						"parameterTypes": { "enabled": false },
 						"propertyDeclarationTypes": { "enabled": true }
@@ -427,9 +416,9 @@
 						"functionLikeReturnTypes": { "enabled": true },
 						"parameterNames": {
 							"enabled": "none",
-							"suppressWhenArgumentMatchesName": false
+							"suppressWhenArgumentMatchesName": true
 						},
-						"parameterTypes": { "enabled": true },
+						"parameterTypes": { "enabled": false },
 						"propertyDeclarationTypes": { "enabled": false },
 						"variableTypes": { "enabled": false }
 					},

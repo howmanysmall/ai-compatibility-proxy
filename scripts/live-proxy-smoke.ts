@@ -1,15 +1,21 @@
-#!/usr/bin/env -S deno run
+#!/usr/bin/env bun
+// oxlint-disable sonar/cognitive-complexity -- irrelevant.
 
+import { spawn } from "node:child_process";
+import { readFile, stat } from "node:fs/promises";
+import { execPath, exit, stdin, stdout } from "node:process";
 import { Command } from "@cliffy/command";
 // oxlint-disable-next-line import/no-namespace -- Number conflicts with Number
 import * as Prompt from "@cliffy/prompt";
-import { bgGreen, bgRed, black, bold, cyan, dim, green, magenta, red, yellow } from "@std/fmt/colors";
+import { argv, env } from "bun";
+import { bgGreen, bgRed, black, bold, cyan, dim, green, magenta, red, yellow } from "colorette";
 import { Effect, Predicate } from "effect";
 import prettyMilliseconds from "pretty-ms";
 
 import type { ReadonlyRecord } from "effect/Record";
+import type { ChildProcess } from "node:child_process";
 
-// oxlint-disable-next-line prefer-regex-literals
+// oxlint-disable-next-line prefer-regex-literals -- i don't like this
 const CLEAN_REGEXP = new RegExp(String.raw`\x1b\[[0-9;]*m`, "gu");
 
 interface ProviderConfiguration {
@@ -26,13 +32,13 @@ interface SmokeOptions {
 	readonly isLive: boolean;
 	readonly opencodeGoModel: string;
 	readonly port: number;
-	readonly provider: ProviderSelection;
 	readonly prompt: string;
+	readonly provider: ProviderSelection;
 }
 
 interface SmokeResult {
 	readonly content: string;
-	readonly durationMs: number;
+	readonly durationMs?: number | undefined;
 	readonly finishReason: string | undefined;
 	readonly httpStatus: number;
 	readonly provider: ProviderName;
@@ -109,9 +115,9 @@ if (import.meta.main) {
 		)
 		.action(async (options) => {
 			const exitCode = await Effect.runPromise(runCommandEffect(options));
-			if (exitCode !== 0) Deno.exit(exitCode);
+			if (exitCode !== 0) exit(exitCode);
 		})
-		.parse(Deno.args);
+		.parse(argv.slice(2));
 }
 
 function runCommandEffect(commandOptions: LiveSmokeCommandOptions): Effect.Effect<number, Error> {
@@ -137,8 +143,8 @@ function shouldPrompt({ dryRun, live, opencodeModel, port, prompt, provider }: L
 		port === undefined &&
 		prompt === undefined &&
 		provider === undefined &&
-		Deno.stdin.isTerminal() &&
-		Deno.stdout.isTerminal()
+		stdin.isTTY &&
+		stdout.isTTY
 	);
 }
 
@@ -169,7 +175,8 @@ function promptForSmokeOptionsEffect(commandOptions: LiveSmokeCommandOptions): E
 
 			const opencodeGoModel = await ternaryAsync(
 				shouldAskForOpenCodeGoModel(provider),
-				async () => await promptForOpenCodeGoModelAsync(),
+				async () => promptForOpenCodeGoModelAsync(),
+				// oxlint-disable-next-line typescript/require-await -- ternary async
 				async () => parseOpenCodeGoModel(commandOptions.opencodeModel ?? DEFAULT_OPENCODE_GO_MODEL),
 			);
 
@@ -180,7 +187,7 @@ function promptForSmokeOptionsEffect(commandOptions: LiveSmokeCommandOptions): E
 			const portText = await Prompt.Number.prompt({
 				default: commandOptions.port ?? DEFAULT_PORT,
 				float: false,
-				max: 65535,
+				max: 65_535,
 				message: "Local proxy port",
 				min: 1,
 			});
@@ -319,37 +326,21 @@ function testProviderEffect(
 	});
 }
 
-function startProxyProcess(providerConfiguration: ProviderConfiguration, port: number): Deno.ChildProcess {
-	const commandOptions = createCommandOptions(
-		["run", "--allow-net", "--allow-env", "--allow-read", "--allow-write", "--allow-sys=homedir", "src/index.ts"],
-		{
+function startProxyProcess(providerConfiguration: ProviderConfiguration, port: number): ChildProcess {
+	return spawn(execPath, ["src/index.ts"], {
+		env: {
+			...env,
 			DEFAULT_MODEL: providerConfiguration.model,
 			LOG_LEVEL: "warn",
 			PORT: String(port),
 			UPSTREAM_BASE_URL: providerConfiguration.upstreamBaseUrl,
 			UPSTREAM_PROTOCOL: providerConfiguration.upstreamProtocol,
 		},
-	);
-	return new Deno.Command(Deno.execPath(), commandOptions).spawn();
-}
-
-function createCommandOptions(
-	parameters: ReadonlyArray<string>,
-	environment: Record<string, string>,
-): Deno.CommandOptions {
-	const commandOptions: Deno.CommandOptions = {
-		env: environment,
-		stderr: "null",
-		stdout: "null",
-	};
-	Object.defineProperty(commandOptions, "args", {
-		enumerable: true,
-		value: parameters,
+		stdio: "ignore",
 	});
-	return commandOptions;
 }
 
-function stopProxyProcessEffect(childProcess: Deno.ChildProcess): Effect.Effect<void, Error> {
+function stopProxyProcessEffect(childProcess: ChildProcess): Effect.Effect<void, Error> {
 	return Effect.tryPromise({
 		catch: toError,
 		try: async () => {
@@ -359,9 +350,22 @@ function stopProxyProcessEffect(childProcess: Deno.ChildProcess): Effect.Effect<
 				return;
 			}
 
-			await childProcess.status.catch(() => undefined);
+			await waitForChildExitAsync(childProcess);
 		},
 	});
+}
+
+async function waitForChildExitAsync(childProcess: ChildProcess): Promise<void> {
+	if (childProcess.exitCode !== null) return;
+
+	// oxlint-disable-next-line typescript/no-invalid-void-type -- lol!
+	const { resolve, promise } = Promise.withResolvers<void>();
+
+	childProcess.once("close", () => {
+		resolve();
+	});
+
+	await promise;
 }
 
 function requestChatCompletionEffect(
@@ -402,7 +406,7 @@ function requestChatCompletionEffect(
 				requestedModel: providerConfiguration.model,
 				success: response.ok && content.length > 0,
 				upstreamModel,
-			} as SmokeResult;
+			};
 		},
 	});
 }
@@ -449,7 +453,7 @@ function waitForHealthAttemptEffect(
 	});
 }
 
-function isHealthyEffect(port: number): Effect.Effect<boolean, never> {
+function isHealthyEffect(port: number): Effect.Effect<boolean> {
 	return Effect.promise(async () => {
 		try {
 			const response = await fetch(`http://127.0.0.1:${port}/health`);
@@ -468,18 +472,20 @@ function readApiKeyEffect({
 	return Effect.tryPromise({
 		catch: toError,
 		try: async () => {
-			const environmentValue = Deno.env.get(keyEnvironmentVariable)?.trim();
-			if (environmentValue) return environmentValue;
+			const environmentValue = env[keyEnvironmentVariable]?.trim();
+			if (environmentValue !== undefined && environmentValue.length > 0) return environmentValue;
 
 			try {
-				const fileContent = await Deno.readTextFile(keyFilePath);
+				const fileContent = await readFile(keyFilePath, "utf8");
 				const fileValue = fileContent.trim();
 				if (fileValue.length > 0) return fileValue;
 			} catch (error) {
-				if (!(error instanceof Deno.errors.NotFound)) throw error;
+				if (!isNotFoundError(error)) throw error;
 			}
 
-			throw new Error(`Missing ${name} key. Set ${keyEnvironmentVariable} or create ${keyFilePath}.`);
+			const error = new Error(`Missing ${name} key. Set ${keyEnvironmentVariable} or create ${keyFilePath}.`);
+			Error.captureStackTrace(error);
+			throw error;
 		},
 	});
 }
@@ -491,13 +497,14 @@ function getKeyStatusEffect({
 	return Effect.tryPromise({
 		catch: toError,
 		try: async () => {
-			if (Deno.env.get(keyEnvironmentVariable)?.trim()) return `${keyEnvironmentVariable} is set`;
+			const value = env[keyEnvironmentVariable]?.trim();
+			if (value !== undefined && value.length > 0) return `${keyEnvironmentVariable} is set`;
 
 			try {
-				const fileInformation = await Deno.stat(keyFilePath);
-				return fileInformation.isFile ? `${keyFilePath} exists` : `${keyFilePath} is not a file`;
+				const fileInformation = await stat(keyFilePath);
+				return fileInformation.isFile() ? `${keyFilePath} exists` : `${keyFilePath} is not a file`;
 			} catch (error) {
-				if (error instanceof Deno.errors.NotFound) return `${keyFilePath} missing`;
+				if (isNotFoundError(error)) return `${keyFilePath} missing`;
 				return `${keyFilePath} could not be read`;
 			}
 		},
@@ -612,7 +619,7 @@ function printResult({
 	const statusColor = httpStatus >= 200 && httpStatus < 300 ? green(String(httpStatus)) : red(String(httpStatus));
 	const modelMatches = requestedModel === upstreamModel;
 	const modelColor = modelMatches ? cyan : yellow;
-	const durationText = magenta(prettyMilliseconds(durationMs));
+	const durationText = magenta(prettyMilliseconds(durationMs ?? 0));
 	const yellowFinish = yellow(finishReason ?? "undefined");
 
 	printBoxTop(title, 80, borderStyle);
@@ -675,8 +682,8 @@ function printSummary(results: ReadonlyArray<SmokeResult>): void {
 }
 
 function getHomeDirectory(): string {
-	const homeDirectory = Deno.env.get("HOME")?.trim();
-	if (homeDirectory) return homeDirectory;
+	const homeDirectory = env.HOME?.trim();
+	if (homeDirectory !== undefined && homeDirectory.length > 0) return homeDirectory;
 
 	const error = new Error("HOME is required to locate default key files.");
 	Error.captureStackTrace(error, getHomeDirectory);
@@ -685,6 +692,10 @@ function getHomeDirectory(): string {
 
 function toError(error: unknown): Error {
 	return Predicate.isError(error) ? error : new Error(String(error));
+}
+
+function isNotFoundError(error: unknown): boolean {
+	return error instanceof Error && "code" in error && error.code === "ENOENT";
 }
 
 function visualLength(value: string): number {
@@ -696,7 +707,7 @@ function visualLength(value: string): number {
 		if (character === undefined) break;
 
 		const codePoint = clean.codePointAt(index);
-		if (!codePoint) {
+		if (codePoint === undefined || codePoint === 0) {
 			index += 1;
 			continue;
 		}
@@ -718,9 +729,9 @@ function visualLength(value: string): number {
 			}
 		}
 
-		if (codePoint > 0xffff || (codePoint >= 0x2600 && codePoint <= 0x27bf)) {
+		if (codePoint > 0xff_ff || (codePoint >= 0x26_00 && codePoint <= 0x27_bf)) {
 			length += 2;
-			index += codePoint > 0xffff ? 2 : 1;
+			index += codePoint > 0xff_ff ? 2 : 1;
 		} else {
 			length += 1;
 			index += 1;

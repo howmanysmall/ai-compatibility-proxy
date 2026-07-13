@@ -1,13 +1,15 @@
-import { normalizeCerebrasRequest } from "@proxy/cerebras-translator.ts";
-import { getModelsAsync } from "@proxy/models.ts";
-import { fetchUpstreamJsonAsync } from "@proxy/upstream.ts";
+import { normalizeCerebrasRequest } from "$proxy/cerebras-translator";
+import { getModelsAsync } from "$proxy/models";
+import { fetchUpstreamJsonAsync } from "$proxy/upstream";
+
+import type { OpenAiModelListResponse } from "$proxy/openai-types";
 
 import type {
 	ProviderChatCompletionInput,
 	ProviderTarget,
 	ProviderTargetDefaults,
 	ProviderTargetInput,
-} from "./provider-target.ts";
+} from "./provider-target";
 
 const cerebrasDefaults: ProviderTargetDefaults = {
 	authHeader: "Authorization",
@@ -24,15 +26,15 @@ export const cerebrasTarget: ProviderTarget = {
 		request,
 	}: ProviderChatCompletionInput): Promise<Response> {
 		const cerebrasRequest = normalizeCerebrasRequest(request, proxyConfiguration);
-		const upstreamResponse = await fetchUpstreamJsonAsync(
+		const upstreamResponse = await fetchUpstreamJsonAsync({
+			body: cerebrasRequest,
 			fetcher,
-			`${proxyConfiguration.upstreamBaseUrl}/chat/completions`,
 			headers,
-			cerebrasRequest,
 			proxyConfiguration,
-		);
+			url: `${proxyConfiguration.upstreamBaseUrl}/chat/completions`,
+		});
 
-		if (cerebrasRequest.stream) {
+		if (cerebrasRequest.stream === true) {
 			return new Response(upstreamResponse.body, {
 				headers: upstreamResponse.headers,
 				status: upstreamResponse.status,
@@ -42,8 +44,12 @@ export const cerebrasTarget: ProviderTarget = {
 		return Response.json(await upstreamResponse.json(), { headers: { "cache-control": "no-store" } });
 	},
 	defaults: cerebrasDefaults,
-	async listModelsAsync({ fetcher, headers, proxyConfiguration }: ProviderTargetInput) {
-		return await getModelsAsync(fetcher, headers, proxyConfiguration, cerebrasDefaults.ownedBy);
+	async listModelsAsync({
+		fetcher,
+		headers,
+		proxyConfiguration,
+	}: ProviderTargetInput): Promise<OpenAiModelListResponse> {
+		return getModelsAsync(fetcher, headers, proxyConfiguration, cerebrasDefaults.ownedBy);
 	},
 	protocol: "cerebras_openai",
 };

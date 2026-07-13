@@ -4,7 +4,7 @@ This file provides guidance to agents when working with code in this repository.
 
 ## Project
 
-A self-hosted Deno proxy that exposes an OpenAI-compatible API (`/v1/chat/completions`, `/v1/models`, `/health`) and translates requests to upstream providers that are not natively OpenAI-compatible. Two upstream protocols are supported: Anthropic Messages (default, via OpenCode Go) and Cerebras OpenAI-compatible.
+A self-hosted Bun proxy that exposes an OpenAI-compatible API (`/v1/chat/completions`, `/v1/models`, `/health`) and translates requests to upstream providers that are not natively OpenAI-compatible. Two upstream protocols are supported: Anthropic Messages (default, via OpenCode Go) and Cerebras OpenAI-compatible.
 
 ## Rules
 
@@ -12,31 +12,35 @@ A self-hosted Deno proxy that exposes an OpenAI-compatible API (`/v1/chat/comple
 
 ## Commands
 
-`nr` (from `@antfu/ni`, installed via `deno.json`) is a shorthand for `deno task`. If a command depends on something from mise.toml, run it through `mise x`.
+`nr` (from `@antfu/ni`, installed via `package.json`) is a shorthand for `pnpm run`. If a command depends on something from mise.toml, run it through `mise x` with the exception of anything from `@antfu/ni`. The `@antfu/ni` package provides several shorthands.
 
 ```sh
-mise x -- nr test                             # run all tests (coverage, parallel, fail-fast)
-mise x -- nr test tests/proxy/proxy.test.ts   # run a single test file
-mise x -- nr type-check                       # type-check the whole project
-mise x -- nr lint                             # lint: oxlint + biome + deno lint
-mise x -- nr lint src/proxy/app.ts            # lint specific files/paths
-mise x -- nr format:check                     # check formatting (biome + oxfmt + deno fmt)
-mise x -- nr format                           # auto-fix formatting
-mise x -- nr dev                              # run the server locally
-mise x -- nr bench                            # run HTTP benchmarks locally
-mise x -- hk run check                        # run all pre-push checks manually
+nr test:agent                             # run all tests (coverage, parallel, fail-fast)
+nr test:agent tests/proxy/proxy.test.ts   # run a single test file
+nr type-check:agent                       # type-check the whole project
+nr lint:agent                             # lint: oxlint + biome
+nr lint:agent src/proxy/app.ts            # lint specific files/paths
+nr format:check                           # check formatting (biome + oxfmt)
+nr format                                 # auto-fix formatting
+nr dev                                    # run the server locally
+nr bench                                  # run HTTP benchmarks locally
+hk run check                              # run all pre-push checks manually
 ```
 
-Tests use `Deno.test()` with manual assertions (no test framework). Tests live in `tests/` mirroring `src/` structure. Test utilities in `tests/utilities/test-utilities.ts`.
+Tests use Vitest. Tests live in `tests/` mirroring `src/` structure. Test utilities in `tests/utilities/test-utilities.ts`.
 
-Git hooks are managed by `hk` (configured in `hk.pkl`). Install with `mise x -- hk install`.
+Git hooks are managed by `hk` (configured in `hk.pkl`). Install with `hk install`.
+
+### `@antfu/ni` Commands
+
+You have a skill for this.
 
 ## Architecture
 
 ### Request Flow
 
 ```text
-src/index.ts → Deno.serve() → createFetchHandler() → createApp() (Hono) → registerRoutes()
+src/index.ts → Bun.serve() → createFetchHandler() → createApp() (Elysia) → registerRoutes()
 ```
 
 Routes dispatch to a `ProviderTarget` resolved from `src/providers/registry.ts` by `upstreamProtocol`:
@@ -55,9 +59,9 @@ The `ProviderTarget` interface (`provider-target.ts`) is the central abstraction
 ### Proxy Pipeline (`src/proxy/`)
 
 - **`config.ts`** — loads config from environment via `arkenv` with `arktype` schemas. All env vars have defaults; no `.env` file required. Defaults vary by upstream protocol (e.g. `x-api-key` vs `Authorization` auth header). Empty env var values are treated as undefined.
-- **`app.ts`** — Hono-based request handler (`createApp()`). `createFetchHandler()` wraps the Hono app with per-request logging (method, path, requestId, latency).
-- **`routes.ts`** — Hono route registration. Extracts auth context, validates JSON body with `arktype` type guards from `openai-types.ts`, dispatches to provider target. 404s return OpenAI-compatible error JSON.
-- **`auth.ts`** — two modes: `client_bearer` (forwards client token upstream via configured header) and `server_key` (uses server-side `UPSTREAM_API_KEY`, validates client against `PROXY_API_KEY` with timing-safe SHA-256 comparison via `@std/crypto`).
+- **`app.ts`** — Elysia-based request handler (`createApp()`). `createFetchHandler()` wraps the Elysia app with per-request logging (method, path, requestId, latency).
+- **`routes.ts`** — Elysia route registration. Extracts auth context, validates JSON body with `arktype` type guards from `openai-types.ts`, dispatches to provider target. 404s return OpenAI-compatible error JSON.
+- **`auth.ts`** — two modes: `client_bearer` (forwards client token upstream via configured header) and `server_key` (uses server-side `UPSTREAM_API_KEY`, validates client against `PROXY_API_KEY` with timing-safe SHA-256 comparison via Node crypto).
 - **`anthropic-translator.ts`** — bidirectional translation: `translateOpenAiToAnthropic()` merges system/developer messages into Anthropic top-level `system`, maps roles, converts stop sequences. `translateAnthropicToOpenAi()` concatenates Anthropic text blocks, maps finish reasons (max_tokens→length, tool_use→tool_calls, refusal→content_filter), sums cache tokens into prompt tokens. Rejects tools, multimodal, structured output, function calls, n>1.
 - **`cerebras-translator.ts`** — normalizes OpenAI requests for Cerebras. Converts `max_tokens` to `max_completion_tokens`. Field-level strict/loose validation controlled by `CEREBRAS_STRICT_REQUEST_VALIDATION` and `CEREBRAS_DROP_UNSUPPORTED_FIELDS`.
 - **`sse.ts`** — transforms Anthropic SSE into OpenAI `chat.completion.chunk` events using `TransformStream`. Handles `message_start`, `content_block_start`, `content_block_delta`, `message_delta`, `message_stop`. Maintains stream-level state (id, created, model) across events.
@@ -75,30 +79,34 @@ Uses `consola` with daily rotating file reporters (error.log + combined.log) wri
 
 ### Path Aliases
 
-Defined in `deno.json` `compilerOptions.paths` and `imports`. Key aliases: `@proxy/` → `src/proxy/`, `@logging/` → `src/logging/`, `@constants/` → `src/constants/`, `@utilities/` → `src/utilities/`, `@providers/` → `src/providers/`, `@validators/` → `src/validators/`, `@ts-types/` → `src/types/`. Import paths end with `.ts` extension (Deno style).
+Defined in `tsconfig.json`, `tsconfig.scripts.json`, and `vitest.config.ts`. Key aliases: `~proxy/` → `src/proxy/`, `~logging/` → `src/logging/`, `~constants/` → `src/constants/`, `~utilities/` → `src/utilities/`, `~providers/` → `src/providers/`, `~validators/` → `src/validators/`, `~ts-types/` → `src/types/`. Import paths end with `.ts` extension.
 
 ### Plugins (`plugins/`)
 
-A Deno workspace member containing custom Oxlint JS rules under `plugins/oxc/small-rules/`. Built via `deno task build:oxc`.
+Custom Oxlint JS rules live under `plugins/oxc/small-rules/`. Built via `nr build:oxc`.
 
 ### Git Hooks (`hk.pkl`)
 
 hk manages pre-commit, commit-msg, pre-push, and post-merge hooks:
 
-- **pre-commit**: trailing-whitespace, newlines, check-merge-conflict, oxlint, biome, deno lint, oxfmt, deno fmt, rumdl (markdown), tombi (TOML). All have fix support enabled with git stash.
+- **pre-commit**: trailing-whitespace, newlines, check-merge-conflict, oxlint, biome, oxfmt, rumdl (markdown), tombi (TOML). All have fix support enabled with git stash.
 - **commit-msg**: commitlint with conventional commits config (`commitlint.config.ts`).
 - **pre-push**: lint + type-check (silent via `scripts/quiet-on-success.sh`).
 - **post-merge**: auto-install packages via `pullhook`.
-- Custom hooks: `mise x -- hk run check` (all checks), `mise x -- hk run fix` (all auto-fixes).
+- Custom hooks: `hk run check` (all checks), `hk run fix` (all auto-fixes).
 
 ## Conventions
 
-- **Runtime**: Deno 2.8.1 (pinned in `mise.toml`). TypeScript with strict mode and `verbatimModuleSyntax`. No package.json — dependencies via `deno.json` imports with `nodeModulesDir: "auto"`.
-- **Formatting**: tabs (width 4), 120 char line width, double quotes, trailing commas only in multiline. Enforced by biome + `oxfmt` + `deno fmt`. Full `deno fmt` config in `deno.json` (brace/single-body positions, prose wrap, operator position, etc.).
-- **Linting**: `oxlint` (primary, JS/TS) + `biome` (supplementary: a11y, security, performance, CSS/JSON/HTML) + `deno lint`. All three must pass.
+- **Runtime**: Bun (managed by `mise.toml`). TypeScript with strict mode and `verbatimModuleSyntax`. Dependencies use `package.json` and `pnpm-lock.yaml`; do not use `bun install`.
+- **Formatting**: tabs (width 4), 120 char line width, double quotes, trailing commas only in multiline. `oxfmt` owns TypeScript/JavaScript formatting. Biome owns JSON, JSONC, CSS, HTML, and lint-only checks for TS/JS.
+- **Linting**: `oxlint` (primary, JS/TS) + `biome` (supplementary: a11y, security, performance, CSS/JSON/HTML). Both must pass.
 - **Validation**: `arktype` for runtime schema validation with `type.errors` checking. `arkenv` for env var parsing with auto-coercion.
 - **Error handling**: `ProxyError` for client-facing errors (always OpenAI-compatible JSON). Effect `Data.TaggedError` for internal upstream failures.
 - **File naming**: kebab-case enforced by biome `useFilenamingConvention`.
 - **Commits**: Conventional commits (`feat`, `fix`, `refactor`, `docs`, `style`, `test`, `chore`, `perf`) via commitlint. Header max length: 72.
-- **Tool management**: `mise` manages Deno, hk, and other CLI tools. JS/TS deps via `deno.json` imports.
+- **Tool management**: `mise` manages Bun, pnpm, hk, and other CLI tools. JS/TS deps use `package.json` and `pnpm-lock.yaml`.
 - **Oxlint disable comments**: Use `// oxlint-disable <rule-name>` syntax (not eslint-style). Custom rule names from `plugins/`.
+
+## Bun
+
+You have `bun-docs` as an MCP.

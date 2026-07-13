@@ -1,10 +1,18 @@
-import { serializeLogEntry } from "@logging/reports/daily-file-rotate-reporter.ts";
+// oxlint-disable typescript/restrict-template-expressions -- coal
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import nodePath from "node:path";
+import nodeProcess from "node:process";
+import { expect, describe, it } from "vitest";
+import { isStructuredLogEntry } from "$logging/log-entry";
+import { createDailyFileRotateReporter, serializeLogEntry } from "$logging/reports/daily-file-rotate-reporter";
 
-import { assert } from "../utilities/test-utilities.ts";
-
-import type { StructuredLogEntry } from "@logging/log-entry.ts";
+import type { StructuredLogEntry } from "$logging/log-entry";
+import type { ConsolaOptions, LogObject, LogType } from "consola";
+import type { createStream } from "rotating-file-stream";
 
 const textEncoder = new TextEncoder();
+const consolaReporterContext = { options: {} as ConsolaOptions };
 
 function createLogEntry(overrides: Partial<StructuredLogEntry> = {}): StructuredLogEntry {
 	return {
@@ -21,8 +29,8 @@ function createLogEntry(overrides: Partial<StructuredLogEntry> = {}): Structured
 		message: "Test message",
 		process: {
 			id: 1,
-			platform: Deno.build.os,
-			title: "deno",
+			platform: process.platform,
+			title: "bun",
 			version: "test-version",
 		},
 		sequenceNumber: 1,
@@ -36,30 +44,230 @@ function getByteLength(value: string): number {
 	return textEncoder.encode(value).byteLength;
 }
 
-Deno.test("serializeLogEntry keeps normal entries unchanged", () => {
-	const entry = createLogEntry({ payload: { id: "small-payload" } });
-	const serializedEntry = serializeLogEntry(entry, 4096);
+function createConsolaLogObject(level: number, type: LogType, message: string): LogObject {
+	return {
+		args: [],
+		date: new Date("2026-05-31T00:00:00.000Z"),
+		level,
+		message,
+		tag: "",
+		type,
+	};
+}
 
-	assert(serializedEntry === JSON.stringify(entry), "Expected normal entry to serialize without modification.");
-});
+type StreamHandler = (error: Error) => void;
 
-Deno.test("serializeLogEntry truncates oversized entries", () => {
-	const entry = createLogEntry({
-		context: {
-			requestId: "test-request",
-			scope: "oversized-entry-test",
-		},
-		message: "m".repeat(100_000),
-		payload: {
-			largeValue: "x".repeat(100_000),
-		},
+describe("dailyFileRotateReporter", () => {
+	it("serializeLogEntry keeps normal entries unchanged", () => {
+		expect.assertions(1);
+		const entry = createLogEntry({ payload: { id: "small-payload" } });
+		const serializedEntry = serializeLogEntry(entry, 4096);
+
+		expect(serializedEntry, "Expected normal entry to serialize without modification.").toBe(JSON.stringify(entry));
 	});
-	const maxEntryBytes = 4_096;
-	const serializedEntry = serializeLogEntry(entry, maxEntryBytes);
-	const parsedEntry = JSON.parse(serializedEntry) as StructuredLogEntry;
 
-	assert(getByteLength(serializedEntry) <= maxEntryBytes, "Expected serialized entry to fit within the byte cap.");
-	assert(parsedEntry.customProperties?.logEntryTruncated === true, "Expected entry to be marked as truncated.");
-	assert(parsedEntry.payload === "[Truncated: log entry exceeded storage limit]", "Expected payload to be omitted.");
-	assert(parsedEntry.message.length < entry.message.length, "Expected message to be shortened.");
+	it("serializeLogEntry default byte limit preserves medium entries", () => {
+		expect.assertions(3);
+		const entry = createLogEntry({
+			context: { requestId: "default-byte-limit-test" },
+			message: "m".repeat(1024),
+			payload: { value: "x".repeat(1024) },
+		});
+
+		const serializedEntry = serializeLogEntry(entry);
+		const parsedEntry = isStructuredLogEntry.assert(JSON.parse(serializedEntry));
+
+		expect(
+			parsedEntry.customProperties?.logEntryTruncated,
+			"Expected default byte limit to keep medium entries.",
+		).toBeUndefined();
+		expect(parsedEntry.message, "Expected default byte limit to preserve medium messages.").toBe(entry.message);
+		expect(parsedEntry.payload, "Expected default byte limit to preserve medium payloads.").toStrictEqual(
+			entry.payload,
+		);
+	});
+
+	it("serializeLogEntry truncates oversized entries", () => {
+		expect.assertions(10);
+		const entry = createLogEntry({
+			context: {
+				booleanValue: true,
+				nullValue: null,
+				numberValue: 42,
+				objectValue: { nested: ["visible"] },
+				requestId: "test-request",
+				scope: "oversized-entry-test",
+			},
+			error: "Error: sensitive stack".repeat(100),
+			message: "m".repeat(100_000),
+			payload: {
+				largeValue: "x".repeat(100_000),
+			},
+			tag: "oversized-test",
+		});
+		const maxEntryBytes = 4096;
+		const serializedEntry = serializeLogEntry(entry, maxEntryBytes);
+		const parsedEntry = isStructuredLogEntry.assert(JSON.parse(serializedEntry));
+
+		expect(
+			getByteLength(serializedEntry),
+			"Expected serialized entry to fit within the byte cap.",
+		).toBeLessThanOrEqual(maxEntryBytes);
+		expect(parsedEntry.customProperties?.logEntryTruncated, "Expected entry to be marked as truncated.").toBe(true);
+		expect(parsedEntry.payload, "Expected payload to be omitted.").toBe(
+			"[Truncated: log entry exceeded storage limit]",
+		);
+		expect(parsedEntry.error, "Expected oversized error details to be omitted.").toBe(
+			"[Truncated: log entry exceeded storage limit]",
+		);
+		expect(parsedEntry.tag, "Expected tag to survive truncation.").toBe("oversized-test");
+		expect(parsedEntry.context.numberValue, "Expected numeric context to be preserved.").toBe(42);
+		expect(parsedEntry.context.booleanValue, "Expected boolean context to be preserved.").toBe(true);
+		expect(parsedEntry.context.nullValue, "Expected null context to be preserved.").toBeNull();
+		expect(`${parsedEntry.context.objectValue}`, "Expected object context to be stringified safely.").toContain(
+			"visible",
+		);
+		expect(parsedEntry.message.length, "Expected message to be shortened.").toBeLessThan(entry.message.length);
+	});
+
+	it("serializeLogEntry falls back to minimal truncation when notice entry is still too large", () => {
+		expect.assertions(2);
+		const entry = createLogEntry({
+			context: Object.fromEntries(Array.from({ length: 30 }, (_, index) => [`key-${index}`, "x".repeat(1000)])),
+			message: "m".repeat(100_000),
+			payload: {
+				largeValue: "x".repeat(100_000),
+			},
+		});
+
+		const parsedEntry = isStructuredLogEntry.assert(JSON.parse(serializeLogEntry(entry, 512)));
+
+		expect(parsedEntry.message, "Expected minimal truncation message.").toBe(
+			"Log entry omitted because it exceeded the storage safety limit",
+		);
+		expect(parsedEntry.context, "Expected minimal truncation to drop context.").toStrictEqual({});
+	});
+
+	it("serializeLogEntry records omitted context key counts for storage-safe truncation notices", () => {
+		expect.assertions(3);
+		const entry = createLogEntry({
+			context: Object.fromEntries(Array.from({ length: 25 }, (_, index) => [`key-${index}`, index])),
+			message: "m".repeat(100_000),
+			payload: {
+				largeValue: "x".repeat(100_000),
+			},
+		});
+
+		const parsedEntry = isStructuredLogEntry.assert(JSON.parse(serializeLogEntry(entry, 8192)));
+
+		expect(parsedEntry.customProperties?.logEntryTruncated, "Expected truncation metadata.").toBe(true);
+		expect(parsedEntry.context.truncatedContextKeys, "Expected omitted context key count.").toBe(5);
+		expect(
+			Object.keys(parsedEntry.context),
+			"Expected storage-safe context to include 20 keys plus omission count.",
+		).toHaveLength(21);
+	});
+
+	it("createDailyFileRotateReporter honors the configured level filter", () => {
+		expect.assertions(1);
+		let filterCalls = 0;
+		const directory = mkdtempSync(nodePath.join(tmpdir(), "ai-compatibility-proxy-test-logs-"));
+		const reporter = createDailyFileRotateReporter({
+			directory,
+			filename: "combined.log",
+			levelFilter: (level) => {
+				filterCalls += 1;
+				return level >= 3;
+			},
+			maxFiles: 1,
+			size: "1M",
+		});
+
+		reporter.log(createConsolaLogObject(2, "debug", "ignored debug log"), consolaReporterContext);
+		reporter.log(createConsolaLogObject(3, "info", "stored info log"), consolaReporterContext);
+
+		expect(filterCalls, "Expected reporter to evaluate each log level.").toBe(2);
+	});
+
+	it("createDailyFileRotateReporter writes logs when no level filter is configured", () => {
+		expect.assertions(4);
+		const writes = new Array<string>();
+		let streamFilename = "";
+		let streamOptions: Parameters<typeof createStream>[1] | undefined;
+		const directory = mkdtempSync(nodePath.join(tmpdir(), "ai-compatibility-proxy-test-logs-"));
+
+		const reporter = createDailyFileRotateReporter({
+			directory,
+			filename: "combined.log",
+			maxFiles: 1,
+			size: "1M",
+			streamFactory: ((filename: string, options: Parameters<typeof createStream>[1]) => {
+				streamFilename = filename;
+				streamOptions = options;
+				return {
+					on: (): undefined => undefined,
+					write: (message: string): boolean => {
+						writes.push(message);
+						return true;
+					},
+				};
+			}) as unknown as typeof createStream,
+		});
+
+		reporter.log(createConsolaLogObject(3, "info", "stored info log"), consolaReporterContext);
+
+		expect(streamFilename, "Expected configured stream filename.").toBe("combined.log");
+		expect(streamOptions, "Expected rotating file stream options.").toMatchObject({
+			compress: "gzip",
+			initialRotation: true,
+			interval: "1d",
+			intervalBoundary: true,
+			maxFiles: 1,
+			maxSize: "100M",
+			size: "1M",
+		});
+		expect(writes, "Expected default level filter to write info logs.").toHaveLength(1);
+		expect(writes[0], "Expected default level filter to serialize log message.").toContain("stored info log");
+	});
+
+	it("createDailyFileRotateReporter writes file stream warnings to stderr", () => {
+		expect.assertions(1);
+		const stderrMessages = new Array<string>();
+		const handlers = new Map<string, StreamHandler>();
+		// oxlint-disable-next-line typescript/unbound-method -- yurr
+		const originalWrite = nodeProcess.stderr.write;
+		Object.defineProperty(nodeProcess.stderr, "write", {
+			configurable: true,
+			value: (message: string) => {
+				stderrMessages.push(message);
+				return true;
+			},
+		});
+
+		try {
+			const directory = mkdtempSync(nodePath.join(tmpdir(), "ai-compatibility-proxy-test-logs-"));
+			createDailyFileRotateReporter({
+				directory,
+				filename: "combined.log",
+				maxFiles: 1,
+				size: "1M",
+				streamFactory: ((_filename: string, _options: Parameters<typeof createStream>[1]) => ({
+					on: (event: string, handler: StreamHandler): void => {
+						handlers.set(event, handler);
+					},
+					write: (): boolean => true,
+				})) as unknown as typeof createStream,
+			});
+
+			handlers.get("error")?.(new Error("stream error"));
+			handlers.get("warning")?.(new Error("stream warning"));
+		} finally {
+			Object.defineProperty(nodeProcess.stderr, "write", { configurable: true, value: originalWrite });
+		}
+
+		expect(stderrMessages, "Expected stream error and warning messages to be written to stderr.").toStrictEqual([
+			"[logging] stream error\n",
+			"[logging] stream warning\n",
+		]);
+	});
 });

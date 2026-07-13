@@ -1,8 +1,11 @@
+import { hostname } from "node:os";
+import nodePath from "node:path";
 import nodeProcess from "node:process";
-import { name, version } from "@constants/package-json.ts";
-import { getActiveLogContext, mergeLogContexts, sanitizeLogContext } from "@logging/log-context.ts";
-import { sanitize } from "@logging/sanitizer.ts";
-import { basename } from "@std/path";
+import { inspect } from "node:util";
+import { name, version } from "$constants/package-json";
+import { getActiveLogContext, mergeLogContexts, sanitizeLogContext } from "$logging/log-context";
+import { sanitize, sanitizeRecord } from "$logging/sanitizer";
+import { type } from "arktype";
 import { Predicate } from "effect";
 
 import type { LogObject, LogType } from "consola";
@@ -12,48 +15,65 @@ const UNKNOWN_HOST_NAME = "unknown";
 const STANDARD_LOG_OBJECT_KEYS = new Set(["additional", "args", "context", "date", "level", "message", "tag", "type"]);
 let currentSequenceNumber = 0;
 
-export interface StructuredLogEntry {
-	readonly application: {
-		readonly name: string;
-		readonly version: string;
-	};
-	readonly context: Readonly<Record<string, unknown>>;
-	readonly customProperties?: Readonly<Record<string, unknown>>;
-	readonly error?: unknown;
-	readonly errors?: ReadonlyArray<unknown>;
-	readonly level: string;
-	readonly levelValue: number;
-	readonly message: string;
-	readonly payload?: unknown;
-	readonly process: {
-		readonly id: number;
-		readonly platform: typeof Deno.build.os;
-		readonly title: string;
-		readonly version: string;
-	};
-	readonly sequenceNumber: number;
-	readonly tag?: string;
-	readonly timestamp: string;
-	readonly type: LogType;
-	readonly host: {
-		readonly name: string;
-	};
-}
+const isApplication = type({
+	name: "string",
+	version: "string",
+}).readonly();
+
+const isRecord = type("Record<string, unknown>").readonly();
+const isPlatform = type(
+	'"aix" | "android" | "darwin" | "freebsd" | "haiku" | "linux" | "openbsd" | "sunos" | "win32" | "cygwin" | "netbsd"',
+);
+const isLogType = type(
+	'"silent" | "fatal" | "error" | "warn" | "log" | "info" | "success" | "fail" | "ready" | "start" | "box" | "debug" | "trace" | "verbose"',
+);
+
+const isHost = type({ name: "string" }).readonly();
+const isProcess = type({
+	id: "number",
+	platform: isPlatform,
+	title: "string",
+	version: "string",
+}).readonly();
+
+export const isStructuredLogEntry = type({
+	application: isApplication,
+	context: isRecord,
+	"customProperties?": isRecord,
+	"error?": "unknown",
+	"errors?": type("unknown[]").readonly(),
+	host: isHost,
+	level: "string",
+	levelValue: "number",
+	message: "string",
+	"payload?": "unknown",
+	process: isProcess,
+	sequenceNumber: "number",
+	"tag?": "string",
+	timestamp: "string",
+	type: isLogType,
+})
+	.readonly()
+	.onDeepUndeclaredKey("reject");
+
+export type StructuredLogEntry = typeof isStructuredLogEntry.infer;
 
 function getHostName(): string {
 	try {
-		return Deno.hostname();
+		return hostname();
+		/* v8 ignore start -- hostname() failure is platform defensive and not reproducible through public API. */
 	} catch {
 		return UNKNOWN_HOST_NAME;
 	}
+	/* v8 ignore stop */
 }
 
-function getSeverityName(level: number, type: LogType): string {
-	if (type === "fatal" || type === "error") return "error";
-	if (type === "warn") return "warn";
-	if (type === "debug") return "debug";
-	if (type === "trace") return "trace";
-	if (type === "verbose") return "verbose";
+function getSeverityName(level: number, logType: LogType): string {
+	if (logType === "fatal" || logType === "error") return "error";
+	if (logType === "warn") return "warn";
+	if (logType === "debug") return "debug";
+	if (logType === "trace") return "trace";
+	if (logType === "verbose") return "verbose";
 	if (level <= 1) return "error";
 	if (level === 2) return "warn";
 	if (level >= 4) return "debug";
@@ -64,7 +84,10 @@ function stringify(value: unknown): string {
 	return Predicate.isString(value) ? value : JSON.stringify(value);
 }
 
-function buildMessage({ message, additional, type }: LogObject, sanitizedArguments: ReadonlyArray<unknown>): string {
+function buildMessage(
+	{ message, additional, type: logType }: LogObject,
+	sanitizedArguments: ReadonlyArray<unknown>,
+): string {
 	const explicitMessageParts: Array<string> = [];
 	let size = 0;
 
@@ -80,7 +103,7 @@ function buildMessage({ message, additional, type }: LogObject, sanitizedArgumen
 	if (explicitMessageParts.length > 0) return explicitMessageParts.join(" ");
 
 	const fallbackMessage = sanitizedArguments.map(stringify).join(" ").trim();
-	return fallbackMessage.length > 0 ? fallbackMessage : `logger.${type}`;
+	return fallbackMessage.length > 0 ? fallbackMessage : `logger.${logType}`;
 }
 
 function extractCustomProperties(logObject: LogObject): Readonly<Record<string, unknown>> | undefined {
@@ -90,9 +113,7 @@ function extractCustomProperties(logObject: LogObject): Readonly<Record<string, 
 
 	if (Object.keys(customProperties).length === 0) return undefined;
 
-	const sanitizedCustomProperties = sanitize(customProperties);
-	if (Predicate.isRecord(sanitizedCustomProperties)) return sanitizedCustomProperties;
-	return { value: sanitizedCustomProperties };
+	return sanitizeRecord(customProperties);
 }
 
 function getLogParameters(logObject: LogObject): Array<unknown> {
@@ -120,10 +141,16 @@ function getPayload(sanitizedArguments: ReadonlyArray<unknown>): unknown {
 }
 
 function getVersion(): string {
-	return Deno.inspect(Deno.version, {
-		depth: 1,
-		sorted: true,
-	});
+	return inspect(
+		{
+			bun: typeof Bun === "undefined" ? "unavailable" : Bun.version,
+			node: nodeProcess.version,
+		},
+		{
+			depth: 1,
+			sorted: true,
+		},
+	);
 }
 
 export function normalizeLogEntry(logObject: LogObject): StructuredLogEntry {
@@ -144,9 +171,9 @@ export function normalizeLogEntry(logObject: LogObject): StructuredLogEntry {
 		levelValue: logObject.level,
 		message: buildMessage(logObject, sanitizedArguments),
 		process: {
-			id: Deno.pid,
-			platform: Deno.build.os,
-			title: basename(nodeProcess.title),
+			id: nodeProcess.pid,
+			platform: nodeProcess.platform,
+			title: nodePath.basename(nodeProcess.title),
 			version: getVersion(),
 		},
 		sequenceNumber: ++currentSequenceNumber,
@@ -154,7 +181,7 @@ export function normalizeLogEntry(logObject: LogObject): StructuredLogEntry {
 		type: logObject.type,
 	};
 	if (customProperties !== undefined) normalizedEntry.customProperties = customProperties;
-	// oxlint-disable-next-line prefer-destructuring
+	// oxlint-disable-next-line prefer-destructuring -- not applicable for array access
 	if (errors[0] !== undefined) normalizedEntry.error = errors[0];
 	if (errors.length > 1) normalizedEntry.errors = errors;
 	if (payload !== undefined) normalizedEntry.payload = payload;

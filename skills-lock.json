@@ -1,29 +1,17 @@
 {
   "version": 1,
   "skills": {
+    "api-security-hardening": {
+      "source": "aj-geddes/useful-ai-prompts",
+      "sourceType": "github",
+      "skillPath": "skills/api-security-hardening/SKILL.md",
+      "computedHash": "cb3fac8f65a33ecaa4d8a4ef7f55097c3d0ff0d583c4b70ec28a8957a5d38d41"
+    },
     "clean-code": {
       "source": "pproenca/dot-skills",
       "sourceType": "github",
       "skillPath": "skills/.experimental/clean-code/SKILL.md",
       "computedHash": "8e6463cd93d289c5f79b995871b0ce8afc479e952d29be945c35b91afe0bac8f"
-    },
-    "deno-expert": {
-      "source": "denoland/skills",
-      "sourceType": "github",
-      "skillPath": "skills/deno-expert/SKILL.md",
-      "computedHash": "076e8159d319521cbe8cf6181c9ce969545fc5f77ee05caee4517b3010583343"
-    },
-    "deno-guidance": {
-      "source": "denoland/skills",
-      "sourceType": "github",
-      "skillPath": "skills/deno-guidance/SKILL.md",
-      "computedHash": "e392e0bca86d57f4798b4c1d54b9e1405a5d9cc3d6b04fcc6fdc7a119d14e652"
-    },
-    "deno-typescript": {
-      "source": "mindrally/skills",
-      "sourceType": "github",
-      "skillPath": "deno-typescript/SKILL.md",
-      "computedHash": "53eb1146a49f04097769971b6cc817b5c7ee852e6f41860a29bcc15c1774a251"
     },
     "effect-concurrency": {
       "source": "thebushidocollective/han",
@@ -85,17 +73,53 @@
       "skillPath": "skills/engineering/improve-codebase-architecture/SKILL.md",
       "computedHash": "ef32aea0a8fab9b365ff9e08a95f8d353e20ca21ea46ec2e73587c86dd341351"
     },
+    "javascript-testing-expert": {
+      "source": "dubzzz/fast-check",
+      "sourceType": "github",
+      "skillPath": "skills/javascript-testing-expert/SKILL.md",
+      "computedHash": "a01dcd9b4e74a629253b340e9a15e3ee647af1c785f32637e7006d9a26d43150"
+    },
     "mise-tasks": {
       "source": "terrylica/cc-skills",
       "sourceType": "github",
       "skillPath": "plugins/itp/skills/mise-tasks/SKILL.md",
       "computedHash": "50fb390a3b4a6a4286fcc57d4f25216ce8dcc410a94ec15909d6291f01a59dcf"
     },
+    "mutation-testing": {
+      "source": "secondsky/claude-skills",
+      "sourceType": "github",
+      "skillPath": "plugins/mutation-testing/skills/mutation-testing/SKILL.md",
+      "computedHash": "f0a476424a9815651b6d967a6229d6483cd186e16c97c1d26f21260060ec9efb"
+    },
+    "pnpm": {
+      "source": "antfu/skills",
+      "sourceType": "github",
+      "skillPath": "skills/pnpm/SKILL.md",
+      "computedHash": "318f9fca2441a3e06fedc336e195dd18be5dbe901064e4fa71b76b40b096ab3a"
+    },
+    "security-and-hardening": {
+      "source": "addyosmani/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/security-and-hardening/SKILL.md",
+      "computedHash": "5ab0ca195c66406f3bddefb0c97468f2eb717232e4ffced8628f5d921707e281"
+    },
     "tdd": {
       "source": "pproenca/dot-skills",
       "sourceType": "github",
       "skillPath": "skills/.curated/tdd/SKILL.md",
       "computedHash": "7f3c216a330a5473509c9d8eb98445896c0f9e065d0b67b2bc6e61d828e74e7e"
+    },
+    "tsdown": {
+      "source": "antfu/skills",
+      "sourceType": "github",
+      "skillPath": "skills/tsdown/SKILL.md",
+      "computedHash": "5d7a0732aa15849d7363d168c13eec9c4367c9e534397de3fc550d582ffea09b"
+    },
+    "vitest": {
+      "source": "antfu/skills",
+      "sourceType": "github",
+      "skillPath": "skills/vitest/SKILL.md",
+      "computedHash": "669c7275f7e1379b06b2bcfa593603aead4c983b951c7e8edbc09640aa38d0a1"
     }
   }
 }

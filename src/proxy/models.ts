@@ -1,11 +1,11 @@
-import { getNumber } from "@utilities/default-utilities.ts";
+import { getNumber } from "$utilities/default-utilities";
 import { Predicate } from "effect";
 
-import { fetchUpstreamGetAsync } from "./upstream.ts";
+import { fetchUpstreamGetAsync } from "./upstream";
 
-import type { ProxyConfiguration } from "./config.ts";
-import type { OpenAiModel, OpenAiModelListResponse } from "./openai-types.ts";
-import type { Fetcher } from "./upstream.ts";
+import type { ProxyConfiguration } from "./config";
+import type { OpenAiModel, OpenAiModelListResponse } from "./openai-types";
+import type { Fetcher } from "./upstream";
 
 export async function getModelsAsync(
 	fetcher: Fetcher,
@@ -13,12 +13,12 @@ export async function getModelsAsync(
 	proxyConfiguration: ProxyConfiguration,
 	ownedBy: string,
 ): Promise<OpenAiModelListResponse> {
-	const response = await fetchUpstreamGetAsync(
+	const response = await fetchUpstreamGetAsync({
 		fetcher,
-		`${proxyConfiguration.upstreamBaseUrl}/models`,
 		headers,
 		proxyConfiguration,
-	);
+		url: `${proxyConfiguration.upstreamBaseUrl}/models`,
+	});
 	const body = await response.json();
 
 	if (Predicate.isRecord(body) && Array.isArray(body.data)) {

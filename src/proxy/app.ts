@@ -1,21 +1,26 @@
-import { logger, parseLevel } from "@logging/logger.ts";
-import { getProviderTarget } from "@providers/registry.ts";
-import { Hono } from "hono";
+import { logger, parseLevel } from "$logging/logger";
+import { getProviderTarget } from "$providers/registry";
+import { Elysia } from "elysia";
 
-import { createErrorResponse, ProxyError } from "./errors.ts";
-import { registerRoutes } from "./routes.ts";
+import { createErrorResponse, ProxyError } from "./errors";
+import { registerRoutes } from "./routes";
 
-import type { ProxyConfiguration } from "./config.ts";
-import type { Fetcher } from "./upstream.ts";
+import type { ProxyConfiguration } from "./config";
+import type { Fetcher } from "./upstream";
 
 export interface AppOptions {
 	readonly fetcher?: Fetcher;
 	readonly proxyConfiguration: ProxyConfiguration;
 }
 
-export function createApp({ proxyConfiguration: config, fetcher = fetch }: AppOptions): Hono {
+export type ProxyApp = Elysia;
+interface FetchCapableApp {
+	readonly fetch: (request: Request) => Response | Promise<Response>;
+}
+
+export function createApp({ proxyConfiguration: config, fetcher = fetch }: AppOptions): ProxyApp {
 	const providerTarget = getProviderTarget(config.upstreamProtocol);
-	const app = new Hono();
+	const app = new Elysia();
 
 	registerRoutes(app, {
 		fetcher,
@@ -23,15 +28,26 @@ export function createApp({ proxyConfiguration: config, fetcher = fetch }: AppOp
 		proxyConfiguration: config,
 	});
 
-	app.notFound(() => createErrorResponse(createRouteNotFoundError()));
-	app.onError((error) => createErrorResponse(error));
+	app.onError(({ code, error }) => {
+		/* v8 ignore start -- route handlers normalize expected errors; non-404 framework errors are defensive. */
+		if (code !== "NOT_FOUND") return createErrorResponse(error);
+		/* v8 ignore stop */
+		return createErrorResponse(createRouteNotFoundError());
+	});
 
 	return app;
 }
 
 export function createFetchHandler(options: AppOptions): (request: Request) => Promise<Response> {
 	const app = createApp(options);
-	if (isFatalLogLevel(options.proxyConfiguration.logLevel)) {
+	return createFetchHandlerForApp(app, options.proxyConfiguration.logLevel);
+}
+
+export function createFetchHandlerForApp(
+	app: FetchCapableApp,
+	logLevel: string,
+): (request: Request) => Promise<Response> {
+	if (isFatalLogLevel(logLevel)) {
 		return async (request) => {
 			try {
 				return await app.fetch(request);

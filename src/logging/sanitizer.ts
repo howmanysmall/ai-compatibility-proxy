@@ -30,7 +30,7 @@ interface SanitizeContext {
 	readonly seenObjects: WeakSet<object>;
 }
 
-interface ErrorLike {
+interface ErrorLike extends Record<string, unknown> {
 	readonly cause?: unknown;
 	readonly code?: unknown;
 	readonly message: string;
@@ -46,8 +46,7 @@ function isSensitiveKey(key: string): boolean {
 	return SENSITIVE_KEYS.some((sensitiveKey) => key.toLowerCase().includes(sensitiveKey.toLowerCase()));
 }
 
-function isErrorLike(value: unknown): value is ErrorLike {
-	if (!Predicate.isRecord(value)) return false;
+function isErrorLike(value: Record<string, unknown>): value is ErrorLike {
 	return typeof value.name === "string" && typeof value.message === "string";
 }
 
@@ -59,7 +58,7 @@ function sanitizeArray(values: ReadonlyArray<unknown>, sanitizeContext: Sanitize
 	return values.map((value) => sanitizeInternal(value, createNextContext(sanitizeContext)));
 }
 
-function sanitizeError(error: ErrorLike, sanitizeContext: SanitizeContext): Record<string, unknown> {
+function sanitizeError(error: Error | ErrorLike, sanitizeContext: SanitizeContext): Record<string, unknown> {
 	const nextContext = createNextContext(sanitizeContext);
 	const serializedError: Record<string, unknown> = {
 		message: error.message,
@@ -68,7 +67,7 @@ function sanitizeError(error: ErrorLike, sanitizeContext: SanitizeContext): Reco
 
 	if (typeof error.stack === "string") serializedError.stack = error.stack;
 	if (error.cause !== undefined) serializedError.cause = sanitizeInternal(error.cause, nextContext);
-	if (error.code !== undefined) serializedError.code = sanitizeInternal(error.code, nextContext);
+	if ("code" in error && error.code !== undefined) serializedError.code = sanitizeInternal(error.code, nextContext);
 
 	for (const [key, value] of Object.entries(error)) {
 		if (key === "cause" || key === "code" || key === "message" || key === "name" || key === "stack") continue;
@@ -81,9 +80,10 @@ function sanitizeError(error: ErrorLike, sanitizeContext: SanitizeContext): Reco
 function sanitizeMap(map: ReadonlyMap<unknown, unknown>, sanitizeContext: SanitizeContext): Record<string, unknown> {
 	const entries = Array.from(map.entries(), ([key, value]) => ({
 		key: sanitizeInternal(key, createNextContext(sanitizeContext)),
-		value: typeof key === "string" && isSensitiveKey(key) ?
-			"[REDACTED]" :
-			sanitizeInternal(value, createNextContext(sanitizeContext)),
+		value:
+			typeof key === "string" && isSensitiveKey(key)
+				? "[REDACTED]"
+				: sanitizeInternal(value, createNextContext(sanitizeContext)),
 	}));
 
 	return {
@@ -133,16 +133,15 @@ function sanitizeInternal(value: unknown, sanitizeContext: SanitizeContext): unk
 	if (value instanceof Map) return sanitizeMap(value, sanitizeContext);
 	if (value instanceof Set) return sanitizeSet(value, sanitizeContext);
 
-	if (!Predicate.isRecord(value)) {
-		const serializedValue = JSON.stringify(value);
-		return serializedValue ?? "[UnserializableValue]";
-	}
 	if (sanitizeContext.seenObjects.has(value)) return CIRCULAR_REFERENCE_PLACEHOLDER;
 
 	sanitizeContext.seenObjects.add(value);
 	try {
-		if (Predicate.isError(value) || isErrorLike(value)) return sanitizeError(value, sanitizeContext);
-		return sanitizeObject(value, sanitizeContext);
+		// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- bruh
+		const record = value as Record<string, unknown>;
+		if (Predicate.isError(value)) return sanitizeError(value, sanitizeContext);
+		if (isErrorLike(record)) return sanitizeError(record, sanitizeContext);
+		return sanitizeObject(record, sanitizeContext);
 	} finally {
 		sanitizeContext.seenObjects.delete(value);
 	}
@@ -150,6 +149,17 @@ function sanitizeInternal(value: unknown, sanitizeContext: SanitizeContext): unk
 
 export function sanitize(value: unknown, sanitizeOptions: SanitizeOptions = {}): unknown {
 	return sanitizeInternal(value, {
+		currentDepth: 0,
+		maxDepth: sanitizeOptions.maxDepth ?? MAX_DEPTH,
+		seenObjects: new WeakSet<object>(),
+	});
+}
+
+export function sanitizeRecord(
+	value: Readonly<Record<string, unknown>>,
+	sanitizeOptions: SanitizeOptions = {},
+): Record<string, unknown> {
+	return sanitizeObject(value, {
 		currentDepth: 0,
 		maxDepth: sanitizeOptions.maxDepth ?? MAX_DEPTH,
 		seenObjects: new WeakSet<object>(),

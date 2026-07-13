@@ -1,10 +1,15 @@
-import { textEncoder } from "@constants/constant-classes.ts";
-import { normalizeLogEntry } from "@logging/log-entry.ts";
+import nodeProcess from "node:process";
+import { inspect } from "node:util";
+import { textEncoder } from "$constants/constant-classes";
+import { normalizeLogEntry } from "$logging/log-entry";
 import { createStream } from "rotating-file-stream";
 
-import type { StructuredLogEntry } from "@logging/log-entry.ts";
+import type { StructuredLogEntry } from "$logging/log-entry";
 import type { ConsolaReporter, LogObject } from "consola";
 import type { FileSize, Interval } from "rotating-file-stream";
+import type { Writable } from "type-fest";
+
+type RotatingLogStreamFactory = typeof createStream;
 
 const DEFAULT_MAX_ENTRY_BYTES = 256 * 1024;
 const DEFAULT_MAX_ROTATED_LOG_SIZE: FileSize = "100M";
@@ -17,8 +22,8 @@ function alwaysTrue(): boolean {
 	return true;
 }
 
-async function writeFileLoggingWarningAsync(error: Error): Promise<void> {
-	await Deno.stderr.write(textEncoder.encode(`[logging] ${error.message}\n`));
+function writeFileLoggingWarning(error: Error): void {
+	nodeProcess.stderr.write(`[logging] ${error.message}\n`);
 }
 
 function getByteLength(value: string): number {
@@ -33,7 +38,7 @@ function truncateString(value: string, maxLength: number): string {
 function stringifyContextValue(value: unknown): unknown {
 	if (typeof value === "string") return truncateString(value, MAX_NOTICE_CONTEXT_VALUE_LENGTH);
 	if (typeof value === "number" || typeof value === "boolean" || value === null) return value;
-	return truncateString(Deno.inspect(value, { depth: 1, iterableLimit: 5 }), MAX_NOTICE_CONTEXT_VALUE_LENGTH);
+	return truncateString(inspect(value, { depth: 1, maxArrayLength: 5 }), MAX_NOTICE_CONTEXT_VALUE_LENGTH);
 }
 
 function createStorageSafeContext(context: Readonly<Record<string, unknown>>): Readonly<Record<string, unknown>> {
@@ -55,7 +60,7 @@ function createTruncatedEntry(
 	originalEntrySizeBytes: number,
 	maxEntryBytes: number,
 ): StructuredLogEntry {
-	return {
+	const structuredLogEntry: Writable<StructuredLogEntry> = {
 		application: entry.application,
 		context: createStorageSafeContext(entry.context),
 		customProperties: {
@@ -63,7 +68,6 @@ function createTruncatedEntry(
 			maxEntryBytes,
 			originalEntrySizeBytes,
 		},
-		...(entry.error === undefined ? {} : { error: LOG_ENTRY_TRUNCATED_PLACEHOLDER }),
 		host: entry.host,
 		level: entry.level,
 		levelValue: entry.levelValue,
@@ -71,10 +75,14 @@ function createTruncatedEntry(
 		payload: LOG_ENTRY_TRUNCATED_PLACEHOLDER,
 		process: entry.process,
 		sequenceNumber: entry.sequenceNumber,
-		...(entry.tag === undefined ? {} : { tag: entry.tag }),
 		timestamp: entry.timestamp,
 		type: entry.type,
 	};
+
+	if (entry.error !== undefined) structuredLogEntry.error = LOG_ENTRY_TRUNCATED_PLACEHOLDER;
+	if (entry.tag !== undefined) structuredLogEntry.tag = entry.tag;
+
+	return structuredLogEntry;
 }
 
 function createMinimalTruncatedEntry(
@@ -110,6 +118,7 @@ export interface DailyFileRotateReporterOptions {
 	readonly maxFiles?: number;
 	readonly maxSize?: FileSize;
 	readonly size?: FileSize;
+	readonly streamFactory?: RotatingLogStreamFactory;
 }
 
 export function serializeLogEntry(entry: StructuredLogEntry, maxEntryBytes: number = DEFAULT_MAX_ENTRY_BYTES): string {
@@ -133,8 +142,9 @@ export function createDailyFileRotateReporter({
 	maxFiles = 14,
 	maxSize = DEFAULT_MAX_ROTATED_LOG_SIZE,
 	size = "20M",
+	streamFactory = createStream,
 }: DailyFileRotateReporterOptions): ConsolaReporter {
-	const stream = createStream(filename, {
+	const stream = streamFactory(filename, {
 		compress: "gzip",
 		initialRotation: true,
 		interval,
@@ -145,10 +155,10 @@ export function createDailyFileRotateReporter({
 		size,
 	});
 	stream.on("error", function onFileStreamError(error): void {
-		void writeFileLoggingWarningAsync(error);
+		writeFileLoggingWarning(error);
 	});
 	stream.on("warning", function onFileStreamWarning(error): void {
-		void writeFileLoggingWarningAsync(error);
+		writeFileLoggingWarning(error);
 	});
 
 	return {

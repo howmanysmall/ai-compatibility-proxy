@@ -1,76 +1,72 @@
+// oxlint-disable unicorn/max-nested-calls -- html.
+import { spawn } from "node:child_process";
+import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import net from "node:net";
+import { join } from "node:path";
+import { cwd, env as processEnvironment } from "node:process";
 import { setTimeout as delayAsync } from "node:timers/promises";
+import { logger, parseLevel } from "$logging/logger";
+import { createFetchHandler } from "$proxy/app";
+import { loadConfiguration } from "$proxy/config";
 import { Command } from "@cliffy/command";
-import $ from "@david/dax";
-import { logger, parseLevel } from "@logging/logger.ts";
-import { createFetchHandler } from "@proxy/app.ts";
-import { loadConfiguration } from "@proxy/config.ts";
 import { html as renderHtml, raw, tag } from "@sander/html";
-import { join } from "@std/path";
-import { type } from "arktype";
+import { regex, type } from "arktype";
 import { Effect } from "effect";
 import prettyBytes from "pretty-bytes";
 import prettyMilliseconds from "pretty-ms";
 
 import type { HtmlNode } from "@sander/html";
 
-const RPS_BODY = [
-	"How many HTTP requests the proxy finished per second on average across the run.",
-	"The proxy is stateless, so this is a clean measure of CPU + I/O capacity on your machine.",
-].join(" ");
-const LATENCY_BODY = [
-	"Response time for the request, including network, parsing, and upstream work.",
-	"P95/P99 are the worst case for most/all users.",
-	"Watch the P99, not the average.",
-].join(" ");
-const SUCCESS_BODY = [
-	"Share of requests that came back with a 2xx status.",
-	"The mock upstream always succeeds, so anything below 100% is the proxy refusing traffic, hitting a timeout, or erroring internally.",
-].join(" ");
-const CONCURRENCY_BODY = [
-	"How many connections oha keeps open in parallel.",
-	"Higher numbers stress the proxy's connection pool and event loop.",
-	"The numbers are not directly comparable across machines.",
-].join(" ");
-const WARMUP_BODY = [
-	"A handful of requests sent before the timer starts.",
-	"These are discarded so the run measures steady-state, not first-request JIT, cache fill, or DNS.",
-].join(" ");
-const VERDICT_BODY = [
-	"A simple score: of {throughput, avg latency, p95 latency}, count the wins (higher is better for the first, lower is better for the rest).",
-	"2+ ⇒ better, 0 ⇒ worse, otherwise mixed.",
-].join(" ");
-const DELTA_BODY = [
-	"Percent change between the current run and the snapshot you selected above.",
-	"The throughput and latency color cues tell you which side of zero is good.",
-].join(" ");
-
 const GLOSSARY_ENTRIES = [
 	{
-		body: RPS_BODY,
+		body: [
+			"How many HTTP requests the proxy finished per second on average across the run.",
+			"The proxy is stateless, so this is a clean measure of CPU + I/O capacity on your machine.",
+		].join(" "),
 		title: "Requests per second",
 	} as const,
 	{
-		body: LATENCY_BODY,
+		body: [
+			"Response time for the request, including network, parsing, and upstream work.",
+			"P95/P99 are the worst case for most/all users.",
+			"Watch the P99, not the average.",
+		].join(" "),
 		title: "Latency (Avg, P95, P99)",
 	} as const,
 	{
-		body: SUCCESS_BODY,
+		body: [
+			"Share of requests that came back with a 2xx status.",
+			"The mock upstream always succeeds, so anything below 100% is the proxy refusing traffic, hitting a timeout, or erroring internally.",
+		].join(" "),
 		title: "Success rate",
 	} as const,
 	{
-		body: CONCURRENCY_BODY,
+		body: [
+			"How many connections oha keeps open in parallel.",
+			"Higher numbers stress the proxy's connection pool and event loop.",
+			"The numbers are not directly comparable across machines.",
+		].join(" "),
 		title: "Concurrency",
 	} as const,
 	{
-		body: WARMUP_BODY,
+		body: [
+			"A handful of requests sent before the timer starts.",
+			"These are discarded so the run measures steady-state, not first-request JIT, cache fill, or DNS.",
+		].join(" "),
 		title: "Warmup",
 	} as const,
 	{
-		body: VERDICT_BODY,
+		body: [
+			"A simple score: of {throughput, avg latency, p95 latency}, count the wins (higher is better for the first, lower is better for the rest).",
+			"2+ ⇒ better, 0 ⇒ worse, otherwise mixed.",
+		].join(" "),
 		title: "Verdict (better / mixed / worse)",
 	} as const,
 	{
-		body: DELTA_BODY,
+		body: [
+			"Percent change between the current run and the snapshot you selected above.",
+			"The throughput and latency color cues tell you which side of zero is good.",
+		].join(" "),
 		title: "Delta vs baseline",
 	} as const,
 ].map((entry) => tag("div", { class: "glossary-item" }, [tag("h4", entry.title), tag("p", entry.body)]));
@@ -191,51 +187,60 @@ await new Command()
 			.action(async (options) => {
 				await Effect.runPromise(
 					Effect.gen(function* runBenchmarkProgram() {
-						yield* Effect.promise(() => ensureDependencyAsync("oha"));
-						const result = yield* Effect.promise(() => runBenchmarkAsync(options));
-						yield* Effect.promise(() => persistArtifactsAsync(options, result));
-						yield* Effect.sync(() => printArtifactSummary(options, result));
+						ensureDependency("oha");
+						const result = yield* Effect.promise(async () => runBenchmarkAsync(options));
+						yield* Effect.promise(async () => persistArtifactsAsync(options, result));
+						yield* Effect.sync(() => {
+							printArtifactSummary(options, result);
+						});
 					}),
 				);
 			}),
 	)
-	.parse(Deno.args);
+	.parse(Bun.argv.slice(2));
 
 async function runBenchmarkAsync(options: BenchmarkOptions): Promise<BenchmarkRunResult> {
 	logger.level = parseLevel("fatal");
 
-	const payloadPath = join(Deno.cwd(), options.payloadFile);
-	const payloadText = await Deno.readTextFile(payloadPath);
-	const resultsRoot = join(Deno.cwd(), options.resultsDir);
+	const payloadPath = join(cwd(), options.payloadFile);
+	const payloadText = await readFile(payloadPath, "utf8");
+	const resultsRoot = join(cwd(), options.resultsDir);
 	const resultDirectory = join(resultsRoot, `${createTimestamp()}-${sanitizeLabel(options.label)}`);
 	const comparisonSnapshots = await readComparisonSnapshotsAsync(resultsRoot);
 	const baselineSummary = comparisonSnapshots[0]?.summary;
 
-	await Deno.mkdir(join(resultDirectory, "raw"), { recursive: true });
+	await mkdir(join(resultDirectory, "raw"), { recursive: true });
 
-	const mockServer = Deno.serve({ hostname: options.host, port: options.mockPort }, createMockUpstreamHandler());
-	const mockPort = getListeningPort(mockServer.addr, "mock upstream");
+	const mockPort = await chooseListeningPortAsync(options.host, options.mockPort);
+	const mockServer = Bun.serve({
+		fetch: createMockUpstreamHandler(),
+		hostname: options.host,
+		port: mockPort,
+	});
+	const mockListeningPort = getListeningPort(mockServer, "mock upstream");
 	const configuration = loadConfiguration({
-		...Deno.env.toObject(),
+		...Bun.env,
 		LOG_LEVEL: "fatal",
-		OPENCODE_MODELS_URL: `http://${options.host}:${mockPort}/api.json`,
-		UPSTREAM_BASE_URL: `http://${options.host}:${mockPort}/v1`,
+		OPENCODE_MODELS_URL: `http://${options.host}:${mockListeningPort}/api.json`,
+		UPSTREAM_BASE_URL: `http://${options.host}:${mockListeningPort}/v1`,
 		UPSTREAM_PROTOCOL: "anthropic_messages",
 	});
-	const proxyServer = Deno.serve(
-		{ hostname: options.host, port: options.port },
-		createFetchHandler({ proxyConfiguration: configuration }),
-	);
-	const proxyPort = getListeningPort(proxyServer.addr, "proxy");
+	const proxyPort = await chooseListeningPortAsync(options.host, options.port);
+	const proxyServer = Bun.serve({
+		fetch: createFetchHandler({ proxyConfiguration: configuration }),
+		hostname: options.host,
+		port: proxyPort,
+	});
+	const proxyListeningPort = getListeningPort(proxyServer, "proxy");
 
-	const proxyBaseUrl = `http://${options.host}:${proxyPort}`;
+	const proxyBaseUrl = `http://${options.host}:${proxyListeningPort}`;
 
 	try {
-		await waitForHealthyAsync(`http://${options.host}:${mockPort}/api.json`);
+		await waitForHealthyAsync(`http://${options.host}:${mockListeningPort}/api.json`);
 		await waitForHealthyAsync(`${proxyBaseUrl}/health`);
 		await warmProxyAsync(proxyBaseUrl, payloadText, options.warmupRequests);
 
-		printRunHeader(options, resultDirectory, proxyPort, mockPort);
+		printRunHeader(options, resultDirectory, proxyListeningPort, mockListeningPort);
 
 		const rawJsonByName: BenchmarkRawJsonByName = {
 			chat: await runOhaAsync({
@@ -266,7 +271,7 @@ async function runBenchmarkAsync(options: BenchmarkOptions): Promise<BenchmarkRu
 		} as const;
 
 		const summary = buildSummary(options, rawJsonByName);
-		const sparkline = await createSparklineAsync(summary.endpoints.map((endpoint) => endpoint.requestsPerSec));
+		const sparkline = createSparkline(summary.endpoints.map((endpoint) => endpoint.requestsPerSec));
 		printReadableReport(summary, baselineSummary, sparkline);
 		const reportHtml = createHtmlReport(summary, comparisonSnapshots, sparkline);
 
@@ -280,27 +285,27 @@ async function runBenchmarkAsync(options: BenchmarkOptions): Promise<BenchmarkRu
 			summary,
 		};
 	} finally {
-		await proxyServer.shutdown();
-		await mockServer.shutdown();
+		await proxyServer.stop();
+		await mockServer.stop();
 	}
 }
 
 async function persistArtifactsAsync(options: BenchmarkOptions, result: BenchmarkRunResult): Promise<void> {
 	const rawDirectory = join(result.resultDirectory, "raw");
-	await Deno.mkdir(rawDirectory, { recursive: true });
-	await Deno.writeTextFile(join(rawDirectory, "health.json"), `${result.rawJsonByName.health}\n`);
-	await Deno.writeTextFile(join(rawDirectory, "models.json"), `${result.rawJsonByName.models}\n`);
-	await Deno.writeTextFile(join(rawDirectory, "chat.json"), `${result.rawJsonByName.chat}\n`);
+	await mkdir(rawDirectory, { recursive: true });
+	await writeFile(join(rawDirectory, "health.json"), `${result.rawJsonByName.health}\n`);
+	await writeFile(join(rawDirectory, "models.json"), `${result.rawJsonByName.models}\n`);
+	await writeFile(join(rawDirectory, "chat.json"), `${result.rawJsonByName.chat}\n`);
 
 	const summaryJson = `${JSON.stringify(result.summary, undefined, 2)}\n`;
 	const summaryPath = join(result.resultDirectory, "summary.json");
 	const reportPath = join(result.resultDirectory, "report.html");
-	await Deno.writeTextFile(summaryPath, summaryJson);
-	await Deno.writeTextFile(reportPath, result.reportHtml);
+	await writeFile(summaryPath, summaryJson);
+	await writeFile(reportPath, result.reportHtml);
 
-	const resultsRoot = join(Deno.cwd(), options.resultsDir);
-	await Deno.writeTextFile(join(resultsRoot, RESULTS_LATEST_SUMMARY), summaryJson);
-	await Deno.writeTextFile(join(resultsRoot, RESULTS_LATEST_REPORT), result.reportHtml);
+	const resultsRoot = join(cwd(), options.resultsDir);
+	await writeFile(join(resultsRoot, RESULTS_LATEST_SUMMARY), summaryJson);
+	await writeFile(join(resultsRoot, RESULTS_LATEST_REPORT), result.reportHtml);
 }
 
 function buildSummary(options: BenchmarkOptions, rawJsonByName: BenchmarkRawJsonByName): BenchmarkSummary {
@@ -345,14 +350,10 @@ function printRunHeader(options: BenchmarkOptions, resultDirectory: string, prox
 	console.log(`${ANSI.dim}Snapshot ${resultDirectory}${ANSI.reset}\n`);
 }
 
-function printReadableReport(
-	current: BenchmarkSummary,
-	previous: BenchmarkSummary | undefined,
-	sparkline: string | undefined,
-): void {
+function printReadableReport(current: BenchmarkSummary, previous?: BenchmarkSummary, sparkline?: string): void {
 	printCurrentRunTable(current);
 	if (previous) printComparisonTable(current, previous);
-	if (sparkline) {
+	if (sparkline !== undefined && sparkline.length > 0) {
 		console.log(`\n${ANSI.dim}Throughput sparkline ${sparkline}${ANSI.reset}`);
 		console.log(`${ANSI.dim}/health → /v1/models → /v1/chat/completions${ANSI.reset}`);
 	}
@@ -1104,7 +1105,9 @@ function createHtmlReport(
 					createReportHeader(current),
 					createVerdictSection(current, comparisonSnapshots),
 					createQuickStatsSection(current),
-					sparkline ? createSparklineSection(current, sparkline) : raw(""),
+					sparkline !== undefined && sparkline.length > 0
+						? createSparklineSection(current, sparkline)
+						: raw(""),
 					createSection(
 						"Performance breakdown",
 						"01",
@@ -1128,7 +1131,7 @@ function createHtmlReport(
 							tag("strong", { class: "mono" }, "Artifacts"),
 							" — raw oha JSON and a machine-readable summary.json are saved next to this report. Charts load via the Chart.js CDN.",
 						]),
-						tag("div", "Built with oha + Deno · threshold: ±0% for tie"),
+						tag("div", "Built with oha + Bun · threshold: ±0% for tie"),
 					]),
 				]),
 				tag("script", { src: "https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" }),
@@ -1161,9 +1164,9 @@ function createReportHeader(summary: BenchmarkSummary): HtmlNode {
 		]),
 		tag("h1", { class: "hero-title" }, [summary.label, tag("span", { class: "tag" }, "snapshot")]),
 		tag("p", { class: "hero-sub" }, [
-			`Real load against three production endpoints of the proxy using `,
+			"Real load against three production endpoints of the proxy using ",
 			tag("strong", "oha"),
-			`. Warmup traffic is discarded so the numbers reflect steady-state behavior.`,
+			". Warmup traffic is discarded so the numbers reflect steady-state behavior.",
 		]),
 		tag("div", { class: "pill-row" }, [
 			tag("span", { class: "pill" }, ["Generated ", tag("strong", formatReportDate(summary.generatedAt))]),
@@ -1201,7 +1204,7 @@ function createVerdictSection(
 		return computeVerdict(baselineEndpoint, endpoint);
 	});
 	const tally = { better: 0, mixed: 0, worse: 0 };
-	for (const verdict of verdicts) tally[verdict]++;
+	for (const verdict of verdicts) tally[verdict] += 1;
 	let overall: VerdictTone;
 	if (tally.better >= 2) overall = "better";
 	else if (tally.worse >= 2) overall = "worse";
@@ -1267,7 +1270,7 @@ function createQuickStatsSection(summary: BenchmarkSummary): HtmlNode {
 		),
 		createQuickStat(
 			"Reliability",
-			`${formatPercent(successAvg)}`,
+			formatPercent(successAvg),
 			`avg across ${summary.endpoints.length} endpoints`,
 			"emerald",
 		),
@@ -1895,7 +1898,7 @@ updateComparison();
 }
 
 function printArtifactSummary(options: BenchmarkOptions, result: BenchmarkRunResult): void {
-	const resultsRoot = join(Deno.cwd(), options.resultsDir);
+	const resultsRoot = join(cwd(), options.resultsDir);
 	console.log(`\n${ANSI.bold}Artifacts${ANSI.reset}`);
 	console.log(`- Summary JSON: ${join(result.resultDirectory, "summary.json")}`);
 	console.log(`- Visual report: ${join(result.resultDirectory, "report.html")}`);
@@ -1909,11 +1912,38 @@ function printArtifactSummary(options: BenchmarkOptions, result: BenchmarkRunRes
 	}
 }
 
-function getListeningPort(address: Deno.Addr, serviceName: string): number {
-	if (address.transport === "tcp") return address.port;
-	const error = new Error(`Expected a tcp address for ${serviceName}.`);
+function getListeningPort(server: Bun.Server<undefined>, serviceName: string): number {
+	const { port } = server;
+	if (typeof port === "number" && port > 0) return port;
+	const error = new Error(`Expected ${serviceName} to listen on a tcp port.`);
 	Error.captureStackTrace(error, getListeningPort);
 	throw error;
+}
+
+async function chooseListeningPortAsync(host: string, requestedPort: number): Promise<number> {
+	if (requestedPort !== 0) return requestedPort;
+
+	const { promise, resolve, reject } = Promise.withResolvers<number>();
+
+	const server = net.createServer();
+	server.unref();
+	server.once("error", reject);
+	server.listen({ host, port: 0 }, () => {
+		const address = server.address();
+		server.close((error) => {
+			if (error) {
+				reject(error);
+				return;
+			}
+			if (typeof address === "object" && address !== null) {
+				resolve(address.port);
+				return;
+			}
+			reject(new Error("Failed to allocate an available benchmark port."));
+		});
+	});
+
+	return promise;
 }
 
 function createMockUpstreamHandler(): (request: Request) => Promise<Response> {
@@ -1957,26 +1987,53 @@ async function runOhaAsync(options: {
 		"-c",
 		String(options.concurrency),
 	];
-	if (options.method) parameters.push("-m", options.method);
+	if (options.method !== undefined && options.method.length > 0) parameters.push("-m", options.method);
 	for (const [name, value] of options.headers ?? []) {
 		parameters.push("-H", `${name}: ${value}`);
 	}
-	if (options.bodyFile) parameters.push("-D", options.bodyFile);
+	if (options.bodyFile !== undefined && options.bodyFile.length > 0) parameters.push("-D", options.bodyFile);
 	parameters.push(options.url);
 
-	const { code, stderr, stdout } = await new Deno.Command("oha", {
-		// oxlint-disable-next-line small-rules/prevent-abbreviations
-		args: parameters,
-		env: { NO_COLOR: "false" },
-		stderr: "piped",
-		stdout: "piped",
-	}).output();
+	const { code, stderr, stdout } = await runCommandAsync("oha", parameters, { NO_COLOR: "false" });
 	if (code !== 0) {
-		const error = new Error(`oha failed for ${options.name}: ${new TextDecoder().decode(stderr)}`);
+		const error = new Error(`oha failed for ${options.name}: ${stderr}`);
 		Error.captureStackTrace(error, runOhaAsync);
 		throw error;
 	}
-	return new TextDecoder().decode(stdout).trim();
+	return stdout.trim();
+}
+
+interface CommandOutput {
+	readonly code: number;
+	readonly stderr: string;
+	readonly stdout: string;
+}
+
+async function runCommandAsync(
+	command: string,
+	parameters: ReadonlyArray<string>,
+	environment: Readonly<Record<string, string>>,
+): Promise<CommandOutput> {
+	const { promise, resolve, reject } = Promise.withResolvers<CommandOutput>();
+	const childProcess = spawn(command, parameters, {
+		env: { ...processEnvironment, ...environment },
+		stdio: ["ignore", "pipe", "pipe"],
+	});
+	let stdout = "";
+	let stderr = "";
+	childProcess.stdout.setEncoding("utf8");
+	childProcess.stderr.setEncoding("utf8");
+	childProcess.stdout.on("data", (chunk) => {
+		stdout += chunk;
+	});
+	childProcess.stderr.on("data", (chunk) => {
+		stderr += chunk;
+	});
+	childProcess.on("error", reject);
+	childProcess.on("close", (code) => {
+		resolve({ code: code ?? 1, stderr, stdout });
+	});
+	return promise;
 }
 
 async function warmProxyAsync(proxyBaseUrl: string, payloadText: string, warmupRequests: number): Promise<void> {
@@ -2015,48 +2072,51 @@ async function waitForHealthyAsync(url: string, deadline = Date.now() + 10_000):
 	}
 
 	await delayAsync(100);
-	return await waitForHealthyAsync(url, deadline);
+	await waitForHealthyAsync(url, deadline);
 }
 
-async function createSparklineAsync(values: ReadonlyArray<number>): Promise<string | undefined> {
-	if (values.length === 0) return undefined;
+function isEmptyArray(array: ReadonlyArray<NonNullable<unknown>>): array is [] {
+	return array.length === 0;
+}
+
+function createSparkline(values: ReadonlyArray<number>): string | undefined {
+	if (isEmptyArray(values)) return undefined;
 
 	const ticks = ["▁", "▂", "▃", "▄", "▅", "▆", "▇", "█"] as const;
 	const minimum = Math.min(...values);
 	const maximum = Math.max(...values);
-	if (minimum === maximum) return ticks.at(-1)!.repeat(values.length);
+	if (minimum === maximum) return "█".repeat(values.length);
 
 	return values
 		.map((value) => {
 			const normalized = (value - minimum) / (maximum - minimum);
 			const index = Math.min(ticks.length - 1, Math.max(0, Math.round(normalized * (ticks.length - 1))));
-			return ticks[index] ?? ticks[0]!;
+			return ticks[index] ?? ticks[0];
 		})
 		.join("");
 }
 
-async function ensureDependencyAsync(command: string): Promise<void> {
-	const executablePath = await $.which(command);
-	if (!executablePath) {
+function ensureDependency(command: string): void {
+	const executablePath = Bun.which(command);
+	if (executablePath === null || executablePath.length === 0) {
 		const error = new Error(`${command} is required but was not found on PATH.`);
-		Error.captureStackTrace(error, ensureDependencyAsync);
+		Error.captureStackTrace(error, ensureDependency);
 		throw error;
 	}
 }
 
 async function readComparisonSnapshotsAsync(resultsRoot: string): Promise<ReadonlyArray<BenchmarkSnapshot>> {
-	let entries: Array<Deno.DirEntry>;
+	let directoryNames: Array<string>;
 	try {
-		entries = await Array.fromAsync(Deno.readDir(resultsRoot));
+		const entries = await readdir(resultsRoot, { encoding: "utf8", withFileTypes: true });
+		directoryNames = entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name);
 	} catch (error) {
-		if (error instanceof Deno.errors.NotFound) return [];
+		if (isNotFoundError(error)) return [];
 		throw error;
 	}
 
 	const snapshots = await Promise.all(
-		entries
-			.filter((entry) => entry.isDirectory)
-			.map(async (entry) => readSnapshotSummaryIfExistsAsync(resultsRoot, entry.name)),
+		directoryNames.map(async (directoryName) => readSnapshotSummaryIfExistsAsync(resultsRoot, directoryName)),
 	);
 	return snapshots
 		.filter(isDefined)
@@ -2072,14 +2132,18 @@ async function readSnapshotSummaryIfExistsAsync(
 		return {
 			id: directoryName,
 			summary: parseBenchmarkSummary(
-				JSON.parse(await Deno.readTextFile(summaryPath)),
+				JSON.parse(await readFile(summaryPath, "utf8")),
 				`saved summary at ${summaryPath}`,
 			),
 		};
 	} catch (error) {
-		if (error instanceof Deno.errors.NotFound) return undefined;
+		if (isNotFoundError(error)) return undefined;
 		throw error;
 	}
+}
+
+function isNotFoundError(error: unknown): boolean {
+	return error instanceof Error && "code" in error && error.code === "ENOENT";
 }
 
 function isDefined<Value>(value: Value | undefined): value is Value {
@@ -2198,9 +2262,7 @@ function visibleLength(value: string): number {
 
 function stripAnsi(value: string): string {
 	let strippedValue = value;
-	for (const ansiValue of ANSI_VALUES) {
-		strippedValue = strippedValue.replaceAll(ansiValue, "");
-	}
+	for (const ansiValue of ANSI_VALUES) strippedValue = strippedValue.replaceAll(ansiValue, "");
 	return strippedValue;
 }
 
@@ -2236,11 +2298,14 @@ function formatReportDate(isoString: string): string {
 	return `${datePart} · ${timePart}`;
 }
 
+// oxlint-disable-next-line unicorn/prefer-string-raw -- Not on `regex`
+const DURATION_REGEXP = regex("^(?<value>\\d+(?:\\.\\d+)?)(?<unit>[smh])?", "u");
 function parseDurationToSeconds(duration: string): number {
-	const match = /^(\d+(?:\.\d+)?)([smh])?$/u.exec(duration.trim());
+	const match = DURATION_REGEXP.exec(duration.trim());
 	if (!match) return 0;
-	const value = Number(match[1]);
-	const unit = match[2] ?? "s";
+
+	const value = Number(match.groups.value);
+	const unit = match.groups.unit ?? "s";
 	if (unit === "m") return value * 60;
 	if (unit === "h") return value * 3600;
 	return value;
@@ -2282,13 +2347,15 @@ function getVerdict(previous: EndpointSummary, current: EndpointSummary): string
 	return `${ANSI.red}worse${ANSI.reset}`;
 }
 
+const ALPHA_NUMERIC = /[\dA-Za-z]/u;
+
 function sanitizeLabel(value: string): string {
 	const trimmedValue = value.trim();
 	let sanitizedValue = "";
 	let lastWasSeparator = false;
 
 	for (const character of trimmedValue) {
-		const isAlphaNumeric = /[\dA-Za-z]/u.test(character);
+		const isAlphaNumeric = ALPHA_NUMERIC.test(character);
 		const isAllowedPunctuation = character === "." || character === "_" || character === "-";
 		if (isAlphaNumeric || isAllowedPunctuation) {
 			sanitizedValue += character;

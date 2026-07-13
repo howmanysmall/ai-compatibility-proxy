@@ -1,93 +1,210 @@
-import { loadConfiguration } from "@proxy/config.ts";
+import { describe, it, expect } from "vitest";
+import { loadConfiguration } from "$proxy/config";
 
-import { assertEquals } from "../utilities/test-utilities.ts";
+describe("configuration and logger", () => {
+	it("arkenv config parses all env vars and preserves ProxyConfig field names", () => {
+		expect.assertions(16);
+		const config = loadConfiguration({
+			CEREBRAS_DROP_UNSUPPORTED_FIELDS: "false",
+			CEREBRAS_STRICT_REQUEST_VALIDATION: "false",
+			DEFAULT_MAX_TOKENS: "2048",
+			DEFAULT_MODEL: "custom-model",
+			LOG_LEVEL: "debug",
+			OPENCODE_MODELS_CACHE_TTL_MS: "12345",
+			OPENCODE_MODELS_FETCH_TIMEOUT_MS: "3456",
+			OPENCODE_MODELS_URL: "https://models.dev/api.json/",
+			PATH: "/usr/bin",
+			PORT: "9000",
+			PROXY_API_KEY: "proxy-key",
+			REQUEST_TIMEOUT_MS: "1500",
+			UPSTREAM_API_KEY: "upstream-key",
+			UPSTREAM_AUTH_HEADER: "X-Api-Key",
+			UPSTREAM_AUTH_MODE: "server_key",
+			UPSTREAM_BASE_URL: "https://example.test/v1/",
+			UPSTREAM_PROTOCOL: "cerebras_openai",
+		});
 
-Deno.test("Arkenv config parses all env vars and preserves ProxyConfig field names", () => {
-	const config = loadConfiguration({
-		CEREBRAS_DROP_UNSUPPORTED_FIELDS: "false",
-		CEREBRAS_STRICT_REQUEST_VALIDATION: "false",
-		DEFAULT_MAX_TOKENS: "2048",
-		DEFAULT_MODEL: "custom-model",
-		LOG_LEVEL: "debug",
-		OPENCODE_MODELS_CACHE_TTL_MS: "12345",
-		OPENCODE_MODELS_FETCH_TIMEOUT_MS: "3456",
-		OPENCODE_MODELS_URL: "https://models.dev/api.json/",
-		PATH: "/usr/bin",
-		PORT: "9000",
-		PROXY_API_KEY: "proxy-key",
-		REQUEST_TIMEOUT_MS: "1500",
-		UPSTREAM_API_KEY: "upstream-key",
-		UPSTREAM_AUTH_HEADER: "X-Api-Key",
-		UPSTREAM_AUTH_MODE: "server_key",
-		UPSTREAM_BASE_URL: "https://example.test/v1/",
-		UPSTREAM_PROTOCOL: "cerebras_openai",
+		expect(config.cerebrasDropUnsupportedFields, "Expected CEREBRAS_DROP_UNSUPPORTED_FIELDS mapping.").toBe(false);
+		expect(config.cerebrasStrictRequestValidation, "Expected CEREBRAS_STRICT_REQUEST_VALIDATION mapping.").toBe(
+			false,
+		);
+		expect(config.defaultMaxTokens, "Expected DEFAULT_MAX_TOKENS mapping.").toBe(2048);
+		expect(config.defaultModel, "Expected DEFAULT_MODEL mapping.").toBe("custom-model");
+		expect(config.logLevel, "Expected LOG_LEVEL mapping.").toBe("debug");
+		expect(config.opencodeModelsCacheTtlMs, "Expected OPENCODE_MODELS_CACHE_TTL_MS mapping.").toBe(12_345);
+		expect(config.opencodeModelsFetchTimeoutMs, "Expected OPENCODE_MODELS_FETCH_TIMEOUT_MS mapping.").toBe(3456);
+		expect(config.opencodeModelsUrl, "Expected OPENCODE_MODELS_URL trimming.").toBe("https://models.dev/api.json");
+		expect(config.port, "Expected PORT mapping.").toBe(9000);
+		expect(config.proxyApiKey, "Expected PROXY_API_KEY mapping.").toBe("proxy-key");
+		expect(config.requestTimeoutMs, "Expected REQUEST_TIMEOUT_MS mapping.").toBe(1500);
+		expect(config.upstreamApiKey, "Expected UPSTREAM_API_KEY mapping.").toBe("upstream-key");
+		expect(config.upstreamAuthHeader, "Expected UPSTREAM_AUTH_HEADER mapping.").toBe("X-Api-Key");
+		expect(config.upstreamAuthMode, "Expected UPSTREAM_AUTH_MODE mapping.").toBe("server_key");
+		expect(config.upstreamBaseUrl, "Expected UPSTREAM_BASE_URL trimming.").toBe("https://example.test/v1");
+		expect(config.upstreamProtocol, "Expected UPSTREAM_PROTOCOL mapping.").toBe("cerebras_openai");
 	});
 
-	assertEquals(config.cerebrasDropUnsupportedFields, false, "Expected CEREBRAS_DROP_UNSUPPORTED_FIELDS mapping.");
-	assertEquals(config.cerebrasStrictRequestValidation, false, "Expected CEREBRAS_STRICT_REQUEST_VALIDATION mapping.");
-	assertEquals(config.defaultMaxTokens, 2048, "Expected DEFAULT_MAX_TOKENS mapping.");
-	assertEquals(config.defaultModel, "custom-model", "Expected DEFAULT_MODEL mapping.");
-	assertEquals(config.logLevel, "debug", "Expected LOG_LEVEL mapping.");
-	assertEquals(config.opencodeModelsCacheTtlMs, 12_345, "Expected OPENCODE_MODELS_CACHE_TTL_MS mapping.");
-	assertEquals(config.opencodeModelsFetchTimeoutMs, 3456, "Expected OPENCODE_MODELS_FETCH_TIMEOUT_MS mapping.");
-	assertEquals(config.opencodeModelsUrl, "https://models.dev/api.json", "Expected OPENCODE_MODELS_URL trimming.");
-	assertEquals(config.port, 9000, "Expected PORT mapping.");
-	assertEquals(config.proxyApiKey, "proxy-key", "Expected PROXY_API_KEY mapping.");
-	assertEquals(config.requestTimeoutMs, 1500, "Expected REQUEST_TIMEOUT_MS mapping.");
-	assertEquals(config.upstreamApiKey, "upstream-key", "Expected UPSTREAM_API_KEY mapping.");
-	assertEquals(config.upstreamAuthHeader, "X-Api-Key", "Expected UPSTREAM_AUTH_HEADER mapping.");
-	assertEquals(config.upstreamAuthMode, "server_key", "Expected UPSTREAM_AUTH_MODE mapping.");
-	assertEquals(config.upstreamBaseUrl, "https://example.test/v1", "Expected UPSTREAM_BASE_URL trimming.");
-	assertEquals(config.upstreamProtocol, "cerebras_openai", "Expected UPSTREAM_PROTOCOL mapping.");
-});
+	it("arkenv config applies defaults for all optional env vars", () => {
+		expect.assertions(16);
+		const config = loadConfiguration({});
 
-Deno.test("Arkenv config applies defaults for all optional env vars", () => {
-	const config = loadConfiguration({});
+		expect(config.cerebrasDropUnsupportedFields, "Expected Cerebras drop default.").toBe(true);
+		expect(config.cerebrasStrictRequestValidation, "Expected Cerebras strict default.").toBe(true);
+		expect(config.defaultMaxTokens, "Expected token default.").toBe(4096);
+		expect(config.defaultModel, "Expected model default.").toBe("minimax-m3");
+		expect(config.logLevel, "Expected log level default.").toBe("info");
+		expect(config.opencodeModelsCacheTtlMs, "Expected metadata cache TTL default.").toBe(300_000);
+		expect(config.opencodeModelsFetchTimeoutMs, "Expected metadata fetch timeout default.").toBe(2000);
+		expect(config.opencodeModelsUrl, "Expected metadata URL default.").toBe("https://models.dev/api.json");
+		expect(config.port, "Expected port default.").toBe(8000);
+		expect(config.proxyApiKey, "Expected proxy key optional default.").toBeUndefined();
+		expect(config.requestTimeoutMs, "Expected timeout default.").toBe(60_000);
+		expect(config.upstreamApiKey, "Expected upstream key optional default.").toBeUndefined();
+		expect(config.upstreamAuthHeader, "Expected OpenCode Go auth header default.").toBe("x-api-key");
+		expect(config.upstreamAuthMode, "Expected auth mode default.").toBe("client_bearer");
+		expect(config.upstreamBaseUrl, "Expected base URL default.").toBe("https://opencode.ai/zen/go/v1");
+		expect(config.upstreamProtocol, "Expected protocol default.").toBe("anthropic_messages");
+	});
 
-	assertEquals(config.cerebrasDropUnsupportedFields, true, "Expected Cerebras drop default.");
-	assertEquals(config.cerebrasStrictRequestValidation, true, "Expected Cerebras strict default.");
-	assertEquals(config.defaultMaxTokens, 4096, "Expected token default.");
-	assertEquals(config.defaultModel, "minimax-m3", "Expected model default.");
-	assertEquals(config.logLevel, "info", "Expected log level default.");
-	assertEquals(config.opencodeModelsCacheTtlMs, 300_000, "Expected metadata cache TTL default.");
-	assertEquals(config.opencodeModelsFetchTimeoutMs, 2000, "Expected metadata fetch timeout default.");
-	assertEquals(config.opencodeModelsUrl, "https://models.dev/api.json", "Expected metadata URL default.");
-	assertEquals(config.port, 8000, "Expected port default.");
-	assertEquals(config.proxyApiKey, undefined, "Expected proxy key optional default.");
-	assertEquals(config.requestTimeoutMs, 60_000, "Expected timeout default.");
-	assertEquals(config.upstreamApiKey, undefined, "Expected upstream key optional default.");
-	assertEquals(config.upstreamAuthHeader, "x-api-key", "Expected OpenCode Go auth header default.");
-	assertEquals(config.upstreamAuthMode, "client_bearer", "Expected auth mode default.");
-	assertEquals(config.upstreamBaseUrl, "https://opencode.ai/zen/go/v1", "Expected base URL default.");
-	assertEquals(config.upstreamProtocol, "anthropic_messages", "Expected protocol default.");
-});
+	it("arkenv config preserves Cerebras protocol-specific defaults", () => {
+		expect.assertions(4);
+		const config = loadConfiguration({ UPSTREAM_PROTOCOL: "cerebras_openai" });
 
-Deno.test("Arkenv config preserves Cerebras protocol-specific defaults", () => {
-	const config = loadConfiguration({ UPSTREAM_PROTOCOL: "cerebras_openai" });
+		expect(config.upstreamProtocol, "Expected Cerebras protocol.").toBe("cerebras_openai");
+		expect(config.upstreamBaseUrl, "Expected Cerebras base URL default.").toBe("https://api.cerebras.ai/v1");
+		expect(config.upstreamAuthHeader, "Expected Cerebras auth header default.").toBe("Authorization");
+		expect(config.defaultModel, "Expected Cerebras model default.").toBe("gpt-oss-120b");
+	});
 
-	assertEquals(config.upstreamProtocol, "cerebras_openai", "Expected Cerebras protocol.");
-	assertEquals(config.upstreamBaseUrl, "https://api.cerebras.ai/v1", "Expected Cerebras base URL default.");
-	assertEquals(config.upstreamAuthHeader, "Authorization", "Expected Cerebras auth header default.");
-	assertEquals(config.defaultModel, "gpt-oss-120b", "Expected Cerebras model default.");
-});
+	it("arkenv config treats blank env values as undefined before applying defaults", () => {
+		expect.assertions(3);
+		const config = loadConfiguration({
+			DEFAULT_MODEL: "   ",
+			PROXY_API_KEY: "",
+			UPSTREAM_AUTH_HEADER: "\t",
+		});
 
-Deno.test({
-	fn: async () => {
-		const { ensureLogDirectory, logger } = await import("@logging/logger.ts");
+		expect(config.defaultModel, "Expected blank model env to fall back to default.").toBe("minimax-m3");
+		expect(config.proxyApiKey, "Expected blank proxy key env to become undefined.").toBeUndefined();
+		expect(config.upstreamAuthHeader, "Expected blank auth header env to fall back to default.").toBe("x-api-key");
+	});
 
-		assertEquals(ensureLogDirectory(), false, "Expected logger import to avoid crashing without write permission.");
+	it("logger module handles log directory availability before reporters are used", async () => {
+		expect.assertions(1);
+		const { ensureLogDirectory, logger } = await import("$logging/logger");
+
+		expect(ensureLogDirectory()).toBeTypeOf("boolean");
 		logger.info("log directory smoke test");
-	},
-	name: "logger module handles log directory setup before reporters are used",
-});
+		logger.withContext({ requestId: "logger-context-smoke" }).info("contextual logger smoke test");
+		logger.withContext({ requestId: "logger-context-error-smoke" }).error("contextual logger error smoke test");
+	});
 
-Deno.test({
-	fn: async () => {
-		const { logger, parseLevel } = await import("@logging/logger.ts");
+	it("lOG_LEVEL=warn maps to consola level mutation", async () => {
+		expect.assertions(1);
+		const { logger, parseLevel } = await import("$logging/logger");
 
 		logger.level = parseLevel("warn");
 
-		assertEquals(logger.level, 2, "Expected warn to map to consola level 2.");
-	},
-	name: "LOG_LEVEL=warn maps to consola level mutation",
+		expect(logger.level, "Expected warn to map to consola level 2.").toBe(2);
+	});
+
+	it("parseLevel maps numeric and named consola levels", async () => {
+		expect.assertions(13);
+		const { parseLevel } = await import("$logging/logger");
+
+		expect(parseLevel("0"), "Expected fatal numeric level.").toBe(0);
+		expect(parseLevel(" fatal "), "Expected fatal named level.").toBe(0);
+		expect(parseLevel("1"), "Expected error numeric level.").toBe(1);
+		expect(parseLevel("ERROR"), "Expected case-insensitive error named level.").toBe(1);
+		expect(parseLevel("2"), "Expected warn numeric level.").toBe(2);
+		expect(parseLevel("warn"), "Expected warn named level.").toBe(2);
+		expect(parseLevel("3"), "Expected info numeric fallback level.").toBe(3);
+		expect(parseLevel("info"), "Expected info named fallback level.").toBe(3);
+		expect(parseLevel("4"), "Expected debug numeric level.").toBe(4);
+		expect(parseLevel("debug"), "Expected debug named level.").toBe(4);
+		expect(parseLevel("5"), "Expected trace numeric level.").toBe(5);
+		expect(parseLevel("trace"), "Expected trace named level.").toBe(5);
+		expect(parseLevel("not-a-level"), "Expected unknown level to default to info.").toBe(3);
+	});
+
+	it("validateOutboundUrl throws on invalid url", () => {
+		expect.assertions(1);
+		expect(() => loadConfiguration({ UPSTREAM_BASE_URL: "not-a-url" })).toThrow("Invalid URL: not-a-url");
+	});
+
+	it("validateOutboundUrl throws on HTTP outbound protocol in production mode", () => {
+		expect.assertions(1);
+		expect(() =>
+			loadConfiguration({
+				NODE_ENV: "production",
+				UPSTREAM_BASE_URL: "http://example.com/v1",
+			}),
+		).toThrow("Outbound URL must use HTTPS protocol");
+	});
+
+	it("validateOutboundUrl allows HTTP on localhost/127.0.0.1/local/test in dev/test mode", () => {
+		expect.assertions(4);
+		const configLocal = loadConfiguration({
+			NODE_ENV: "development",
+			UPSTREAM_BASE_URL: "http://localhost/v1",
+		});
+		expect(configLocal.upstreamBaseUrl).toBe("http://localhost/v1");
+
+		const configIp = loadConfiguration({
+			NODE_ENV: "development",
+			UPSTREAM_BASE_URL: "http://127.0.0.1/v1",
+		});
+		expect(configIp.upstreamBaseUrl).toBe("http://127.0.0.1/v1");
+
+		const configLocalDomain = loadConfiguration({
+			NODE_ENV: "development",
+			// oxlint-disable-next-line sonar/no-clear-text-protocols -- allowing clear text protocol for local development
+			UPSTREAM_BASE_URL: "http://my-service.local/v1",
+		});
+		expect(configLocalDomain.upstreamBaseUrl)
+			// oxlint-disable-next-line sonar/no-clear-text-protocols -- allowing clear text protocol for local development
+			.toBe("http://my-service.local/v1");
+
+		const configTest = loadConfiguration({
+			NODE_ENV: "test",
+			UPSTREAM_BASE_URL: "http://my-service.test/v1",
+		});
+		expect(configTest.upstreamBaseUrl).toBe("http://my-service.test/v1");
+	});
+
+	it("validateOutboundUrl validates allowed upstream hosts", () => {
+		expect.assertions(3);
+		const config1 = loadConfiguration({
+			ALLOWED_UPSTREAM_HOSTS: "opencode.ai,models.dev",
+			OPENCODE_MODELS_URL: "https://models.dev/api.json",
+			UPSTREAM_BASE_URL: "https://opencode.ai/v1",
+		});
+		expect(config1.allowedUpstreamHosts).toStrictEqual(["opencode.ai", "models.dev"]);
+
+		const config2 = loadConfiguration({
+			ALLOWED_UPSTREAM_HOSTS: "*.opencode.ai,*",
+			UPSTREAM_BASE_URL: "https://sub.opencode.ai/v1",
+		});
+		expect(config2.allowedUpstreamHosts).toStrictEqual(["*.opencode.ai", "*"]);
+
+		expect(() =>
+			loadConfiguration({
+				ALLOWED_UPSTREAM_HOSTS: "opencode.ai",
+				UPSTREAM_BASE_URL: "https://example.com/v1",
+			}),
+		).toThrow("is not in the allowed host list");
+	});
+
+	it("uPSTREAM_ERROR_TRANSPARENCY is parsed from env", () => {
+		expect.assertions(2);
+		const configTrue = loadConfiguration({
+			UPSTREAM_ERROR_TRANSPARENCY: "true",
+		});
+		expect(configTrue.upstreamErrorTransparency).toBe(true);
+
+		const configFalse = loadConfiguration({
+			UPSTREAM_ERROR_TRANSPARENCY: "false",
+		});
+		expect(configFalse.upstreamErrorTransparency).toBe(false);
+	});
 });

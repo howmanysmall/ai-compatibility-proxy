@@ -1,16 +1,19 @@
-import { createApp } from "@proxy/app.ts";
+import { expect, describe, it } from "vitest";
+import { createApp } from "$proxy/app";
 
-import { assert, getInitHeader } from "../utilities/test-utilities.ts";
+import { getInitHeader } from "../utilities/test-utilities";
 
-import type { ProxyConfiguration } from "@proxy/config.ts";
+import type { ProxyConfiguration } from "$proxy/config";
 
 function createConfiguration(overrides: Partial<ProxyConfiguration> = {}): ProxyConfiguration {
 	return {
+		allowedUpstreamHosts: [],
 		cerebrasDropUnsupportedFields: true,
 		cerebrasStrictRequestValidation: true,
 		defaultMaxTokens: 4096,
 		defaultModel: "minimax-m3",
 		logLevel: "info",
+		maxRequestBodySizeBytes: 1_048_576,
 		opencodeModelsCacheTtlMs: 300_000,
 		opencodeModelsFetchTimeoutMs: 2000,
 		opencodeModelsUrl: "https://models.dev/api.json",
@@ -21,58 +24,68 @@ function createConfiguration(overrides: Partial<ProxyConfiguration> = {}): Proxy
 		upstreamAuthHeader: "Authorization",
 		upstreamAuthMode: "server_key",
 		upstreamBaseUrl: "https://opencode.ai/zen/go/v1",
+		upstreamErrorTransparency: false,
 		upstreamProtocol: "anthropic_messages",
 		...overrides,
 	};
 }
 
-Deno.test("server_key mode rejects same-length wrong token", async () => {
-	const app = createApp({
-		fetcher: (_input, init) => {
-			assert(getInitHeader(init, "authorization") === "Bearer upstream-key", "Expected upstream auth header.");
-			return Promise.resolve(Response.json({ data: [], object: "list" }));
-		},
-		proxyConfiguration: createConfiguration(),
+describe("auth timing", () => {
+	it("server_key mode rejects same-length wrong token", async () => {
+		expect.hasAssertions();
+		const app = createApp({
+			fetcher: async (_input, init) => {
+				expect(getInitHeader(init, "authorization"), "Expected upstream auth header.").toBe(
+					"Bearer upstream-key",
+				);
+				return Response.json({ data: [], object: "list" });
+			},
+			proxyConfiguration: createConfiguration(),
+		});
+
+		const response = await app.fetch(
+			new Request("http://localhost/v1/models", {
+				headers: { authorization: "Bearer wrong-key" },
+			}),
+		);
+
+		expect(response.status, "Expected same-length wrong token to fail.").toBe(401);
 	});
 
-	const response = await app.request(
-		new Request("http://localhost/v1/models", {
-			headers: { authorization: "Bearer wrong-key" },
-		}),
-	);
+	it("server_key mode rejects different-length wrong token", async () => {
+		expect.assertions(1);
+		const app = createApp({
+			fetcher: async () => Response.json({ data: [], object: "list" }),
+			proxyConfiguration: createConfiguration(),
+		});
 
-	assert(response.status === 401, "Expected same-length wrong token to fail.");
-});
+		const response = await app.fetch(
+			new Request("http://localhost/v1/models", {
+				headers: { authorization: "Bearer wrong-key-longer" },
+			}),
+		);
 
-Deno.test("server_key mode rejects different-length wrong token", async () => {
-	const app = createApp({
-		fetcher: () => Promise.resolve(Response.json({ data: [], object: "list" })),
-		proxyConfiguration: createConfiguration(),
+		expect(response.status, "Expected different-length wrong token to fail.").toBe(401);
 	});
 
-	const response = await app.request(
-		new Request("http://localhost/v1/models", {
-			headers: { authorization: "Bearer wrong-key-longer" },
-		}),
-	);
+	it("server_key mode accepts correct token", async () => {
+		expect.hasAssertions();
+		const app = createApp({
+			fetcher: async (_input, init) => {
+				expect(getInitHeader(init, "authorization"), "Expected upstream auth header.").toBe(
+					"Bearer upstream-key",
+				);
+				return Response.json({ data: [], object: "list" });
+			},
+			proxyConfiguration: createConfiguration(),
+		});
 
-	assert(response.status === 401, "Expected different-length wrong token to fail.");
-});
+		const response = await app.fetch(
+			new Request("http://localhost/v1/models", {
+				headers: { authorization: "Bearer proxy-key" },
+			}),
+		);
 
-Deno.test("server_key mode accepts correct token", async () => {
-	const app = createApp({
-		fetcher: (_input, init) => {
-			assert(getInitHeader(init, "authorization") === "Bearer upstream-key", "Expected upstream auth header.");
-			return Promise.resolve(Response.json({ data: [], object: "list" }));
-		},
-		proxyConfiguration: createConfiguration(),
+		expect(response.status, "Expected correct token to pass.").toBe(200);
 	});
-
-	const response = await app.request(
-		new Request("http://localhost/v1/models", {
-			headers: { authorization: "Bearer proxy-key" },
-		}),
-	);
-
-	assert(response.status === 200, "Expected correct token to pass.");
 });

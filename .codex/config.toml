@@ -1,0 +1,18 @@
+[agents]
+max_depth = 10
+
+[mcp_servers]
+[mcp_servers."bun-docs"]
+url = "https://bun.com/docs/mcp"
+
+[mcp_servers.jsr]
+args = ["x", "--", "jsr-cli", "mcp"]
+command = "mise"
+
+[mcp_servers.npm]
+args = ["x", "--", "npm-registry-mcp"]
+command = "mise"
+
+[tui]
+notification_method = "auto"
+notification_condition = "always"

@@ -1,0 +1,9 @@
+# Security-sensitive code ownership rules
+# Re-run ownership map periodically to update
+/src/proxy/auth.ts        @howmanysmall
+/src/proxy/config.ts      @howmanysmall
+/src/proxy/routes.ts      @howmanysmall
+/src/proxy/upstream.ts    @howmanysmall
+/src/proxy/sse.ts         @howmanysmall
+/src/logging/sanitizer.ts @howmanysmall
+/src/logging/logger.ts    @howmanysmall

@@ -6,59 +6,47 @@ HK_MISE = 1
 [tools]
 "github:howmanysmall/npm-registry-mcp" = "latest"
 "github:howmanysmall/pullhook" = "latest"
-deno = "2.8.1"
+bun = "latest"
+flyctl = "latest"
 gum = "latest"
 hk = "latest"
-ni = "latest"
+jq = "latest"
+nub = "latest"
 pkl = "latest"
+pnpm = "11.10.0"
 rumdl = "latest"
 shfmt = "latest"
 tombi = "latest"
-jq = "latest"
+zizmor = "latest"
+ni = "latest"
 
 [settings]
 auto_install = false
 lockfile = true
 
+[hooks]
+postinstall = "mise run bun-canary"
+
 [tasks]
-[tasks.ignore-skills]
-description = "Ignores skills from the lockfile."
+[tasks.bun-canary]
+description = "Ensure the mise-managed Bun binary is a canary build"
 run = """
 #!/usr/bin/env bash
-
 set -euo pipefail
 
-GITIGNORE_PATH=".gitignore"
-SKILLS_LOCK_PATH="skills-lock.json"
-SKILLS_DIR=".agents/skills"
-
-version=$(jq -r '.version' "$SKILLS_LOCK_PATH")
-if [[ "$version" != "1" ]]; then
-	echo "error: unsupported skills-lock.json version: $version" >&2
-	exit 1
+current_revision="$(bun --revision)"
+if [[ "$current_revision" == *"-canary."* ]]; then
+	echo "$current_revision"
+	exit 0
 fi
 
-mapfile -t skill_names < <(jq -r '.skills | keys[]' "$SKILLS_LOCK_PATH")
-
-added=0
-for name in "${skill_names[@]}"; do
-	line="${SKILLS_DIR}/${name}/"
-	if ! grep -qxF "$line" "$GITIGNORE_PATH" 2> /dev/null; then
-		printf '%s\n' "$line" >> "$GITIGNORE_PATH"
-		((added++)) || true
-	fi
-done
-
-if ((added > 0)); then
-	echo "✔ Added ${added} skill(s) to .gitignore"
-else
-	echo "ℹ All skills already in .gitignore"
-fi
+bun upgrade --canary
+bun --revision
 """
 
 [tasks.live-smoke]
 description = "Run repeatable live smoke tests for OpenCode Go and Cerebras proxy paths"
-run = "mise x -- deno run --allow-net --allow-env --allow-read --allow-run scripts/live-proxy-smoke.ts"
+run = "mise x -- bun run --bun scripts/live-proxy-smoke.ts"
 
 [tasks.bench-http]
 alias = "bench"
@@ -66,21 +54,21 @@ description = "Run real localhost HTTP benchmarks and print a compare-ready repo
 dir = "."
 env = { BENCH_LABEL = "default", CONCURRENCY = "50", DURATION = "10s", WARMUP_REQUESTS = "5" }
 raw = true
-run = "deno run --allow-env --allow-net --allow-read --allow-run --allow-write --allow-sys scripts/http-bench.ts run --label $BENCH_LABEL --duration $DURATION --concurrency $CONCURRENCY --warmup-requests $WARMUP_REQUESTS"
+run = "bun run --bun scripts/http-bench.ts run --label $BENCH_LABEL --duration $DURATION --concurrency $CONCURRENCY --warmup-requests $WARMUP_REQUESTS"
 
 [tasks.bench-http-quick]
 alias = "bench-quick"
 description = "Run a short benchmark pass with a readable report for quick local comparisons."
 dir = "."
 raw = true
-run = "deno run --allow-env --allow-net --allow-read --allow-run --allow-write --allow-sys scripts/http-bench.ts run --label quick --duration 2s --concurrency 10 --warmup-requests 2"
+run = "bun run --bun scripts/http-bench.ts run --label quick --duration 2s --concurrency 10 --warmup-requests 2"
 
 [tasks.bench-http-stress]
 alias = "bench-stress"
 description = "Run a longer benchmark pass with a readable report for higher-load comparisons."
 dir = "."
 raw = true
-run = "deno run --allow-env --allow-net --allow-read --allow-run --allow-write --allow-sys scripts/http-bench.ts run --label stress --duration 15s --concurrency 50 --warmup-requests 10"
+run = "bun run --bun scripts/http-bench.ts run --label stress --duration 15s --concurrency 50 --warmup-requests 10"
 
 [tasks.open-latest-bench]
 description = "Open the latest benchmark results in your browser."
@@ -107,3 +95,23 @@ fi
 run_windows = """
 cmd /c start "" benchmarks\\results\\latest-report.html
 """
+
+[tasks.health-check]
+alias = "hc"
+description = "Health check the running proxy. Exits 0 if status is ok, 1 otherwise."
+env = { PORT = "8000" }
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+
+port="${PORT:-8000}"
+
+if response=$(curl -sf "http://localhost:${port}/health" 2>/dev/null); then
+	status=$(echo "$response" | jq -r '.status // empty' 2>/dev/null)
+	if [ "$status" = "ok" ]; then
+		exit 0
+	fi
+fi
+
+exit 1
+""""
